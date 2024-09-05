@@ -13,8 +13,10 @@ const Button = ({
 			onClick={onClick}
 			type="button"
 			className={clsx(
-				`rounded-md font-semibold shadow-sm ${extraClasses}`,
-				size === "small" ? "px-2 py-1 pt-1.5 text-xs" : "text-sm",
+				`rounded-md shadow-sm ${extraClasses}`,
+				size === "small"
+					? "px-2 py-1 pt-1.5 text-xs font-normal"
+					: "text-sm font-semibold",
 				size === "medium" ? "px-2 py-1 pt-1.5" : "",
 				size === "default" ? "px-2.5 py-1.5 pt-2" : "",
 				size === "large" ? "px-3 py-2 pt-2.5" : "",
