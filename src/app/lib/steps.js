@@ -120,7 +120,7 @@ export const steps = [
 				type: "fieldGroup",
 				fields: [
 					{ id: "townCity", label: "Town/City", type: "text" },
-					{ id: "postCode", label: "Postcode", type: "text" },
+					{ id: "postcode", label: "Postcode", type: "text" },
 				],
 			},
 
@@ -444,6 +444,7 @@ export const steps = [
 			},
 		],
 	},
+
 	{
 		id: "step3",
 		status: "upcoming",
@@ -466,6 +467,7 @@ export const steps = [
 			},
 		],
 	},
+
 	{
 		id: "step4",
 		status: "upcoming",

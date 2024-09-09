@@ -118,7 +118,36 @@ const MultiStepForm = () => {
 	};
 
 	//submit event
-	const onSubmit = (data) => console.log(data);
+	const onSubmit = async () => {
+		// Retrieve all form values using getValues()
+		const formData = getValues();
+
+		try {
+			// Send the form data to the GoCardless API route
+			const response = await fetch("/api/gocardless/billing-request", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(formData), // Send the form data as JSON
+			});
+
+			// Check if the response is successful
+			if (response.ok) {
+				const result = await response.json();
+				console.log(result);
+				// Redirect to the GoCardless hosted page for Direct Debit setup
+				//window.location.href = result.authorisation_url;
+			} else {
+				console.error("Error:", await response.json());
+				alert("There was an error submitting your request. Please try again.");
+			}
+		} catch (error) {
+			// Handle any errors that occur during the request
+			console.error("Error during form submission:", error);
+			alert("Something went wrong. Please try again later.");
+		}
+	};
 
 	const showGivingDetailsHandler = () => setShowAmountField(true);
 
@@ -137,6 +166,11 @@ const MultiStepForm = () => {
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
 					/>
+					{step === steps.length - 1 && Object.keys(errors).length > 0 && (
+						<p className="text-hfj-red text-sm">
+							Something went wrong. Please check your submission.
+						</p>
+					)}
 				</form>
 			</FormProvider>
 			<HorizontalRule className="my-8" />
