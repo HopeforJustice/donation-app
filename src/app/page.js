@@ -2,6 +2,7 @@ import Image from "next/image";
 import MultiStepForm from "./ui/forms/MultiStepForm";
 import Grid from "./ui/layout/Grid";
 import Container from "./ui/layout/containers/Container";
+import { Suspense } from "react";
 
 export default function Home() {
 	return (
@@ -52,7 +53,9 @@ export default function Home() {
 								alt="Hope for Justice logo"
 							/>
 							<div className="xl:max-w-lg xl:mx-auto xl:mt-[70px] xl:mb-10">
-								<MultiStepForm />
+								<Suspense>
+									<MultiStepForm />
+								</Suspense>
 							</div>
 						</div>
 						<h2 className="font-display text-white text-6xl hidden xl:block col-span-4 z-10 fixed bottom-10 left-1/2 ml-16 max-w-xl">

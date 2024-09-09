@@ -24,7 +24,7 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 			if (values.amount) {
 				return (
 					<p className="mb-4">
-						You're giving {values.currency?.toUpperCase()}{" "}
+						You&apos;re giving {values.currency?.toUpperCase()}{" "}
 						{values.currency !== "nok"
 							? findCurrencySymbol(values.currency)
 							: ""}
