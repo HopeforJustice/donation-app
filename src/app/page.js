@@ -8,7 +8,7 @@ export default function Home() {
 	return (
 		<main>
 			<Grid cols="1" rows="1" className="min-h-full realtive">
-				{/* logo */}
+				{/* logo image */}
 				<div className="z-10 p-3 xl:hidden">
 					<Image
 						src="/logo-white-text.svg"
