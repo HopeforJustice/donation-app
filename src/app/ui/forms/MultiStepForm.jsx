@@ -119,33 +119,51 @@ const MultiStepForm = () => {
 
 	//submit event
 	const onSubmit = async () => {
-		// Retrieve all form values using getValues()
-		const formData = getValues();
+		// Retrieve form data using getValues
 
-		try {
-			// Send the form data to the GoCardless API route
-			const response = await fetch("/api/gocardless/billing-request", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(formData), // Send the form data as JSON
-			});
+		const valid = await trigger();
 
-			// Check if the response is successful
-			if (response.ok) {
-				const result = await response.json();
-				console.log(result);
-				// Redirect to the GoCardless hosted page for Direct Debit setup
-				//window.location.href = result.authorisation_url;
-			} else {
-				console.error("Error:", await response.json());
-				alert("There was an error submitting your request. Please try again.");
+		if (valid) {
+			const formData = getValues();
+
+			try {
+				const response = await fetch("/api/billing-request", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						amount: formData.amount,
+						title: formData.title,
+						firstName: formData.firstName,
+						lastName: formData.lastName,
+						email: formData.email,
+						directDebitStartDate: formData.directDebitStartDate,
+						address1: formData.address1,
+						address2: formData.address2,
+						postcode: formData.postcode,
+						country: formData.country,
+						townCity: formData.townCity,
+						giftAid: formData.giftAid,
+						emailPreference: formData.emailPreference,
+						postPreference: formData.postPreference,
+						phonePreference: formData.phonePreference,
+						smsPreference: formData.smsPreference,
+						inspirationQuestion: formData.inspirationQuestion,
+						inspirationDetails: formData.inspirationDetails,
+						givingFrequency: formData.givingFrequency,
+					}),
+				});
+
+				const data = await response.json();
+
+				if (data.customerId) {
+					//console.log(data);
+					window.location.href = data.authorisation_url; // Redirect to GoCardless
+				}
+			} catch (error) {
+				console.error("Error submitting data:", error);
 			}
-		} catch (error) {
-			// Handle any errors that occur during the request
-			console.error("Error during form submission:", error);
-			alert("Something went wrong. Please try again later.");
 		}
 	};
 
