@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import sendErrorEmail from "@/app/lib/sendErrorEmail";
 
 export async function POST(req) {
-	let email;
+	const formData = await req.json();
 
 	try {
 		const apiKey = req.headers.get("next-api-key");
@@ -10,10 +11,6 @@ export async function POST(req) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Extract email
-		const { email: extractedEmail } = await req.json();
-		email = extractedEmail; // Set email from request body
-
 		// Create a base64 encoded "username:password" string for Basic Auth
 		const authString = Buffer.from(
 			`DonationApp:${process.env.DONORFY_UK_KEY}`
@@ -21,7 +18,7 @@ export async function POST(req) {
 
 		// Send data to Donorfy
 		const donorfyResponse = await fetch(
-			`https://data.donorfy.com/api/v1/GO66X0NEL4/constituents/DuplicateCheckPerson`,
+			`https://data.donorfy.com/api/v1/GO66X0NEL4/constituents/`,
 			{
 				method: "POST",
 				headers: {
@@ -29,30 +26,39 @@ export async function POST(req) {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					EmailAddress: email,
+					ConstituentType: "individual",
+					FirstName: formData.firstName,
+					LastName: formData.lastName,
+					AddressLine1: formData.address1,
+					AddressLine2: formData.address2,
+					Town: formData.townCity,
+					PostalCode: formData.postcode,
+					EmailAddress: formData.email,
+					Phone1: formData.phone,
+					RecruitmentCampaign: formData.campaign,
 				}),
 			}
 		);
 
 		if (!donorfyResponse.ok) {
 			console.error(
-				"Failed to send data to CRM:",
+				"Failed to create constituent",
 				await donorfyResponse.text()
 			);
 		}
 
 		return NextResponse.json(
 			{
-				message: "Duplicate check successful",
+				message: "constituent created",
 				response: await donorfyResponse.json(),
 			},
 			{ status: 200 }
 		);
 	} catch (error) {
-		console.error("Error processing duplicate check webhook:", error);
+		console.error("Error creating constituent:", error);
 
 		return NextResponse.json(
-			{ error: "Duplicate check processing failed" },
+			{ error: "Error creating constituent" },
 			{ status: 500 }
 		);
 	}

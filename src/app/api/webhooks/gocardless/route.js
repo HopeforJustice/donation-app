@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { sql } from "@vercel/postgres";
-const gocardless = require("gocardless-nodejs");
-const constants = require("gocardless-nodejs/constants");
+import { getGoCardlessClient } from "@/app/lib/gocardlessclient";
 
-// Initialize GoCardless client
-const client = gocardless(
-	process.env.GOCARDLESS_ACCESS_TOKEN,
-	constants.Environments.Sandbox // Use sandbox for testing; switch to live for production
-);
+const client = getGoCardlessClient();
 
 export async function POST(req) {
 	try {

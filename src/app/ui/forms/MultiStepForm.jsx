@@ -26,6 +26,8 @@ const MultiStepForm = () => {
 	const isCurrencyAccepted = acceptedCurrencies.some(
 		(currency) => currency.value === initialCurrency
 	);
+	const [submissionError, setSubmissionError] = useState(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const [step, setStep] = useState(0);
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
@@ -117,52 +119,49 @@ const MultiStepForm = () => {
 		setStep(step - 1);
 	};
 
-	//submit event
+	//submit
 	const onSubmit = async () => {
-		// Retrieve form data using getValues
-
 		const valid = await trigger();
 
 		if (valid) {
 			const formData = getValues();
+			setIsSubmitting(true);
 
 			try {
-				const response = await fetch("/api/billing-request", {
+				// Process Direct Debit via API
+				const response = await fetch("/api/processDirectDebit", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 					},
-					body: JSON.stringify({
-						amount: formData.amount,
-						title: formData.title,
-						firstName: formData.firstName,
-						lastName: formData.lastName,
-						email: formData.email,
-						directDebitStartDate: formData.directDebitStartDate,
-						address1: formData.address1,
-						address2: formData.address2,
-						postcode: formData.postcode,
-						country: formData.country,
-						townCity: formData.townCity,
-						giftAid: formData.giftAid,
-						emailPreference: formData.emailPreference,
-						postPreference: formData.postPreference,
-						phonePreference: formData.phonePreference,
-						smsPreference: formData.smsPreference,
-						inspirationQuestion: formData.inspirationQuestion,
-						inspirationDetails: formData.inspirationDetails,
-						givingFrequency: formData.givingFrequency,
-					}),
+					body: JSON.stringify(formData),
 				});
 
 				const data = await response.json();
 
-				if (data.customerId) {
-					//console.log(data);
-					window.location.href = data.authorisation_url; // Redirect to GoCardless
+				// Check for error response
+				if (!response.ok) {
+					throw new Error(data.message || "Submission failed.");
+				}
+
+				// If successful, handle the success (e.g., redirect)
+				if (data.response.authorizationUrl) {
+					window.location.href = data.response.authorizationUrl; // Redirect to GoCardless
 				}
 			} catch (error) {
+				setSubmissionError([
+					"Error submitting. Please try again or get in touch at ",
+					<a
+						key="error"
+						href="https://hopeforjustice.org/contact"
+						className="underline"
+					>
+						hopeforjustice.org/contact
+					</a>,
+				]);
 				console.error("Error submitting data:", error);
+			} finally {
+				setIsSubmitting(false);
 			}
 		}
 	};
@@ -184,10 +183,15 @@ const MultiStepForm = () => {
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
 					/>
-					{step === steps.length - 1 && Object.keys(errors).length > 0 && (
-						<p className="text-hfj-red text-sm">
-							Something went wrong. Please check your submission.
-						</p>
+					{step === steps.length - 1 &&
+						Object.keys(errors).length > 0 &&
+						submissionError === null && (
+							<p className="text-hfj-red text-sm">
+								Something went wrong. Please check your submission.
+							</p>
+						)}
+					{step === steps.length - 1 && submissionError && (
+						<p className="text-hfj-red text-sm">{submissionError}</p>
 					)}
 				</form>
 			</FormProvider>
@@ -211,9 +215,10 @@ const MultiStepForm = () => {
 				) : (
 					<Button
 						onClick={onSubmit}
-						text="Submit"
+						text={isSubmitting ? "Submitting..." : "Submit"}
 						size="extraLarge"
 						extraClasses="ml-auto"
+						disabled={isSubmitting}
 					/>
 				)}
 			</div>

@@ -7,6 +7,12 @@ export const steps = [
 		title: "Your Details:",
 		fields: [
 			{
+				id: "campaign",
+				type: "text",
+				defaultValue: "Donation App",
+				hidden: true,
+			},
+			{
 				id: "givingPreview",
 				type: "givingPreview",
 			},
@@ -90,6 +96,12 @@ export const steps = [
 				],
 			},
 			{ id: "email", label: "Email", type: "email" },
+			{
+				id: "phone",
+				label: "Phone number",
+				type: "text",
+				onInput: onlyNumbers,
+			},
 			{
 				id: "directDebitStartDate",
 				label:
@@ -479,10 +491,10 @@ export const steps = [
 				type: "fieldGroup",
 				description: [
 					<p>
-						Select &apos;Yes&apos; if you wish Hope for Justice to contact you via that
-						method for the following purposes: To keep you informed of our
-						ongoing activities, news, campaigns and appeals; and to invite you
-						to events we think might interest you. You can unsubscribe from
+						Select &apos;Yes&apos; if you wish Hope for Justice to contact you
+						via that method for the following purposes: To keep you informed of
+						our ongoing activities, news, campaigns and appeals; and to invite
+						you to events we think might interest you. You can unsubscribe from
 						receiving communications at any time, or change your preferences,
 						at:{" "}
 						<a
