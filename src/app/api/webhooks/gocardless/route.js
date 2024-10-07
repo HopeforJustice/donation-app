@@ -7,7 +7,7 @@ const client = getGoCardlessClient();
 
 export async function POST(req) {
 	try {
-		const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET; // Your webhook secret
+		const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX; // Your webhook secret
 		const rawBody = await req.text(); // Get raw body for signature validation
 		const receivedSignature = req.headers.get("Webhook-Signature"); // Signature from GoCardless
 

@@ -147,9 +147,9 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 									</div>
 								))
 							) : (
-								<p className="mb-4 text-sm text-gray-500">
+								<div className="mb-4 text-sm text-gray-500">
 									{field.description}
-								</p>
+								</div>
 							)}
 						</div>
 					)}

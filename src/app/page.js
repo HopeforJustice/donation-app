@@ -15,7 +15,7 @@ export default function Home() {
 						width={227}
 						height={67.9}
 						className="hidden md:block w-48 md:w-56"
-						alt="Hope for Justice logo"
+						alt="Hope for Justice logo small"
 					/>
 					<Image
 						src="/logo.svg"
@@ -30,7 +30,7 @@ export default function Home() {
 					<Image
 						src="/donation-img.jpg"
 						layout="fill"
-						alt="Picture of Hope for Justice client"
+						alt="Picture of Hope for Justice client small"
 						className="object-cover xl:hidden"
 					/>
 					<Image
@@ -58,9 +58,9 @@ export default function Home() {
 								</Suspense>
 							</div>
 						</div>
-						<h2 className="font-display text-white text-6xl hidden xl:block col-span-4 z-10 fixed bottom-10 left-1/2 ml-16 max-w-xl">
+						<h1 className="font-display text-white text-6xl hidden xl:block col-span-4 z-10 fixed bottom-10 left-1/2 ml-16 max-w-xl">
 							Bring freedom from modern slavery
-						</h2>
+						</h1>
 					</Grid>
 				</Container>
 			</Grid>
