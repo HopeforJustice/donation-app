@@ -27,11 +27,36 @@ export const formSchema = z.object({
 	postcode: z.string().regex(/^[A-Za-z0-9]{3,10}$/, "Invalid postcode format"),
 	country: z.string().min(1, { message: "Please select your country" }),
 	townCity: z.string().min(1, { message: "Please enter your Town/City" }),
-	giftAid: z.string().min(1, { message: "This field is required" }),
-	emailPreference: z.string().min(1, { message: "This field is required" }),
-	postPreference: z.string().min(1, { message: "This field is required" }),
-	smsPreference: z.string().min(1, { message: "This field is required" }),
-	phonePreference: z.string().min(1, { message: "This field is required" }),
+	giftAid: z
+		.string()
+		.transform((value) => value === "true") // Transform string to boolean
+		.refine((val) => typeof val === "boolean", {
+			message: "This field is required",
+		}),
+	emailPreference: z
+		.string()
+		.transform((value) => value === "true") // Transform string to boolean
+		.refine((val) => typeof val === "boolean", {
+			message: "This field is required",
+		}),
+	postPreference: z
+		.string()
+		.transform((value) => value === "true") // Transform string to boolean
+		.refine((val) => typeof val === "boolean", {
+			message: "This field is required",
+		}),
+	smsPreference: z
+		.string()
+		.transform((value) => value === "true") // Transform string to boolean
+		.refine((val) => typeof val === "boolean", {
+			message: "This field is required",
+		}),
+	phonePreference: z
+		.string()
+		.transform((value) => value === "true") // Transform string to boolean
+		.refine((val) => typeof val === "boolean", {
+			message: "This field is required",
+		}),
 	inspirationQuestion: z.string().optional(),
 	inspirationDetails: z.string().optional(),
 	givingFrequency: z.string().min(1, { message: "Please select frequency" }),

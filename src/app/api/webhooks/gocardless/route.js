@@ -1,85 +1,51 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { sql } from "@vercel/postgres";
-import { getGoCardlessClient } from "@/app/lib/gocardlessclient";
-
-const client = getGoCardlessClient();
+import { handleBillingRequestFulfilled } from "@/app/lib/webhooks/handleBillingRequestFulfilled";
+import { handlePaymentPaidOut } from "@/app/lib/webhooks/handlePaymentPaidOut";
 
 export async function POST(req) {
 	try {
-		const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX; // Your webhook secret
-		const rawBody = await req.text(); // Get raw body for signature validation
-		const receivedSignature = req.headers.get("Webhook-Signature"); // Signature from GoCardless
+		const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX;
+		const rawBody = await req.text();
+		const receivedSignature = req.headers.get("Webhook-Signature");
 
 		// Verify the signature
 		const computedSignature = crypto
 			.createHmac("sha256", webhookSecret)
 			.update(rawBody)
 			.digest("hex");
-
 		if (receivedSignature !== computedSignature) {
 			return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
 		}
 
 		const body = JSON.parse(rawBody);
-		console.log("Webhook received:", body);
+		console.log("Webhook received:", JSON.stringify(body, null, 2));
 
-		// Check if the event is 'fulfilled' for billing_requests
+		// Iterate over the events and handle them
 		if (body.events && body.events.length > 0) {
 			for (const event of body.events) {
 				if (
 					event.action === "fulfilled" &&
 					event.resource_type === "billing_requests"
 				) {
-					const billingRequestId = event.links.billing_request;
-					const customerId = event.links.customer;
-					const mandateId = event.links.mandate_request_mandate;
-
-					// Find the customer in the database using the customer ID from the webhook
-					const result = await sql`
-                        SELECT * FROM customers
-                        WHERE gocardless_billing_request_id = ${billingRequestId};
-                    `;
-
-					if (result.rows.length === 0) {
-						console.log("Customer not found");
-						return NextResponse.json(
-							{ error: "Customer not found" },
-							{ status: 404 }
-						);
-					}
-
-					const customer = result.rows[0];
-					const subscriptionAmount = customer.donation_amount;
-					const collectionDay = customer.collection_day;
-					const frequency = customer.donation_frequency;
-
-					// Step 2: Create a subscription using the mandate
-					const subscription = await client.subscriptions.create({
-						amount: subscriptionAmount * 100, // Amount in pence
-						currency: "GBP", // Adjust currency based on your needs
-						name: "Monthly Guardian",
-						interval_unit: frequency, // e.g., "monthly", "weekly"
-						day_of_month: collectionDay,
-						links: {
-							mandate: mandateId,
-						},
+					const handleBillingRequestResponse =
+						await handleBillingRequestFulfilled(event);
+					return NextResponse.json(handleBillingRequestResponse, {
+						status: handleBillingRequestResponse.status,
 					});
-
-					console.log("Subscription created:", subscription);
-
-					// Update the customer's status in the database
-					await sql`
-                        UPDATE customers
-                        SET status = 'subscription_created', gocardless_mandate_id = ${mandateId}, gocardless_customer_id = ${customerId}
-                        WHERE gocardless_billing_request_id = ${billingRequestId};
-                    `;
-
-					return NextResponse.json(
-						{ subscriptionId: subscription.id },
-						{ status: 200 }
+				} else if (
+					event.action === "paid_out" &&
+					event.resource_type === "payments"
+				) {
+					const handlePaymentPaidOutResponse = await handlePaymentPaidOut(
+						event
 					);
+					return NextResponse.json(handlePaymentPaidOutResponse, {
+						status: handlePaymentPaidOutResponse.status,
+					});
 				}
+
+				// Handle other webhooks
 			}
 		}
 

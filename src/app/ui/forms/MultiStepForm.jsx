@@ -145,8 +145,8 @@ const MultiStepForm = () => {
 				}
 
 				// If successful, handle the success (e.g., redirect)
-				if (data.response.authorizationUrl) {
-					window.location.href = data.response.authorizationUrl; // Redirect to GoCardless
+				if (data.response.authorisationUrl) {
+					window.location.href = data.response.authorisationUrl; // Redirect to GoCardless
 				}
 			} catch (error) {
 				setSubmissionError([

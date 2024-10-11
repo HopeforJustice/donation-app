@@ -111,7 +111,6 @@ export const steps = [
 					{ text: "1st", value: 1 },
 					{ text: "15th", value: 15 },
 					{ text: "25th", value: 25 },
-					{ text: "30th", value: 30 },
 				],
 				description:
 					"Please note: The exact date that your gift will be taken by Direct Debit can depend on your bank and other factors, including weekends and bank holidays.",

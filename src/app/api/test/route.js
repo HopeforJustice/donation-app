@@ -1,19 +1,15 @@
 // /app/api/test/route.js
 import { NextResponse } from "next/server";
+import { duplicateCheck } from "@/app/lib/donorfy/duplicateCheck";
 
-export async function POST(req) {
+export async function POST() {
 	try {
-		// Parse the request body to confirm the request is working
-		const body = await req.json();
+		const response = await duplicateCheck(
+			"james.holt@hopeforjustice.org",
+			"uk"
+		);
 
-		// Log the received data to ensure the request works
-		console.log("Received data:", body);
-
-		// Respond with mock data
-		return NextResponse.json({
-			message: "API is working!",
-			receivedData: body,
-		});
+		return NextResponse.json({ response: response }, { status: 200 });
 	} catch (error) {
 		console.error("Error in API:", error);
 		return NextResponse.json(

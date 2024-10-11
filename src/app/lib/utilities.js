@@ -250,3 +250,21 @@ export const getAcceptedCurrencies = (steps) => {
 				self.findIndex((c) => c.value === currency.value) === index
 		);
 };
+
+// fetchWithAuth helper function
+export async function fetchWithAuth(url, method, body, apiKey) {
+	const response = await fetch(url, {
+		method,
+		headers: {
+			"Content-Type": "application/json",
+			"next-api-key": apiKey,
+		},
+		body: JSON.stringify(body),
+	});
+
+	const data = await response.json();
+	if (!response.ok) {
+		throw new Error(data.message || "Request failed");
+	}
+	return data;
+}
