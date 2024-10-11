@@ -59,7 +59,7 @@ model payment_gateway_customers {
   customers           customers        @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   payment_gateways    payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
 
-  @@unique([customer_id, gateway_id])
+  @@unique([gateway_customer_id, gateway_id])
 }
 
 model payment_gateways {
@@ -96,6 +96,8 @@ model processed_events {
   gateway_id       Int
   event_id         String
   processed_at     DateTime         @default(now())
+  notes            String?
+  event_type       String?          @db.VarChar(255)
   payment_gateways payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
 
   @@unique([event_id, gateway_id])

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { handleBillingRequestFulfilled } from "@/app/lib/webhooks/handleBillingRequestFulfilled";
 import { handlePaymentPaidOut } from "@/app/lib/webhooks/handlePaymentPaidOut";
+import checkProcessedEvents from "@/app/lib/db/checkProcessedEvents";
 
 export async function POST(req) {
 	try {
@@ -19,37 +20,48 @@ export async function POST(req) {
 		}
 
 		const body = JSON.parse(rawBody);
-		console.log("Webhook received:", JSON.stringify(body, null, 2));
+		//console.log("Webhook received:", JSON.stringify(body, null, 2));
 
 		// Iterate over the events and handle them
 		if (body.events && body.events.length > 0) {
 			for (const event of body.events) {
-				if (
-					event.action === "fulfilled" &&
-					event.resource_type === "billing_requests"
-				) {
-					const handleBillingRequestResponse =
-						await handleBillingRequestFulfilled(event);
-					return NextResponse.json(handleBillingRequestResponse, {
-						status: handleBillingRequestResponse.status,
-					});
-				} else if (
-					event.action === "paid_out" &&
-					event.resource_type === "payments"
-				) {
-					const handlePaymentPaidOutResponse = await handlePaymentPaidOut(
-						event
-					);
-					return NextResponse.json(handlePaymentPaidOutResponse, {
-						status: handlePaymentPaidOutResponse.status,
-					});
-				}
+				//check we havent processed the event already
+				const hasBeenProcessed = await checkProcessedEvents(event.id);
 
-				// Handle other webhooks
+				if (!hasBeenProcessed) {
+					if (
+						event.action === "fulfilled" &&
+						event.resource_type === "billing_requests"
+					) {
+						const handleBillingRequestResponse =
+							await handleBillingRequestFulfilled(event);
+						return NextResponse.json(handleBillingRequestResponse, {
+							status: handleBillingRequestResponse.status,
+						});
+					} else if (
+						event.action === "paid_out" &&
+						event.resource_type === "payments"
+					) {
+						const handlePaymentPaidOutResponse = await handlePaymentPaidOut(
+							event
+						);
+						return NextResponse.json(handlePaymentPaidOutResponse, {
+							status: handlePaymentPaidOutResponse.status,
+						});
+					}
+
+					// Handle other webhooks
+				}
 			}
 		}
 
-		return NextResponse.json({ message: "Event not handled" }, { status: 200 });
+		return NextResponse.json(
+			{
+				message:
+					"Event either already processed or not one we have setup a response to",
+			},
+			{ status: 200 }
+		);
 	} catch (error) {
 		console.error("Error processing webhook:", error);
 		return NextResponse.json(
