@@ -3,67 +3,85 @@ import crypto from "crypto";
 import { handleBillingRequestFulfilled } from "@/app/lib/webhooks/handleBillingRequestFulfilled";
 import { handlePaymentPaidOut } from "@/app/lib/webhooks/handlePaymentPaidOut";
 import checkProcessedEvents from "@/app/lib/db/checkProcessedEvents";
+import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
+import { handlePaymentFailed } from "@/app/lib/webhooks/handlePaymentFailed";
+import { handleSubscriptionCancelled } from "@/app/lib/webhooks/handleSubscriptionCancelled";
+import sendErrorEmail from "@/app/lib/sendErrorEmail";
+
+const eventHandlers = {
+	"billing_requests:fulfilled": handleBillingRequestFulfilled,
+	"payments:paid_out": handlePaymentPaidOut,
+	"payments:failed": handlePaymentFailed,
+	"subscriptions:cancelled": handleSubscriptionCancelled,
+};
 
 export async function POST(req) {
+	const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX;
+	let body;
+
 	try {
-		const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX;
 		const rawBody = await req.text();
 		const receivedSignature = req.headers.get("Webhook-Signature");
 
-		// Verify the signature
-		const computedSignature = crypto
-			.createHmac("sha256", webhookSecret)
-			.update(rawBody)
-			.digest("hex");
-		if (receivedSignature !== computedSignature) {
-			return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-		}
+		// const computedSignature = crypto
+		// 	.createHmac("sha256", webhookSecret)
+		// 	.update(rawBody)
+		// 	.digest("hex");
 
-		const body = JSON.parse(rawBody);
-		//console.log("Webhook received:", JSON.stringify(body, null, 2));
+		body = JSON.parse(rawBody);
 
-		// Iterate over the events and handle them
-		if (body.events && body.events.length > 0) {
-			for (const event of body.events) {
-				//check we havent processed the event already
-				const hasBeenProcessed = await checkProcessedEvents(event.id);
+		// if (receivedSignature !== computedSignature) {
+		// 	await storeWebhookEvent(body, "failed", 1, "Invalid signature");
+		// 	return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+		// }
 
-				if (!hasBeenProcessed) {
-					if (
-						event.action === "fulfilled" &&
-						event.resource_type === "billing_requests"
-					) {
-						const handleBillingRequestResponse =
-							await handleBillingRequestFulfilled(event);
-						return NextResponse.json(handleBillingRequestResponse, {
-							status: handleBillingRequestResponse.status,
-						});
-					} else if (
-						event.action === "paid_out" &&
-						event.resource_type === "payments"
-					) {
-						const handlePaymentPaidOutResponse = await handlePaymentPaidOut(
-							event
-						);
-						return NextResponse.json(handlePaymentPaidOutResponse, {
-							status: handlePaymentPaidOutResponse.status,
+		console.log("webhook recieved: ", JSON.stringify(body, null, 2));
+
+		for (const event of body.events) {
+			const hasBeenProcessed = await checkProcessedEvents(event.id);
+
+			if (!hasBeenProcessed) {
+				const eventKey = `${event.resource_type}:${event.action}`;
+				const handler = eventHandlers[eventKey];
+
+				if (handler) {
+					try {
+						const response = await handler(event);
+						if (response.eventStatus && response.message) {
+							await storeWebhookEvent(
+								event,
+								response.eventStatus,
+								1,
+								response.message
+							);
+						}
+
+						return NextResponse.json(response, { status: response.status });
+					} catch (error) {
+						console.error("Error handling event:", error);
+						await storeWebhookEvent(event, "failed", 1, error.message);
+
+						// Send error email
+						await sendErrorEmail(error, {
+							name: "Gocardless webhook event failed to process",
+							event: event,
 						});
 					}
-
-					// Handle other webhooks
+				} else {
+					console.log("No handler for event:", eventKey);
 				}
 			}
 		}
 
 		return NextResponse.json(
 			{
-				message:
-					"Event either already processed or not one we have setup a response to",
+				message: "All events either successfully processed or skipped",
 			},
 			{ status: 200 }
 		);
 	} catch (error) {
 		console.error("Error processing webhook:", error);
+		await storeWebhookEvent(body || {}, "failed", 1, error.message);
 		return NextResponse.json(
 			{ error: "Webhook processing failed" },
 			{ status: 500 }

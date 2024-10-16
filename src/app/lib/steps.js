@@ -9,7 +9,7 @@ export const steps = [
 			{
 				id: "campaign",
 				type: "text",
-				defaultValue: "Donation App",
+				defaultValue: "Donation App General Campaign",
 				hidden: true,
 			},
 			{

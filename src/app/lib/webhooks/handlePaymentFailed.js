@@ -1,6 +1,6 @@
 /*
- * handlePaymentPaidOut.js
- * Gocardless event for payments with paid out status
+ * handlePaymentFailed.js
+ * Gocardless event for payments with failed status
  *
  */
 
@@ -9,28 +9,17 @@ import getCustomerFromPaymentGatewayCustomer from "../db/getCustomerFromPaymentG
 import pRetry from "p-retry";
 import getSubscription from "../db/getSubscription";
 import storePayment from "../db/storePayment";
-import { createTransaction } from "../donorfy/createTransaction";
+import { addActivity } from "../donorfy/addActivity";
 
 const client = getGoCardlessClient();
 
-export async function handlePaymentPaidOut(event) {
+export async function handlePaymentFailed(event) {
 	try {
-		const payoutId = event.links.payout;
 		const paymentId = event.links.payment;
 		const gatewayId = 1;
 		const status = "paid out";
 		const fallbackCampaign = "Donation App General Campaign";
 		let notes = "";
-
-		// Get the Payout from GC
-		const payout = await pRetry(() => client.payouts.find(payoutId), {
-			retries: 3,
-			onFailedAttempt: (error) => {
-				console.error(
-					`Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left.`
-				);
-			},
-		});
 
 		// Get the payment from GC
 		const payment = await pRetry(() => client.payments.find(paymentId), {
@@ -41,10 +30,6 @@ export async function handlePaymentPaidOut(event) {
 				);
 			},
 		});
-
-		// Store the amount and fees
-		// !!! Payouts can consist of many payments
-		// work with payment not pay out
 
 		const amount = payment.amount;
 
@@ -155,26 +140,18 @@ export async function handlePaymentPaidOut(event) {
 			};
 		}
 
-		// Store payment in donorfy
+		// Store Failed Gocardless Subscription Payment
+		// Activity in Donorfy
 		// Convert amount back to friendly values
 		const friendlyAmount = amount / 100;
-		const product = "Donation";
-		const fund = "Unrestricted";
-		const channel = "Gocardless Subscription";
-		const paymentMethod = "GoCardless DD";
 
-		const createTransactionData = await pRetry(
-			() =>
-				createTransaction(
-					product,
-					friendlyAmount,
-					campaign,
-					channel,
-					paymentMethod,
-					fund,
-					constituentId,
-					donorfyInstance
-				),
+		const activityData = {
+			activityType: "Gocardless Payment Failed",
+			notes: `Amount: ${friendlyAmount}. Details: ${event.details.description}`,
+		};
+
+		const addActivityData = await pRetry(
+			() => addActivity(activityData, constituentId, donorfyInstance),
 			{
 				retries: 3,
 				onFailedAttempt: (error) => {
@@ -184,23 +161,22 @@ export async function handlePaymentPaidOut(event) {
 				},
 			}
 		).catch((error) => {
-			// Ensure a failed transaction returns a consistent structure
 			console.error("All retries failed:", error);
 			return {
 				success: false,
-				message: "Transaction creation failed after retries",
+				message: "Activity creation failed after retries",
 			};
 		});
 
-		if (createTransactionData.success) {
-			notes += "Transaction created in Donorfy. ";
+		if (addActivityData.success) {
+			notes += "Activity added in Donorfy. ";
 			return {
 				message: notes,
 				status: 200,
 				eventStatus: "processed",
 			};
 		} else {
-			notes += "Transaction creation failed in Donorfy. ";
+			notes += "Activity creation failed in Donorfy. ";
 			return {
 				message: notes,
 				status: 200,
@@ -208,9 +184,9 @@ export async function handlePaymentPaidOut(event) {
 			};
 		}
 	} catch (error) {
-		console.error("Error handling payment payout event:", error);
+		console.error("Error handling payment failed event:", error);
 		return {
-			message: "Error handling payment payout event",
+			message: "Error handling payment failed event",
 			error,
 			status: 500,
 		};

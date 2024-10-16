@@ -7,7 +7,10 @@ export default async function getCustomerFromPaymentGatewayCustomer(
         SELECT customer_id FROM payment_gateway_customers WHERE gateway_customer_id = ${gatewayCustomerId};
     `;
 
-	if (gatewayCustomerData) {
+	if (
+		gatewayCustomerData.rows.length > 0 &&
+		gatewayCustomerData.rows[0].customer_id
+	) {
 		const customerId = gatewayCustomerData.rows[0].customer_id;
 		const customer = await sql`
             SELECT * FROM customers WHERE id = ${customerId};

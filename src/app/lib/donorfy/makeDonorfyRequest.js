@@ -18,6 +18,8 @@ export default async function makeDonorfyRequest(
 		options.body = JSON.stringify(data);
 	}
 
+	console.log("donorfy data to send: ", options.body);
+
 	const response = await fetch(url, options);
 
 	// Check if the response has a body

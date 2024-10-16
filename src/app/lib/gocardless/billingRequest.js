@@ -33,7 +33,8 @@ export async function billingRequest(data, customerId) {
 		  frequency,
 		  collection_day,
           created_at,
-          updated_at
+          updated_at,
+		  campaign
         )
         VALUES (
           ${customerId},
@@ -44,7 +45,8 @@ export async function billingRequest(data, customerId) {
 		  ${data.givingFrequency},
 		  ${data.directDebitStartDate},
           NOW(),
-          NOW()
+          NOW(),
+		  ${data.campaign}
         )
         RETURNING id; 
       `;

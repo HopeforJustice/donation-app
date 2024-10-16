@@ -18,6 +18,7 @@ model billing_requests {
   amount             Decimal          @db.Decimal(10, 2)
   frequency          String           @db.VarChar(50)
   collection_day     Int
+  campaign           String?          @db.VarChar(255)
   customers          customers        @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   payment_gateways   payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
 }
@@ -78,15 +79,17 @@ model payment_gateways {
 model payments {
   id               Int              @id @default(autoincrement())
   customer_id      Int
-  subscription_id  Int
+  subscription_id  Int?
   gateway_id       Int
   payment_id       String
   status           String           @default("pending")
   created_at       DateTime         @default(now())
   updated_at       DateTime
+  campaign         String?          @db.VarChar(255)
+  amount           Int?
   customers        customers        @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   payment_gateways payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
-  subscriptions    subscriptions    @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+  subscriptions    subscriptions?   @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
 
   @@unique([payment_id, gateway_id])
 }
@@ -98,6 +101,8 @@ model processed_events {
   processed_at     DateTime         @default(now())
   notes            String?
   event_type       String?          @db.VarChar(255)
+  status           String?          @db.VarChar(50)
+  event            Json?
   payment_gateways payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
 
   @@unique([event_id, gateway_id])
@@ -114,6 +119,7 @@ model subscriptions {
   amount           Decimal          @db.Decimal(10, 2)
   frequency        String           @db.VarChar(50)
   collection_day   Int?
+  campaign         String?          @db.VarChar(255)
   payments         payments[]
   customers        customers        @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   payment_gateways payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)

@@ -1,8 +1,10 @@
 /*
  * processDirectDebit.js
  *
- * Processes form submission data into Donorfy
- * Sets up UK Direct debit with Gocardless
+ * Processes form submission data into Donorfy.
+ * Sets up UK Direct debit with Gocardless.
+ * No retries here as this impacts front end performance
+ * user will be prompted to retry if there is an error.
  *
  */
 

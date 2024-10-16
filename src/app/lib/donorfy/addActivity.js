@@ -18,6 +18,7 @@ export async function addActivity(data, constituentId, instance) {
 		await makeDonorfyRequest(url, "POST", authString, donorfyData);
 
 		return {
+			success: true,
 			message: "Add Activity successful",
 		};
 	} catch (error) {
