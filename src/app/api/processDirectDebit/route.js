@@ -9,7 +9,9 @@
  */
 
 import { NextResponse } from "next/server";
-import sendErrorEmail from "@/app/lib/sendErrorEmail";
+
+// Errors are returned to the front end here, no real need for an error email
+//import sendErrorEmail from "@/app/lib/sendErrorEmail";
 
 // Donorfy API functions
 import { duplicateCheck } from "@/app/lib/donorfy/duplicateCheck";

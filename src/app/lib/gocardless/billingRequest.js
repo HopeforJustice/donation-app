@@ -53,11 +53,11 @@ export async function billingRequest(data, customerId) {
 
 		const successUrl =
 			process.env.GC_SUCCESS_URL +
-			`?fname=${data.firstName}&amount=${data.amount}`;
+			`?name=${data.firstName}&amount=${data.amount}&frequency=${data.givingFrequency}&gateway="gocardless"`;
 		const exitUrl = process.env.GC_EXIT_URL;
 
 		// Step 2: Create the billing request flow with prefilled customer details and dynamic URLs
-		// Prefill address details here too
+		// Can we prefill address details here too?
 		const billingRequestFlow = await client.billingRequestFlows.create({
 			redirect_uri: successUrl,
 			exit_uri: exitUrl,
