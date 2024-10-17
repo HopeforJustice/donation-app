@@ -27,36 +27,42 @@ export const formSchema = z.object({
 	postcode: z.string().regex(/^[A-Za-z0-9]{3,10}$/, "Invalid postcode format"),
 	country: z.string().min(1, { message: "Please select your country" }),
 	townCity: z.string().min(1, { message: "Please enter your Town/City" }),
+
 	giftAid: z
 		.string()
-		.transform((value) => value === "true") // Transform string to boolean
-		.refine((val) => typeof val === "boolean", {
+		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
-		}),
+		})
+		.transform((value) => value === "true"), // Transform to boolean
+
 	emailPreference: z
 		.string()
-		.transform((value) => value === "true") // Transform string to boolean
-		.refine((val) => typeof val === "boolean", {
+		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
-		}),
+		})
+		.transform((value) => value === "true"), // Transform to boolean
+
 	postPreference: z
 		.string()
-		.transform((value) => value === "true") // Transform string to boolean
-		.refine((val) => typeof val === "boolean", {
+		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
-		}),
+		})
+		.transform((value) => value === "true"), // Transform to boolean
+
 	smsPreference: z
 		.string()
-		.transform((value) => value === "true") // Transform string to boolean
-		.refine((val) => typeof val === "boolean", {
+		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
-		}),
+		})
+		.transform((value) => value === "true"), // Transform to boolean
+
 	phonePreference: z
 		.string()
-		.transform((value) => value === "true") // Transform string to boolean
-		.refine((val) => typeof val === "boolean", {
+		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
-		}),
+		})
+		.transform((value) => value === "true"), // Transform to boolean
+
 	inspirationQuestion: z.string().optional(),
 	inspirationDetails: z.string().optional(),
 	givingFrequency: z.string().min(1, { message: "Please select frequency" }),

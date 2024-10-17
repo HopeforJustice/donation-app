@@ -268,3 +268,27 @@ export async function fetchWithAuth(url, method, body, apiKey) {
 	}
 	return data;
 }
+
+export async function extractPreferences(data) {
+	const preferenceMapping = {
+		Email: "emailPreference",
+		Mail: "postPreference",
+		Phone: "phonePreference",
+		SMS: "smsPreference",
+	};
+
+	const extractedPreferences = {};
+
+	data.preferences.forEach((pref) => {
+		if (
+			pref.PreferenceType === "Channel" &&
+			preferenceMapping[pref.PreferenceName]
+		) {
+			// Map the preference name to your schema's field name
+			extractedPreferences[preferenceMapping[pref.PreferenceName]] =
+				pref.PreferenceAllowed ?? false; // Use false if null
+		}
+	});
+
+	return extractedPreferences;
+}

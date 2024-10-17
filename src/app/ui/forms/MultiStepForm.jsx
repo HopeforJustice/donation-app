@@ -16,6 +16,7 @@ import {
 	updateStepsWithParams,
 	updateStepsBasedOnSelections,
 	getFieldIdsExcludingRemoved,
+	extractPreferences,
 } from "@/app/lib/utilities";
 
 const MultiStepForm = () => {
@@ -28,6 +29,7 @@ const MultiStepForm = () => {
 	);
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
 
 	const [step, setStep] = useState(0);
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
@@ -44,6 +46,7 @@ const MultiStepForm = () => {
 		getValues,
 		formState: { errors },
 		watch,
+		setValue,
 	} = methods;
 
 	const [steps, setSteps] = useState(() => {
@@ -58,13 +61,15 @@ const MultiStepForm = () => {
 		);
 	});
 
-	// Watch currency and givingFrequency and update steps
 	useEffect(() => {
+		// Watch all fields, extract currency and givingFrequency
 		const subscription = watch((value) => {
+			console.log(value);
 			const currency = value.currency || initialCurrency;
 			const givingFrequency =
 				value.givingFrequency || defaultValues.givingFrequency;
 
+			//then update steps
 			setSteps((currentSteps) => {
 				const updatedSteps = updateStepsBasedOnSelections(
 					currentSteps,
@@ -83,10 +88,66 @@ const MultiStepForm = () => {
 		const fields = getFieldIdsExcludingRemoved(steps[step].fields);
 		const valid = await trigger(fields, { shouldFocus: true });
 		console.log(valid, errors);
+		const formData = getValues();
 
 		if (valid) {
+			setIsLoading(true);
 			const stepData = getValues(fields);
 			console.log(`Data from step ${step + 1}:`, stepData);
+
+			//look for preferences if the step is 0
+			if (step === 0) {
+				const getPreferences = await fetch("/api/getPreferences", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						email: formData.email,
+					}),
+				});
+
+				const getPreferencesData = await getPreferences.json();
+
+				if (getPreferencesData.preferences) {
+					//testing
+					// Update the form fields with the preferences
+					const extractedPreferences = await extractPreferences(
+						getPreferencesData
+					);
+					if (extractedPreferences) {
+						console.log(extractedPreferences);
+						setValue(
+							"emailPreference",
+							String(extractedPreferences.emailPreference)
+						);
+						setValue(
+							"postPreference",
+							String(extractedPreferences.postPreference)
+						);
+						setValue(
+							"smsPreference",
+							String(extractedPreferences.smsPreference)
+						);
+						setValue(
+							"phonePreference",
+							String(extractedPreferences.phonePreference)
+						);
+					}
+
+					// Update the description of step 4
+					setSteps((prevSteps) =>
+						prevSteps.map((s) =>
+							s.id === "step4"
+								? {
+										...s,
+										description: `These are the preferences we hold for ${formData.email} for how we can contact you about the work of Hope for Justice and how your support is making a difference:`,
+								  }
+								: s
+						)
+					);
+				}
+			}
 
 			setSteps((prevSteps) =>
 				prevSteps.map((s, index) => {
@@ -98,7 +159,7 @@ const MultiStepForm = () => {
 					return s;
 				})
 			);
-
+			setIsLoading(false);
 			setStep(step + 1);
 		}
 	};
@@ -119,7 +180,7 @@ const MultiStepForm = () => {
 		setStep(step - 1);
 	};
 
-	//submit
+	// On Submit
 	const onSubmit = async () => {
 		const valid = await trigger();
 
@@ -136,19 +197,17 @@ const MultiStepForm = () => {
 					},
 					body: JSON.stringify(formData),
 				});
-
 				const data = await response.json();
-
 				// Check for error response
 				if (!response.ok) {
 					throw new Error(data.message || "Submission failed.");
 				}
-
 				// If successful, handle the success (e.g., redirect)
 				if (data.response.authorisationUrl) {
 					window.location.href = data.response.authorisationUrl; // Redirect to GoCardless
 				}
 			} catch (error) {
+				//General error if the final submit step fails
 				setSubmissionError([
 					"Error submitting. Please try again or get in touch at ",
 					<a
@@ -166,6 +225,7 @@ const MultiStepForm = () => {
 		}
 	};
 
+	//function to show giving details passed to step component
 	const showGivingDetailsHandler = () => setShowAmountField(true);
 
 	if (!isCurrencyAccepted) {
@@ -208,7 +268,7 @@ const MultiStepForm = () => {
 				{step !== steps.length - 1 ? (
 					<Button
 						onClick={nextStep}
-						text="Next step"
+						text={isLoading ? "Loading..." : "Next Step"}
 						size="extraLarge"
 						extraClasses="ml-auto"
 					/>

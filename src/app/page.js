@@ -25,6 +25,7 @@ export default function Home() {
 						alt="Hope for Justice logo"
 					/>
 				</div>
+
 				{/* background image */}
 				<div className="fixed h-full w-full z-0 hidden md:block xl:w-1/2 xl:right-0 bg-hfj-black">
 					<Image

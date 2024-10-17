@@ -1,62 +1,46 @@
-// import { NextResponse } from "next/server";
+// Get constituent preferences after they enter an email
+// Currently hardcoded to UK, can change to be dynamic based on currency
 
-// export async function POST(req) {
-// 	try {
-// 		const { email } = await req.json();
+import { NextResponse } from "next/server";
+import { duplicateCheck } from "@/app/lib/donorfy/duplicateCheck";
+import { getConstituentPreferences } from "@/app/lib/donorfy/getConstituentPreferences";
 
-// 		// Create a base64 encoded "username:password" string for Basic Auth
-// 		const authString = Buffer.from(
-// 			`DonationApp:${process.env.DONORFY_UK_KEY}`
-// 		).toString("base64");
+export async function POST(req) {
+	const donorfyInstance = "uk";
+	let constituentId;
 
-// 		// Send data to Donorfy
-// 		const duplicateCheck = await fetch(`/api/donorfy/uk/duplicateCheck`, {
-// 			method: "POST",
-// 			headers: {
-// 				Authorization: `Basic ${authString}`,
-// 				"Content-Type": "application/json",
-// 				next_api_key: process.env.NEXT_API_KEY,
-// 			},
-// 			body: JSON.stringify({
-// 				email: email,
-// 			}),
-// 		});
-//left off here
+	try {
+		const { email } = await req.json();
+		const duplicateCheckData = await duplicateCheck(email, donorfyInstance);
 
-// Send data to Donorfy
-// 	const donorfyResponse = await fetch(
-// 		`https://data.donorfy.com/api/v1/GO66X0NEL4/constituents/DuplicateCheckPerson`,
-// 		{
-// 			method: "POST",
-// 			headers: {
-// 				Authorization: `Basic ${authString}`,
-// 				"Content-Type": "application/json",
-// 			},
-// 			body: JSON.stringify({
-// 				EmailAddress: email,
-// 			}),
-// 		}
-// 	);
+		if (!duplicateCheckData) {
+			throw new Error("Donorfy duplicate check error");
+		} else {
+			constituentId = duplicateCheckData.constituentId;
+		}
 
-// 	if (!donorfyResponse.ok) {
-// 		console.error(
-// 			"Failed to send data to CRM:",
-// 			await donorfyResponse.text()
-// 		);
-// 	}
+		if (!constituentId) {
+			return NextResponse.json({ preferences: null }, { status: 200 });
+		}
 
-// 	return NextResponse.json(
-// 		{
-// 			message: "Duplicate check successful",
-// 			response: await donorfyResponse.json(),
-// 		},
-// 		{ status: 200 }
-// 	);
-// } catch (error) {
-// 	console.error("Error processing duplicate check webhook:", error);
-// 	return NextResponse.json(
-// 		{ error: "Duplicate check processing failed" },
-// 		{ status: 500 }
-// 	);
-// }
-//}
+		const getConstituentPreferenesData = await getConstituentPreferences(
+			constituentId,
+			donorfyInstance
+		);
+
+		if (!getConstituentPreferenesData) {
+			throw new Error("Get preferences error");
+		} else {
+			return NextResponse.json(
+				{ preferences: getConstituentPreferenesData.data.PreferencesList },
+				{ status: 200 }
+			);
+		}
+	} catch (error) {
+		console.error("Error getting preferences:", error);
+		return NextResponse.json(
+			{ error: "Error getting preferences" },
+			{ status: 500 }
+		);
+	}
+}
