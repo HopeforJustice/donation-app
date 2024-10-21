@@ -1,11 +1,5 @@
-/*
- *
- * Success page after donation
- *
- */
-
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import TickIcon from "../ui/icons/TickIcon";
 import FacebookIcon from "../ui/icons/FacebookIcon";
@@ -16,7 +10,10 @@ import LinkedInIcon from "../ui/icons/LinkedInIcon";
 import Image from "next/image";
 import HorizontalRule from "../ui/HorizontalRule";
 
-const SuccessPage = () => {
+//too basic
+const Loading = () => <p>Loading...</p>;
+
+const SuccessPageContent = () => {
 	const searchParams = useSearchParams();
 	const name = searchParams.get("name");
 	const frequency = searchParams.get("frequency");
@@ -77,5 +74,11 @@ const SuccessPage = () => {
 		</main>
 	);
 };
+
+const SuccessPage = () => (
+	<Suspense fallback={<Loading />}>
+		<SuccessPageContent />
+	</Suspense>
+);
 
 export default SuccessPage;
