@@ -20,14 +20,20 @@ export default async function makeDonorfyRequest(
 
 	console.log("donorfy data to send: ", options.body);
 
+	//timing
+	const startTime = Date.now();
+
 	const response = await fetch(url, options);
 
-	// Check if the response has a body
+	const endTime = Date.now();
+	console.log(`Request to ${url} took ${endTime - startTime} ms`);
+
+	//Check if the response has a body
 	let responseData;
 	try {
 		responseData = await response.json();
 	} catch (error) {
-		responseData = null; // If parsing fails, assume no content
+		responseData = null; //assume no content
 	}
 
 	if (!response.ok) {
@@ -36,6 +42,5 @@ export default async function makeDonorfyRequest(
 		);
 	}
 
-	// Return response data if available, otherwise return a default message
 	return responseData ? responseData : "ok";
 }
