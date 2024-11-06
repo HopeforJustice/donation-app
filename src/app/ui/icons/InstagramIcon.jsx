@@ -1,6 +1,10 @@
 export default function InstagramIcon() {
 	return (
-		<a href="https://www.instagram.com/hopeforjusticeintl/" target="_blank">
+		<a
+			role="link"
+			href="https://www.instagram.com/hopeforjusticeintl/"
+			target="_blank"
+		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				width="31.799"

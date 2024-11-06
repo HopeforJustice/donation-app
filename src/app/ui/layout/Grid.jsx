@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 
-const Grid = ({ children, cols = "12", rows, className = "" }) => {
+const Grid = ({ children, cols = "12", className = "" }) => {
 	return (
 		<div
 			className={clsx(`grid ${className}`, {

@@ -5,7 +5,6 @@ export default function XIcon() {
 				xmlns="http://www.w3.org/2000/svg"
 				width="31.9"
 				height="31.9"
-				class="bi bi-twitter-x"
 				viewBox="0 0 16 16"
 				className="fill-hfj-black"
 			>

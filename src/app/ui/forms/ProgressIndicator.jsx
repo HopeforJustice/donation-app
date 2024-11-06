@@ -1,6 +1,6 @@
 export default function ProgressIndicator({ steps }) {
 	return (
-		<nav aria-label="Progress" className="flex items-center justify-start mb-8">
+		<div aria-label="Progress" className="flex items-center justify-start mb-8">
 			<ol role="list" className="flex items-center space-x-5">
 				{steps.map((step) => (
 					<li key={step.id}>
@@ -30,6 +30,6 @@ export default function ProgressIndicator({ steps }) {
 					</li>
 				))}
 			</ol>
-		</nav>
+		</div>
 	);
 }
