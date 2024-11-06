@@ -7,11 +7,13 @@ const Button = ({
 	onClick,
 	buttonType = "primary",
 	extraClasses = "",
+	disabled = false,
 }) => {
 	return (
 		<button
 			onClick={onClick}
 			type="button"
+			disabled={disabled}
 			className={clsx(
 				`rounded-md shadow-sm ${extraClasses}`,
 				size === "small"

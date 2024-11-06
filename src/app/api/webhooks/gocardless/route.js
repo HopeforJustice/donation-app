@@ -23,17 +23,17 @@ export async function POST(req) {
 		const rawBody = await req.text();
 		const receivedSignature = req.headers.get("Webhook-Signature");
 
-		// const computedSignature = crypto
-		// 	.createHmac("sha256", webhookSecret)
-		// 	.update(rawBody)
-		// 	.digest("hex");
+		const computedSignature = crypto
+			.createHmac("sha256", webhookSecret)
+			.update(rawBody)
+			.digest("hex");
 
 		body = JSON.parse(rawBody);
 
-		// if (receivedSignature !== computedSignature) {
-		// 	await storeWebhookEvent(body, "failed", 1, "Invalid signature");
-		// 	return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-		// }
+		if (receivedSignature !== computedSignature) {
+			await storeWebhookEvent(body, "failed", 1, "Invalid signature");
+			return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+		}
 
 		console.log("webhook recieved: ", JSON.stringify(body, null, 2));
 

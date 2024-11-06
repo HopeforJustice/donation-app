@@ -3,6 +3,7 @@ import { z } from "zod";
 export const formSchema = z.object({
 	amount: z
 		.string()
+		.min(1, { message: "Please enter a donation amount" })
 		.transform((val) => {
 			// Replace comma with period
 			const transformedValue = val.replace(",", ".");
@@ -40,28 +41,28 @@ export const formSchema = z.object({
 		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
 		})
-		.transform((value) => value === "true"), // Transform to boolean
+		.transform((value) => value === "true"),
 
 	postPreference: z
 		.string()
 		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
 		})
-		.transform((value) => value === "true"), // Transform to boolean
+		.transform((value) => value === "true"),
 
 	smsPreference: z
 		.string()
 		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
 		})
-		.transform((value) => value === "true"), // Transform to boolean
+		.transform((value) => value === "true"),
 
 	phonePreference: z
 		.string()
 		.refine((value) => value === "true" || value === "false", {
 			message: "This field is required",
 		})
-		.transform((value) => value === "true"), // Transform to boolean
+		.transform((value) => value === "true"),
 
 	inspirationQuestion: z.string().optional(),
 	inspirationDetails: z.string().optional(),

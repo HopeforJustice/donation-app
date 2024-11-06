@@ -11,6 +11,8 @@ import { addActiveTags } from "@/app/lib/donorfy/addActiveTags";
 import { addActivity } from "@/app/lib/donorfy/addActivity";
 import getConstituentIdFromCustomerID from "../db/getConsituentIdFromCustomerId";
 import pRetry from "p-retry";
+import { getConstituent } from "../donorfy/getConstituent";
+import addUpdateSubscriber from "../mailchimp/addUpdateSubscriber";
 
 const client = getGoCardlessClient();
 
@@ -58,6 +60,7 @@ export async function handleBillingRequestFulfilled(event) {
 		paymentGatewayId = billingRequestData.gateway_id;
 		const customerId = billingRequestData.customer_id;
 		const campaign = billingRequestData.campaign;
+		const constituentId = await getConstituentIdFromCustomerID(customerId);
 
 		// Retry updating billing request to fulfilled
 		await pRetry(
@@ -202,7 +205,6 @@ export async function handleBillingRequestFulfilled(event) {
 				notes += "Subscription created in DB and GC. ";
 
 				// Retry adding active tags and activity
-				const constituentId = await getConstituentIdFromCustomerID(customerId);
 
 				const tags = await pRetry(
 					() =>
@@ -247,6 +249,29 @@ export async function handleBillingRequestFulfilled(event) {
 				}
 			}
 		}
+
+		// Retry adding adding/updating subscriber on mailchimp
+		const constituent = await getConstituent(constituentId, "uk");
+		await pRetry(
+			() =>
+				addUpdateSubscriber(
+					constituent.EmailAddress,
+					constituent.FirstName,
+					constituent.LastName,
+					"subscribed",
+					"uk"
+				),
+			{
+				retries: 3,
+				onFailedAttempt: (error) => {
+					console.error(
+						`Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left for adding/updating subscriber.`
+					);
+				},
+			}
+		);
+
+		notes += "Subscriber added/updated in mailchimp. ";
 
 		console.log(event, paymentGatewayId, notes);
 		await storeWebhookEvent(event, "completed", paymentGatewayId, notes);

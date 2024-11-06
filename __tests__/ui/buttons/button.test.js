@@ -32,6 +32,17 @@ describe("Button component", () => {
 		expect(handleClick).toHaveBeenCalledTimes(1);
 	});
 
+	it("is disabled and does not trigger onClick handler when clicked", () => {
+		const handleClick = jest.fn();
+		render(<Button text="Click me" onClick={handleClick} disabled={true} />);
+
+		const button = screen.getByRole("button", { name: "Click me" });
+		expect(button).toBeInTheDocument();
+		expect(button).toBeDisabled();
+		fireEvent.click(button);
+		expect(handleClick).toHaveBeenCalledTimes(0);
+	});
+
 	it("applies extraClasses prop", () => {
 		render(<Button text="Styled Button" extraClasses="custom-class" />);
 

@@ -51,7 +51,7 @@ const SuccessPageContent = () => {
 					</h1>
 					<p className="text-hfj-black xl:text-lg">
 						{frequency === "monthly" && gateway === "gocardless"
-							? "Your monthly donation was successfully processed, you should receive a confirmation email from GoCardless shortly."
+							? "Your direct debit was successfully processed, you should receive a confirmation email from GoCardless shortly."
 							: "Your donation was successfully processed, you should receive a receipt shortly."}
 					</p>
 
