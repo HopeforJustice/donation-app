@@ -13,6 +13,7 @@ import getConstituentIdFromCustomerID from "../db/getConsituentIdFromCustomerId"
 import pRetry from "p-retry";
 import { getConstituent } from "../donorfy/getConstituent";
 import addUpdateSubscriber from "../mailchimp/addUpdateSubscriber";
+import addTag from "../mailchimp/addTag";
 
 const client = getGoCardlessClient();
 
@@ -251,13 +252,16 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		// Retry adding adding/updating subscriber on mailchimp
+
+		// Ask Donorfy for donor details
 		const constituent = await getConstituent(constituentId, "uk");
+
 		await pRetry(
 			() =>
 				addUpdateSubscriber(
-					constituent.EmailAddress,
-					constituent.FirstName,
-					constituent.LastName,
+					constituent.constituentData.EmailAddress,
+					constituent.constituentData.FirstName,
+					constituent.constituentData.LastName,
 					"subscribed",
 					"uk"
 				),
@@ -272,6 +276,25 @@ export async function handleBillingRequestFulfilled(event) {
 		);
 
 		notes += "Subscriber added/updated in mailchimp. ";
+
+		await pRetry(
+			() =>
+				addTag(
+					constituent.constituentData.EmailAddress,
+					"Gocardless Active Subscription",
+					"uk"
+				),
+			{
+				retries: 3,
+				onFailedAttempt: (error) => {
+					console.error(
+						`Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left for adding/updating subscriber.`
+					);
+				},
+			}
+		);
+
+		notes += "Subscriber tags added. ";
 
 		console.log(event, paymentGatewayId, notes);
 		await storeWebhookEvent(event, "completed", paymentGatewayId, notes);

@@ -9,6 +9,8 @@ import cancelSubscription from "../db/cancelSubscription";
 import getCustomerFromId from "../db/getCustomerFromId";
 import { addActivity } from "../donorfy/addActivity";
 import { deleteActiveTag } from "../donorfy/deleteActiveTag";
+import { getConstituent } from "../donorfy/getConstituent";
+import deleteTag from "../mailchimp/deleteTag";
 
 export async function handleSubscriptionCancelled(event) {
 	try {
@@ -91,13 +93,27 @@ export async function handleSubscriptionCancelled(event) {
 			throw new Error(notes);
 		}
 
+		const constituent = await getConstituent(constituentId, donorfyInstance);
+
+		// Delete tag in mailchimp
+
+		const deleteTagData = await deleteTag(
+			constituent.constituentData.EmailAddress,
+			"Gocardless Active Subscription",
+			"uk"
+		);
+
+		if (deleteTagData.success) {
+			notes += "Deleted tag on mailchimp";
+		} else {
+			notes += "failed to delete tag on mailchimp";
+			throw new Error(notes);
+		}
 		return {
 			message: notes,
 			status: 200,
 			eventStatus: "processed",
 		};
-
-		// Add Activity in donorfy
 	} catch (error) {
 		console.error("Error handling subscription cancelled event:", error);
 		throw error;
