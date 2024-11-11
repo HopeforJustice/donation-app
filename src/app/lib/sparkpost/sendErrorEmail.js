@@ -17,10 +17,13 @@ async function sendErrorEmail(error, additionalInfo = {}) {
 			},
 			recipients: [{ address: "james.holt@hopeforjustice.org" }], // Your notification email
 		});
-
-		console.log("Error email sent:", response);
+		if (response) {
+			return response;
+		} else {
+			throw new Error("failed to send email");
+		}
 	} catch (emailError) {
-		console.error("Failed to send error email:", emailError);
+		console.error(emailError);
 	}
 }
 

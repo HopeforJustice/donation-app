@@ -12,7 +12,7 @@ export async function getConstituentPreferences(constituentId, instance) {
 
 		return {
 			message: "Get constituent preferences successful",
-			data,
+			preferences: data.PreferencesList,
 		};
 	} catch (error) {
 		console.error("Error:", error);

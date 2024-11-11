@@ -64,7 +64,6 @@ const MultiStepForm = () => {
 	useEffect(() => {
 		// Watch all fields, extract currency and givingFrequency
 		const subscription = watch((value) => {
-			console.log(value);
 			const currency = value.currency || initialCurrency;
 			const givingFrequency =
 				value.givingFrequency || defaultValues.givingFrequency;
@@ -110,7 +109,6 @@ const MultiStepForm = () => {
 				const getPreferencesData = await getPreferences.json();
 
 				if (getPreferencesData.preferences) {
-					//testing
 					// Update the form fields with the preferences
 					const extractedPreferences = await extractPreferences(
 						getPreferencesData

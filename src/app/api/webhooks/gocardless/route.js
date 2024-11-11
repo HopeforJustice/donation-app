@@ -6,7 +6,7 @@ import checkProcessedEvents from "@/app/lib/db/checkProcessedEvents";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import { handlePaymentFailed } from "@/app/lib/webhooks/handlePaymentFailed";
 import { handleSubscriptionCancelled } from "@/app/lib/webhooks/handleSubscriptionCancelled";
-import sendErrorEmail from "@/app/lib/sendErrorEmail";
+import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
 
 const eventHandlers = {
 	"billing_requests:fulfilled": handleBillingRequestFulfilled,

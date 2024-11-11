@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import addUpdateSubscriber from "@/app/lib/mailchimp/addUpdateSubscriber";
 import { getConstituent } from "@/app/lib/donorfy/getConstituent";
+import { getConstituentPreferences } from "@/app/lib/donorfy/getConstituentPreferences";
+import { extractPreferences } from "@/app/lib/utilities";
 
 // const constituent = {
 // 	SearchResults: null,
@@ -53,24 +55,12 @@ import { getConstituent } from "@/app/lib/donorfy/getConstituent";
 // 	UtmContent: "",
 // 	UtmCampaign: "",
 // };
-const constituentId = "a786003a-f89c-ef11-a81b-7c1e521fa4a1";
+const constituentId = "c8869221-4407-ed11-b5cf-0003ff4457ff";
 export async function POST() {
 	try {
-		// const response = await addUpdateSubscriber(
-		// 	constituent.EmailAddress,
-		// 	constituent.FirstName,
-		// 	constituent.LastName,
-		// 	"subscribed",
-		// 	"uk"
-		// );
-		// if (response) {
-		// 	return NextResponse.json(response, { status: 200 });
-		// } else {
-		// 	throw new Error("no response");
-		// }
-		// Ask Donorfy for donor details
-		const constituent = await getConstituent(constituentId, "uk");
-		console.log(constituent);
+		const data = await getConstituent(constituentId, "uk");
+
+		return NextResponse.json(data, { status: 200 });
 	} catch (error) {
 		console.error("Error in API:", error);
 		return NextResponse.json(

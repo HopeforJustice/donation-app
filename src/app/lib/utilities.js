@@ -278,17 +278,18 @@ export async function extractPreferences(data) {
 	};
 
 	const extractedPreferences = {};
-
-	data.preferences.forEach((pref) => {
-		if (
-			pref.PreferenceType === "Channel" &&
-			preferenceMapping[pref.PreferenceName]
-		) {
-			// Map the preference name to your schema's field name
-			extractedPreferences[preferenceMapping[pref.PreferenceName]] =
-				pref.PreferenceAllowed ?? false; // Use false if null
-		}
-	});
+	if (data.preferences) {
+		data.preferences.forEach((pref) => {
+			if (
+				pref.PreferenceType === "Channel" &&
+				preferenceMapping[pref.PreferenceName]
+			) {
+				// Map the preference name to your schema's field name
+				extractedPreferences[preferenceMapping[pref.PreferenceName]] =
+					pref.PreferenceAllowed ?? false; // Use false if null
+			}
+		});
+	}
 
 	return extractedPreferences;
 }

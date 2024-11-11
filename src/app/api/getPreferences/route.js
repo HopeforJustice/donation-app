@@ -23,16 +23,16 @@ export async function POST(req) {
 			return NextResponse.json({ preferences: null }, { status: 200 });
 		}
 
-		const getConstituentPreferenesData = await getConstituentPreferences(
+		const constituentPreferenceData = await getConstituentPreferences(
 			constituentId,
 			donorfyInstance
 		);
 
-		if (!getConstituentPreferenesData) {
+		if (!constituentPreferenceData) {
 			throw new Error("Get preferences error");
 		} else {
 			return NextResponse.json(
-				{ preferences: getConstituentPreferenesData.data.PreferencesList },
+				{ preferences: constituentPreferenceData.preferences },
 				{ status: 200 }
 			);
 		}

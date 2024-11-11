@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import sendErrorEmail from "@/app/lib/sendErrorEmail";
+import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
 
 export async function POST(req) {
 	try {
