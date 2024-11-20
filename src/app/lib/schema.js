@@ -25,7 +25,9 @@ export const formSchema = z.object({
 		.min(1, { message: "Please select a date" }),
 	address1: z.string().min(1, { message: "Please enter your address" }),
 	address2: z.string().optional(),
-	postcode: z.string().regex(/^[A-Za-z0-9]{3,10}$/, "Invalid postcode format"),
+	postcode: z
+		.string()
+		.regex(/^[A-Za-z0-9\s]{3,10}$/, "Invalid postcode format"),
 	country: z.string().min(1, { message: "Please select your country" }),
 	townCity: z.string().min(1, { message: "Please enter your Town/City" }),
 
