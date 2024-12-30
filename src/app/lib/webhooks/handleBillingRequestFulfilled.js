@@ -1,20 +1,22 @@
 /*
- * handlePaymentPaidOut.js
- * Gocardless event for billing request fulfilled
+ * handleBillingRequestFulfilled.js
+ * Function for handling GoCardless webhook event for billing request fulfilled
+ *
+ * Webhook event sent from Gocardless to api/webhooks/gocardless
+ *
+ * Exctract "additionalDetails" from billing request metadata
+ * Create supscription in GoCardless (using additional details if frequency is monthly)
+ * Update Customer metadata in GoCardless so "additionalDetails" is attached to customer instead of billing request
+ * Add/Update subscriber in Mailchimp (if selected preference is yes to email)
+ * Send sparkpost email (regardless of consent as this is transactional)
+ * Send seperate webhook to handle updating Donorfy (so this process can complete without relying on Donorfy's API)
  *
  */
 
-import { sql } from "@vercel/postgres";
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 import storeWebhookEvent from "../db/storeWebhookEvent";
-import { addActiveTags } from "@/app/lib/donorfy/addActiveTags";
-import { addActivity } from "@/app/lib/donorfy/addActivity";
-import getConstituentIdFromCustomerID from "../db/getConsituentIdFromCustomerId";
-import { getConstituent } from "../donorfy/getConstituent";
 import addUpdateSubscriber from "../mailchimp/addUpdateSubscriber";
 import addTag from "../mailchimp/addTag";
-import { getConstituentPreferences } from "../donorfy/getConstituentPreferences";
-import { extractPreferences } from "../utilities";
 import sendDirectDebitConfirmationEmail from "../sparkpost/sendDirectDebitConfirmationEmail";
 
 const client = getGoCardlessClient();
@@ -22,180 +24,83 @@ const client = getGoCardlessClient();
 export async function handleBillingRequestFulfilled(event) {
 	const {
 		billing_request: billingRequestId,
+		customer: customerId,
 		mandate_request_mandate: mandateId,
-		customer: gatewayCustomerId,
 	} = event.links;
 
 	let notes = "";
-	let paymentGatewayId = 1;
 
 	try {
-		// Fetch the billing request from the database
-		const billingRequest = await sql`
-			SELECT * FROM billing_requests
-			WHERE billing_request_id = ${billingRequestId};
-		`;
+		// Extract all details needed from GoCardless
+		const billingRequest = await client.billingRequests.find(billingRequestId);
+		const goCardlessCustomer = await client.customers.find(customerId);
 
-		// Check if billing request does not exist
+		const extractedData = {
+			additionalDetails: JSON.parse(billingRequest.metadata.additionalDetails),
+			email: goCardlessCustomer.email,
+			firstName: goCardlessCustomer.given_name,
+			lastName: goCardlessCustomer.family_name,
+			address1: goCardlessCustomer.address_line1,
+			address2: goCardlessCustomer.address_line2,
+			city: goCardlessCustomer.city,
+			postalCode: goCardlessCustomer.postal_code,
+		};
 
-		/*
-		 *  This is so we can mark the event as completed
-		 *  and do nothing as the billing request did not
-		 *  originate from the Donation app.
-		 */
-		if (billingRequest.rows.length === 0) {
-			notes = "Billing Request not found in db";
-			console.log(notes);
-			await storeWebhookEvent(event, "database resource not found", 1, notes);
-			// Return with message
-			return { message: notes, status: 200 };
-		}
-
-		// Get data from billing request
-
-		/*
-		 * Continue if we have the billing request,
-		 * Store information in variables
-		 */
-		const billingRequestData = billingRequest.rows[0];
-		const billingRequestAmount = billingRequestData.amount;
-		const collectionDay = billingRequestData.collection_day;
-		const frequency = billingRequestData.frequency;
-		paymentGatewayId = billingRequestData.gateway_id;
-		const customerId = billingRequestData.customer_id;
-		const campaign = billingRequestData.campaign;
-		const constituentId = await getConstituentIdFromCustomerID(customerId);
-
-		// Update billing request to fulfilled in db
-		await sql`
-			UPDATE billing_requests
-			SET status = 'fulfilled', updated_at = NOW()
-			WHERE billing_request_id = ${billingRequestId};
-		`;
-
-		notes = "Billing Request marked as fulfilled in DB. ";
-
-		// Check and store the mandate if it doesn't exist
-		if (mandateId) {
-			const mandateResult = await sql`
-				SELECT * FROM mandates WHERE mandate_id = ${mandateId};
-			`;
-
-			if (mandateResult.rows.length === 0) {
-				await sql`
-					INSERT INTO mandates (
-					customer_id, gateway_id, mandate_id, status, created_at, updated_at
-					) VALUES (
-					${customerId}, ${paymentGatewayId}, ${mandateId}, 'active', NOW(), NOW()
-					);
-				`;
-				console.log("Mandate created.");
-				notes += "Mandate created in DB. ";
-			}
-		}
-
-		// Check and store the payment gateway customer if it doesn't already exist
-		if (gatewayCustomerId) {
-			const gatewayCustomerResult = await sql`
-				SELECT * FROM payment_gateway_customers
-				WHERE gateway_customer_id = ${gatewayCustomerId} AND gateway_id = ${paymentGatewayId};
-			`;
-
-			if (gatewayCustomerResult.rows.length === 0) {
-				await sql`
-					INSERT INTO payment_gateway_customers (
-					customer_id, gateway_id, gateway_customer_id, created_at, updated_at
-					) VALUES (
-					${customerId}, ${paymentGatewayId}, ${gatewayCustomerId}, NOW(), NOW()
-					);
-				`;
-				console.log("Payment gateway customer created.");
-				notes += "Gateway customer created. ";
-			}
-		}
+		console.log(extractedData);
 
 		// Create a subscription if frequency is monthly
-		if (frequency === "monthly") {
+		if (extractedData.additionalDetails.frequency === "monthly") {
 			const subscription = await client.subscriptions.create({
-				amount: billingRequestAmount * 100,
+				amount: extractedData.additionalDetails.amount * 100,
 				currency: "GBP",
 				name: "Monthly Guardian",
-				interval_unit: frequency,
-				day_of_month: collectionDay,
+				interval_unit: extractedData.additionalDetails.frequency,
+				day_of_month: extractedData.additionalDetails.directDebitDay,
 				links: { mandate: mandateId },
 			});
 
-			if (subscription) {
-				await sql`
-					INSERT INTO subscriptions (
-					customer_id, gateway_id, subscription_id, status, amount, frequency, collection_day, created_at, updated_at, campaign
-					) VALUES (
-					${customerId}, ${paymentGatewayId}, ${subscription.id}, 'active',
-					${billingRequestAmount}, ${frequency}, ${collectionDay}, NOW(), NOW(), ${campaign}
-					);
-				`;
-				console.log("Subscription created in DB and GC.");
-				notes += "Subscription created in DB and GC. ";
-
-				// Add active tags and activity
-				await addActiveTags(
-					"Gocardless_Active Subscription",
-					constituentId,
-					"uk"
-				);
-				notes += "Tags added to constituent. ";
-
-				const activityData = {
-					notes: `Gocardless Subscription created. Amount: ${billingRequestAmount}`,
-					activityType: "Gocardless Subscription",
-				};
-
-				await addActivity(activityData, constituentId, "uk");
-				notes += "Activity added. ";
+			if (subscription.id) {
+				console.log("subscription Created", subscription.id);
+				notes += "Subscription created in GoCardless. ";
+			} else {
+				notes += "Failed to create subscription in GoCardless";
+				throw new Error("Failed to create subscription in GoCardless");
 			}
-		} else {
-			/* Handle billing request for one off payments in the future */
 		}
 
+		//Update customer metadata in GoCardless
+		const updateCustomer = await client.customers.update(customerId, {
+			metadata: {
+				additionalDetails: billingRequest.metadata.additionalDetails,
+			},
+		});
+
+		if (updateCustomer) {
+			notes += "Customer Updated in GoCardless. ";
+		} else {
+			notes += "Failed to update Customer in GoCardless";
+			throw new Error("Failed to update Customer in GoCardless");
+		}
 		/*
 		 * If the constituent has said yes to email comms
-		 * Add them to Mailchimp with an active subscription tag
+		 * Add them to Mailchimp with an "GoCardless Active Subscription" tag
 		 */
 
-		// Get the donorfy constituent
-		const constituent = await getConstituent(constituentId, "uk");
-
-		// Get the constiuent's preferences
-		const constituentPreferences = await getConstituentPreferences(
-			constituentId,
-			"uk"
-		);
-
-		const extractedPreferences = await extractPreferences(
-			constituentPreferences
-		);
-
-		if (extractedPreferences.emailPreference) {
+		if (extractedData.additionalDetails.preferences.email === "true") {
 			// Add/update subscriber on Mailchimp
 			await addUpdateSubscriber(
-				constituent.constituentData.EmailAddress,
-				constituent.constituentData.FirstName,
-				constituent.constituentData.LastName,
+				extractedData.email,
+				extractedData.firstName,
+				extractedData.lastName,
 				"subscribed",
 				"uk"
 			);
 
 			notes += "Subscriber added/updated in Mailchimp. ";
 
-			await addTag(
-				constituent.constituentData.EmailAddress,
-				"Gocardless Active Subscription",
-				"uk"
-			);
+			await addTag(extractedData.email, "GoCardless Active Subscription", "uk");
 
 			notes += "Subscriber tags added. ";
-
-			console.log(event, paymentGatewayId, notes);
 		} else {
 			notes += "Constituent said not to email, skipping mailchimp steps. ";
 		}
@@ -203,9 +108,9 @@ export async function handleBillingRequestFulfilled(event) {
 		//Send confirmation email via Sparkpost
 		const sendConfirmationEmailResponse =
 			await sendDirectDebitConfirmationEmail(
-				constituent.constituentData.EmailAddress,
-				constituent.constituentData.FirstName,
-				billingRequestAmount
+				extractedData.email,
+				extractedData.firstName,
+				extractedData.additionalDetails.amount
 			);
 
 		if (sendConfirmationEmailResponse) {
@@ -214,7 +119,9 @@ export async function handleBillingRequestFulfilled(event) {
 			notes += "Failed to send confirmation email. ";
 		}
 
-		await storeWebhookEvent(event, "completed", paymentGatewayId, notes);
+		// add webhook here to process data into Donorfy
+
+		await storeWebhookEvent(event, "completed", notes);
 
 		return { message: "Billing request webhook processed", status: 200 };
 	} catch (error) {
@@ -222,7 +129,6 @@ export async function handleBillingRequestFulfilled(event) {
 		await storeWebhookEvent(
 			event,
 			"failed",
-			paymentGatewayId,
 			`Error occurred: ${error.message} Notes: ${notes}`
 		);
 		return {

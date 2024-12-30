@@ -1,62 +1,50 @@
-import { sql } from "@vercel/postgres";
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 
 const client = getGoCardlessClient();
 
-export async function billingRequest(data, customerId) {
+export async function billingRequest(data) {
 	try {
-		const paymentGatewayResult = await sql`
-			SELECT id FROM payment_gateways WHERE name = 'gocardless';
-		`;
-		const paymentGatewayId = paymentGatewayResult.rows[0].id;
+		const additionalDetails = {
+			currency: data.currency,
+			title: data.title,
+			phone: data.phone,
+			campaign: data.campaign,
+			amount: data.amount,
+			directDebitDay: data.directDebitStartDate,
+			frequency: data.givingFrequency,
+			preferences: {
+				sms: data.smsPreference,
+				post: data.postPreference,
+				phone: data.phonePreference,
+				email: data.emailPreference,
+			},
+			giftAid: data.giftAid,
+			inspirationQuestion: data.inspirationQuestion,
+			inspirationDetails: data.inspirationDetails,
+		};
 
-		const status = "pending";
-
-		// Step 1: Create a billing request with a mandate
+		console.log("creating billing request");
+		// Creaate billing request
 		const billingRequest = await client.billingRequests.create({
 			mandate_request: {
 				scheme: "bacs",
 			},
+			metadata: {
+				additionalDetails: JSON.stringify(additionalDetails),
+			},
 		});
-
-		if (!billingRequest || !billingRequest.id) {
-			throw new Error("Failed to create billing request");
+		if (!billingRequest) {
+			throw new Error("failed to create billing request");
+		} else {
+			console.log("billing request:", billingRequest);
 		}
-
-		const newBillingRequest = await sql`
-        INSERT INTO billing_requests (
-          customer_id,
-          gateway_id,
-          billing_request_id,
-		  status,
-		  amount,
-		  frequency,
-		  collection_day,
-          created_at,
-          updated_at,
-		  campaign
-        )
-        VALUES (
-          ${customerId},
-          ${paymentGatewayId}, 
-          ${billingRequest.id},    
-          ${status}, 
-		  ${data.amount},
-		  ${data.givingFrequency},
-		  ${data.directDebitStartDate},
-          NOW(),
-          NOW(),
-		  ${data.campaign}
-        )
-        RETURNING id; 
-      `;
 
 		const successUrl =
 			process.env.GC_SUCCESS_URL +
 			`?name=${data.firstName}&amount=${data.amount}&frequency=${data.givingFrequency}&gateway=gocardless`;
 		const exitUrl = process.env.GC_EXIT_URL;
 
-		// Step 2: Create the billing request flow with prefilled customer details and dynamic URLs
+		// Create the billing request flow with prefilled customer details and dynamic URLs
 		const billingRequestFlow = await client.billingRequestFlows.create({
 			redirect_uri: successUrl,
 			exit_uri: exitUrl,
@@ -74,14 +62,15 @@ export async function billingRequest(data, customerId) {
 			},
 		});
 
-		if (!billingRequestFlow || !billingRequestFlow.authorisation_url) {
+		if (!billingRequestFlow) {
 			throw new Error("Failed to create billing request flow");
+		} else {
+			console.log("billing request flow:", billingRequestFlow);
 		}
 
 		// Return the GoCardless authorisation URL
 		return {
 			authorisationUrl: billingRequestFlow.authorisation_url,
-			billingRequestId: newBillingRequest.rows[0].id,
 		};
 	} catch (error) {
 		throw new Error("Error creating billing request:", error);

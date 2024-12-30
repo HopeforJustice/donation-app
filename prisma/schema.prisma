@@ -72,7 +72,6 @@ model payment_gateways {
   mandates                  mandates[]
   payment_gateway_customers payment_gateway_customers[]
   payments                  payments[]
-  processed_events          processed_events[]
   subscriptions             subscriptions[]
 }
 
@@ -95,17 +94,13 @@ model payments {
 }
 
 model processed_events {
-  id               Int              @id @default(autoincrement())
-  gateway_id       Int
-  event_id         String
-  processed_at     DateTime         @default(now())
-  notes            String?
-  event_type       String?          @db.VarChar(255)
-  status           String?          @db.VarChar(50)
-  event            Json?
-  payment_gateways payment_gateways @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
-
-  @@unique([event_id, gateway_id])
+  id           Int      @id @default(autoincrement())
+  event_id     String
+  processed_at DateTime @default(now())
+  notes        String?
+  event_type   String?  @db.VarChar(255)
+  status       String?  @db.VarChar(50)
+  event        Json?
 }
 
 model subscriptions {

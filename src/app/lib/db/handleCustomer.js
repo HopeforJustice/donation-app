@@ -7,9 +7,13 @@ export default async function handleCustomer(
 	constituentNumber
 ) {
 	try {
-		const existingCustomer = await sql`
+		let existingCustomer;
+
+		if (constituentId) {
+			existingCustomer = await sql`
         SELECT id FROM customers WHERE donorfy_constituent_id = ${constituentId};
       `;
+		}
 
 		if (existingCustomer.rows.length > 0) {
 			return {

@@ -10,7 +10,6 @@ import { sql } from "@vercel/postgres";
 export default async function storeWebhookEvent(
 	event,
 	status,
-	gatewayId,
 	additionalNotes
 ) {
 	try {
@@ -19,9 +18,9 @@ export default async function storeWebhookEvent(
 
 		await sql`
         INSERT INTO processed_events (
-          event_id, gateway_id, event_type, notes, processed_at, status, event
+          event_id, event_type, notes, processed_at, status, event
         ) VALUES (
-          ${eventId}, ${gatewayId}, ${
+          ${eventId}, ${
 			event.resource_type ? event.resource_type : "webhook"
 		}, ${notes}, NOW(), ${status}, ${event}
         );

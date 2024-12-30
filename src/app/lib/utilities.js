@@ -3,7 +3,7 @@ export const onlyNumbers = (e, currency) => {
 	let value = e.target.value;
 
 	if (currency === "nok") {
-		// Allow digits and a single comma
+		//allow a single comma
 		value = value.replace(/[^0-9,]/g, "");
 
 		// Ensure there is only one comma
@@ -17,16 +17,16 @@ export const onlyNumbers = (e, currency) => {
 			value = value.replace(/^0+/, "0");
 		}
 	} else {
-		// Allow digits and a single period
+		//digits and a single period
 		value = value.replace(/[^0-9.]/g, "");
 
-		// Ensure there is only one period
+		//only one period
 		const parts = value.split(".");
 		if (parts.length > 2) {
 			value = parts.slice(0, 2).join(".");
 		}
 
-		// Prevent multiple leading zeros if period is not present
+		//no multiple leading zeros if period is not present
 		if (!value.includes(".")) {
 			value = value.replace(/^0+/, "0");
 		}

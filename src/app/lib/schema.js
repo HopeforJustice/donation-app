@@ -19,7 +19,10 @@ export const formSchema = z.object({
 	firstName: z.string().min(1, { message: "Please enter your first name" }),
 	lastName: z.string().min(1, { message: "Please enter your last name" }),
 	email: z.string().email({ message: "Please enter a valid email" }),
-	phone: z.string().min(5, { message: "Please enter a valid phone number" }),
+	phone: z
+		.string()
+		.min(5, { message: "Please enter a valid phone number" })
+		.max(11, { message: "Please enter a valid phone number" }),
 	directDebitStartDate: z.coerce
 		.number()
 		.min(1, { message: "Please select a date" }),
@@ -67,6 +70,9 @@ export const formSchema = z.object({
 		.transform((value) => value === "true"),
 
 	inspirationQuestion: z.string().optional(),
-	inspirationDetails: z.string().optional(),
+	inspirationDetails: z
+		.string()
+		.max(100, { message: "Max 100 characters" })
+		.optional(),
 	givingFrequency: z.string().min(1, { message: "Please select frequency" }),
 });
