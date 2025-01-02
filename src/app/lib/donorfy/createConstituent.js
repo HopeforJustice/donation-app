@@ -6,7 +6,6 @@ export async function createConstituent(data, instance) {
 		const { apiKey, tenant } = getDonorfyCredentials(instance);
 		const authString = Buffer.from(`DonationApp:${apiKey}`).toString("base64");
 
-		// Only include data fields that are defined
 		const filteredData = Object.fromEntries(
 			Object.entries({
 				ConstituentType: "individual", // donation app is currently only setup to work with individuals

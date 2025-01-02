@@ -21,7 +21,7 @@ export default async function storeWebhookEvent(
           event_id, event_type, notes, processed_at, status, event
         ) VALUES (
           ${eventId}, ${
-			event.resource_type ? event.resource_type : "webhook"
+			event.resource_type || event.type || "webhook"
 		}, ${notes}, NOW(), ${status}, ${event}
         );
       `;

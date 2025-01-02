@@ -1,3 +1,9 @@
+/*
+ * GoCardless webhooks
+ * Handles selected webhooks from GoCardless
+ *
+ */
+
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { handleBillingRequestFulfilled } from "@/app/lib/webhooks/handleBillingRequestFulfilled";
@@ -21,11 +27,11 @@ export async function POST(req) {
 
 	try {
 		const rawBody = await req.text();
-		// const receivedSignature = req.headers.get("Webhook-Signature");
-		// const computedSignature = crypto
-		// 	.createHmac("sha256", webhookSecret)
-		// 	.update(rawBody)
-		// 	.digest("hex");
+		const receivedSignature = req.headers.get("Webhook-Signature");
+		const computedSignature = crypto
+			.createHmac("sha256", webhookSecret)
+			.update(rawBody)
+			.digest("hex");
 
 		body = JSON.parse(rawBody);
 

@@ -1,70 +1,34 @@
 /*
  * handleSubscriptionCancelled.js
  * Gocardless event for subscription cancelled
+ * Get customer details from GoCardless
+ * Delete active tag in Donorfy
+ * Delete active tag in mailchimp
  *
  */
-
-import getSubscription from "../db/getSubscription";
-import cancelSubscription from "../db/cancelSubscription";
-import getCustomerFromId from "../db/getCustomerFromId";
+import { getGoCardlessClient } from "../gocardless/gocardlessclient";
 import { addActivity } from "../donorfy/addActivity";
 import { deleteActiveTag } from "../donorfy/deleteActiveTag";
-import { getConstituent } from "../donorfy/getConstituent";
 import deleteTag from "../mailchimp/deleteTag";
+const client = getGoCardlessClient();
 
 export async function handleSubscriptionCancelled(event) {
 	try {
+		//Get details
 		const subscriptionId = event.links.subscription;
+		const subscription = await client.subscriptions.find(subscriptionId);
+		const mandate = await client.mandates.find(subscription.links.mandate);
+		const customer = await client.customers.find(mandate.links.customer);
+		const additionalDetails = JSON.parse(customer.metadata.additionalDetails);
+		const constituentId = customer.metadata.donorfyConstituentId;
+		const donorfyInstance = "uk";
 		let notes = "";
+		console.log(customer);
 
-		//Get the subscription from the database
-		const subscriptionData = await getSubscription(subscriptionId);
-
-		// Handle case when subscription is not found
-		if (!subscriptionData) {
-			notes += "Subscription not in DB. ";
-			console.log(notes, subscriptionData);
-			return {
-				message: notes,
-				status: 200,
-				eventStatus: "database resource not found",
-			};
-		} else {
-			notes += "Subscription found in DB. ";
-		}
-
-		//Update the subscription status
-		if (subscriptionData.rows.length > 0) {
-			const cancelSubscriptionData = await cancelSubscription(
-				subscriptionData.rows[0].id
-			);
-			if (cancelSubscriptionData.success) {
-				notes += "Cancelled Subscription in DB. ";
-			}
-		} else {
-			notes += "failed to update subscription status to cancelled";
-			throw new Error(notes);
-		}
-
-		const customerId = subscriptionData.rows[0].customer_id;
-		const amount = subscriptionData.rows[0].amount;
-
-		// Get customer data from db
-		const customerData = await getCustomerFromId(customerId);
-
-		if (!customerData.rows.length > 0) {
-			notes += "Failed to get customer from DB. ";
-			throw new Error(notes);
-		} else {
-			notes += "Customer found in DB. ";
-		}
-
-		const constituentId = customerData.rows[0].donorfy_constituent_id;
-		const donorfyInstance = customerData.rows[0].donorfy_instance;
-
+		//Add Activity to Donorfy
 		const activityData = {
 			activityType: "Gocardless Subscription Cancelled",
-			notes: `Amount: ${amount}`,
+			notes: `Amount: ${additionalDetails.amount}`,
 		};
 
 		const addActivityData = await addActivity(
@@ -80,6 +44,7 @@ export async function handleSubscriptionCancelled(event) {
 			throw new Error(notes);
 		}
 
+		//Delete active Tag in Donorfy
 		const deleteActiveTagData = await deleteActiveTag(
 			"Gocardless_Active Subscription",
 			constituentId,
@@ -93,12 +58,9 @@ export async function handleSubscriptionCancelled(event) {
 			throw new Error(notes);
 		}
 
-		const constituent = await getConstituent(constituentId, donorfyInstance);
-
 		// Delete tag in mailchimp
-
 		const deleteTagData = await deleteTag(
-			constituent.constituentData.EmailAddress,
+			customer.email,
 			"Gocardless Active Subscription",
 			"uk"
 		);

@@ -14,7 +14,7 @@ export default async function addUpdateSubscriber(
 		const list = await getList(country);
 
 		const subscriberHash = getSubscriberHash(email);
-		console.log(list.id, subscriberHash);
+		// console.log(list.id, subscriberHash);
 
 		const response = await mailchimp.lists.setListMember(
 			list.id,
@@ -29,7 +29,7 @@ export default async function addUpdateSubscriber(
 			}
 		);
 
-		console.log("added/updated subscriber", response);
+		console.log("added/updated subscriber in mailchimp");
 
 		return { success: true, response };
 	} catch (error) {

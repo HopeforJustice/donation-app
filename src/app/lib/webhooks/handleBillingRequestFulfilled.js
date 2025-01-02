@@ -18,6 +18,7 @@ import storeWebhookEvent from "../db/storeWebhookEvent";
 import addUpdateSubscriber from "../mailchimp/addUpdateSubscriber";
 import addTag from "../mailchimp/addTag";
 import sendDirectDebitConfirmationEmail from "../sparkpost/sendDirectDebitConfirmationEmail";
+import { v4 as uuid } from "uuid";
 
 const client = getGoCardlessClient();
 
@@ -120,7 +121,19 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		// add webhook here to process data into Donorfy
-
+		const webhookId = uuid();
+		console.log("uuid:", webhookId);
+		await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/webhooks/donorfy`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				customerId: customerId,
+				type: "New GoCardless Subscriber",
+				id: webhookId,
+			}),
+		});
 		await storeWebhookEvent(event, "completed", notes);
 
 		return { message: "Billing request webhook processed", status: 200 };

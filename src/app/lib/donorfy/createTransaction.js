@@ -9,7 +9,8 @@ export async function createTransaction(
 	paymentMethod,
 	fund,
 	constituentId,
-	instance
+	instance,
+	chargeDate
 ) {
 	try {
 		const { apiKey, tenant } = getDonorfyCredentials(instance);
@@ -25,7 +26,7 @@ export async function createTransaction(
 			PaymentMethod: paymentMethod,
 			Fund: fund,
 			ExistingConstituentId: constituentId,
-			DatePaid: new Date().toISOString(),
+			DatePaid: chargeDate || new Date().toISOString(),
 		};
 
 		console.log(url);
