@@ -35,10 +35,10 @@ export async function POST(req) {
 
 		body = JSON.parse(rawBody);
 
-		// if (receivedSignature !== computedSignature) {
-		// 	await storeWebhookEvent(body, "failed", "Invalid signature");
-		// 	return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-		// }
+		if (receivedSignature !== computedSignature) {
+			await storeWebhookEvent(body, "failed", "Invalid signature");
+			return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+		}
 
 		console.log("webhook recieved: ", JSON.stringify(body, null, 2));
 
