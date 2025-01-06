@@ -31,7 +31,7 @@ const MultiStepForm = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 
-	const [step, setStep] = useState(1);
+	const [step, setStep] = useState(0);
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
 
 	const methods = useForm({

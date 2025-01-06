@@ -23,6 +23,30 @@ export default function AddressSearchLoqate({
 		setValue("townCity", address.City);
 		setValue("stateCounty", address.ProvinceName);
 	};
+	const Input = forwardRef(({ className, ...rest }, ref) => (
+		<input
+			className={clsx(
+				`block w-full rounded-md border-0 py-1.5 pt-2 text-hfj-black ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 ring-gray-300 focus:ring-hfj-black`,
+				className
+			)}
+			placeholder="Type your address to search"
+			ref={ref}
+			{...rest}
+		/>
+	));
+	Input.displayName = "Input";
+
+	const List = forwardRef(({ className, ...rest }, ref) => (
+		<ul
+			className={clsx(
+				"react-loqate-default-list flex flex-col gap-2 z-10",
+				className
+			)}
+			ref={ref}
+			{...rest}
+		/>
+	));
+	List.displayName = "List";
 	return (
 		<div className={`mb-4 ${extraClasses}`}>
 			<div className="flex justify-between">
@@ -48,28 +72,8 @@ export default function AddressSearchLoqate({
 					apiKey="BP78-CZ38-AA26-DZ29"
 					onSelect={(address) => handleSelectedAddress(address)}
 					components={{
-						Input: forwardRef(({ className, ...rest }, ref) => (
-							<input
-								className={clsx(
-									`block w-full rounded-md border-0 py-1.5 pt-2 text-hfj-black ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 ring-gray-300 focus:ring-hfj-black ${extraInputClasses}`,
-									className
-								)}
-								placeholder="Type your address to search"
-								ref={ref}
-								{...rest}
-							/>
-						)),
-						List: forwardRef(({ className, ...rest }, ref) => (
-							<ul
-								className={clsx(
-									"react-loqate-default-list flex flex-col gap-2 z-10",
-									className
-								)}
-								ref={ref}
-								// ...
-								{...rest}
-							/>
-						)),
+						Input,
+						List,
 					}}
 				/>
 			</div>
