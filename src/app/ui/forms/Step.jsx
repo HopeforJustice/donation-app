@@ -6,6 +6,7 @@ import TextareaField from "@/app/ui/forms/fields/TextareaField";
 import { findCurrencySymbol, formatAmount } from "@/app/lib/utilities";
 import Button from "../buttons/Button";
 import AmountField from "./fields/AmountField";
+import AddressSearchLoqate from "./fields/AddressSearchLoqate";
 
 const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 	const {
@@ -64,6 +65,16 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 					hidden={field.hidden}
 				/>
 			);
+		case "addressSearch":
+			return (
+				<AddressSearchLoqate
+					id={field.id}
+					label={field.label}
+					extraClasses={field.extraClasses}
+					extraInputClasses={field.extraInputClasses}
+					hidden={field.hidden}
+				/>
+			);
 
 		case "amount":
 			return (
@@ -98,6 +109,7 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 					description={field.description}
 					optional={field.optional}
 					hidden={field.hidden}
+					defaultValue={field.defaultValue}
 				/>
 			);
 		case "select":

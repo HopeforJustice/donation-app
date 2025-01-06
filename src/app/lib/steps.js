@@ -40,7 +40,7 @@ export const steps = [
 						extraInputClasses: "pl-7",
 						onInput: onlyNumbers,
 						acceptedCurrencies: [
-							// { text: "USD", value: "usd" }, //will add in future
+							{ text: "USD", value: "usd" }, //will add in future
 							{ text: "GBP", value: "gbp", default: true },
 							// { text: "NOK", value: "nok" }, //will add in future
 							// { text: "AUD", value: "aud" }, //will add in future
@@ -125,6 +125,7 @@ export const steps = [
 		description:
 			"We need this to set up your monthly Direct Debit gift. We will not send you anything in the post unless you choose to hear from us in this way.",
 		fields: [
+			{ id: "addressSearch", label: "Address Search", type: "addressSearch" },
 			{ id: "address1", label: "Address Line 1", type: "text" },
 			{ id: "address2", label: "Address Line 2", type: "text", optional: true },
 			{
@@ -134,12 +135,11 @@ export const steps = [
 					{ id: "postcode", label: "Postcode", type: "text" },
 				],
 			},
-
+			{ id: "stateCounty", label: "State/County", type: "text" },
 			{
 				id: "country",
 				label: "Country",
 				type: "select",
-				defaultValue: "United Kingdom",
 				options: [
 					{ text: "Afghanistan", value: "Afghanistan" },
 					{ text: "Albania", value: "Albania" },

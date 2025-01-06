@@ -27,12 +27,11 @@ const MultiStepForm = () => {
 	const isCurrencyAccepted = acceptedCurrencies.some(
 		(currency) => currency.value === initialCurrency
 	);
-	console.log(searchParams);
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 
-	const [step, setStep] = useState(0);
+	const [step, setStep] = useState(1);
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
 
 	const methods = useForm({
