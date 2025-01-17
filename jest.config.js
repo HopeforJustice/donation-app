@@ -14,7 +14,15 @@ const config = {
 		"^@/(.*)$": "<rootDir>/src/$1",
 	},
 	collectCoverage: true,
-	collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
+	collectCoverageFrom: ["src/app/ui/**/*.{js,jsx,ts,tsx}"],
+	testMatch: [
+		"**/__tests__/unit/**/*.{js,jsx,ts,tsx}", // Look only in the `unit` folder inside `__tests__`
+		"**/*.test.{js,jsx,ts,tsx}", // Or files with `.test.js` extension
+	],
+	testPathIgnorePatterns: [
+		"/node_modules/", // Always ignore node_modules
+		"__tests__/integration/", // Explicitly ignore the integration tests
+	],
 	// Add more setup options before each test is run
 	// setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };

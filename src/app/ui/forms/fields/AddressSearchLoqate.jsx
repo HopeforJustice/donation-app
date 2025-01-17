@@ -48,7 +48,7 @@ export default function AddressSearchLoqate({
 	));
 	List.displayName = "List";
 	return (
-		<div className={`mb-4 ${extraClasses}`}>
+		<div data-testid="address-search" className={`mb-4 ${extraClasses}`}>
 			<div className="flex justify-between">
 				<label
 					htmlFor={id}
