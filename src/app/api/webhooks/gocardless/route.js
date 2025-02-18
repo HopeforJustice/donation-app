@@ -22,7 +22,10 @@ const eventHandlers = {
 };
 
 export async function POST(req) {
-	const webhookSecret = process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX;
+	const webhookSecret =
+		process.env.GOCARDLESS_ENVIRONMENT === "live"
+			? process.env.GOCARDLESS_WEBHOOK_SECRET_LIVE
+			: process.env.GOCARDLESS_WEBHOOK_SECRET_SANDBOX;
 	let body;
 
 	try {
