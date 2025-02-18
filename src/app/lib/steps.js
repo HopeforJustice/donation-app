@@ -40,7 +40,7 @@ export const steps = [
 						extraInputClasses: "pl-7",
 						onInput: onlyNumbers,
 						acceptedCurrencies: [
-							{ text: "USD", value: "usd" }, //will add in future
+							// { text: "USD", value: "usd" }, //will add in future
 							{ text: "GBP", value: "gbp", default: true },
 							// { text: "NOK", value: "nok" }, //will add in future
 							// { text: "AUD", value: "aud" }, //will add in future
