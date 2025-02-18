@@ -57,7 +57,7 @@ export async function POST(req) {
 						const response = await handler(event);
 						if (response.eventStatus && response.message) {
 							await storeWebhookEvent(
-								event,
+								event.id || {},
 								response.eventStatus,
 								response.message
 							);
@@ -71,7 +71,7 @@ export async function POST(req) {
 						// Send error email
 						await sendErrorEmail(error, {
 							name: "Gocardless webhook event failed to process",
-							event: event,
+							event: event.id || {},
 						});
 					}
 				} else {
