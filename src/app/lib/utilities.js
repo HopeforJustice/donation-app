@@ -293,3 +293,9 @@ export async function extractPreferences(data) {
 
 	return extractedPreferences;
 }
+
+//strip metadata from event object in webhook before storage in db
+export const stripMetadata = (data) => {
+	const { resource_metadata, metadata, ...strippedData } = data;
+	return strippedData;
+};

@@ -13,6 +13,7 @@ import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import { handlePaymentFailed } from "@/app/lib/webhooks/handlePaymentFailed";
 import { handleSubscriptionCancelled } from "@/app/lib/webhooks/handleSubscriptionCancelled";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
+import { stripMetadata } from "@/app/lib/utilities";
 
 const eventHandlers = {
 	"billing_requests:fulfilled": handleBillingRequestFulfilled,
@@ -57,7 +58,7 @@ export async function POST(req) {
 						const response = await handler(event);
 						if (response.eventStatus && response.message) {
 							await storeWebhookEvent(
-								event.id || {},
+								stripMetadata(event),
 								response.eventStatus,
 								response.message
 							);
@@ -66,12 +67,16 @@ export async function POST(req) {
 						return NextResponse.json(response, { status: response.status });
 					} catch (error) {
 						console.error("Error handling event:", error);
-						await storeWebhookEvent(event, "failed", error.message);
+						await storeWebhookEvent(
+							stripMetadata(event),
+							"failed",
+							error.message
+						);
 
 						// Send error email
 						await sendErrorEmail(error, {
 							name: "Gocardless webhook event failed to process",
-							event: event.id || {},
+							event: stripMetadata(event),
 						});
 					}
 				} else {
@@ -89,6 +94,10 @@ export async function POST(req) {
 	} catch (error) {
 		console.error("Error processing webhook:", error);
 		await storeWebhookEvent(body || {}, "failed", error.message);
+		await sendErrorEmail(error, {
+			name: "Gocardless webhook event failed to process",
+			event: body || {},
+		});
 		return NextResponse.json(
 			{ error: "Webhook processing failed" },
 			{ status: 500 }
