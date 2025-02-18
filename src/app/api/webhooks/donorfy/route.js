@@ -158,6 +158,7 @@ export async function POST(req) {
 			const activityData = {
 				notes: `Gocardless Subscription created. Amount: ${extractedData.additionalDetails.amount}`,
 				activityType: "Gocardless Subscription",
+				amount: extractedData.additionalDetails.amount,
 			};
 			await addActivity(activityData, constituentId, "uk");
 			notes += "Subscription Activity added. ";

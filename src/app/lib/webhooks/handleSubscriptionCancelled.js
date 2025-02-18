@@ -29,6 +29,7 @@ export async function handleSubscriptionCancelled(event) {
 		const activityData = {
 			activityType: "Gocardless Subscription Cancelled",
 			notes: `Amount: ${additionalDetails.amount}`,
+			amount: additionalDetails.amount,
 		};
 
 		const addActivityData = await addActivity(

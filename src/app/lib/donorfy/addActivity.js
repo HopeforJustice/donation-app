@@ -12,6 +12,7 @@ export async function addActivity(data, constituentId, instance) {
 			Notes: data.notes,
 			ActivityType: data.activityType,
 			ExistingConstituentId: constituentId,
+			Number1: data.amount || 0,
 		};
 
 		const url = `https://data.donorfy.com/api/v1/${tenant}/Activities`;
