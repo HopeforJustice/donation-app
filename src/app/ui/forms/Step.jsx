@@ -185,7 +185,8 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 						<span className="capitalize">{values.givingFrequency}</span>
 					</p>
 					<p>
-						<strong>Gift Aid:</strong> {values.giftAid ? "Yes" : "No"}
+						<strong>Gift Aid:</strong>{" "}
+						{values.giftAid === "true" ? "Yes" : "No"}
 					</p>
 				</div>
 			);

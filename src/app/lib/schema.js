@@ -22,7 +22,7 @@ export const formSchema = z.object({
 	phone: z
 		.string()
 		.min(5, { message: "Please enter a valid phone number" })
-		.max(11, { message: "Please enter a valid phone number" }),
+		.max(15, { message: "Please enter a valid phone number" }),
 	directDebitStartDate: z.coerce
 		.number()
 		.min(1, { message: "Please select a date" }),

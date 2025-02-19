@@ -1,4 +1,5 @@
 import { onlyNumbers } from "@/app/lib/utilities";
+import { handlePhoneInput } from "@/app/lib/utilities";
 
 export const steps = [
 	{
@@ -100,7 +101,7 @@ export const steps = [
 				id: "phone",
 				label: "Phone number",
 				type: "text",
-				onInput: onlyNumbers,
+				onInput: handlePhoneInput,
 			},
 			{
 				id: "directDebitStartDate",

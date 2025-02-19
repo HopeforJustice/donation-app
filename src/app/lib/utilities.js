@@ -36,6 +36,11 @@ export const onlyNumbers = (e, currency) => {
 	e.target.value = value;
 };
 
+// Handle phone number characters
+export const handlePhoneInput = (event) => {
+	event.target.value = event.target.value.replace(/[^0-9+()]/g, "");
+};
+
 // Function to find currency symbol based on three letter currency indication
 export const findCurrencySymbol = (currency) => {
 	switch (currency) {
