@@ -17,12 +17,42 @@ export async function handlePaymentPaidOut(event) {
 	try {
 		const paymentId = event.links.payment;
 		let notes = "";
+
+		// Ensure payment exists before accessing links
 		const payment = await client.payments.find(paymentId);
-		const subscription = payment.links.subscription;
+		if (!payment || !payment.links) {
+			throw new Error("Payment or payment.links is undefined");
+		}
+
+		const subscription = payment.links.subscription || null; // Ensure it is either a value or null
 		const amount = payment.amount;
+
+		// Ensure mandate and customer exist before accessing metadata
+		if (!payment.links.mandate) {
+			throw new Error("Payment is missing a mandate link");
+		}
+
 		const mandate = await client.mandates.find(payment.links.mandate);
+		if (!mandate || !mandate.links || !mandate.links.customer) {
+			throw new Error("Mandate is missing customer link");
+		}
+
 		const customer = await client.customers.find(mandate.links.customer);
-		const additionalDetails = JSON.parse(customer.metadata.additionalDetails);
+		if (
+			!customer ||
+			!customer.metadata ||
+			!customer.metadata.additionalDetails
+		) {
+			throw new Error("Customer metadata is missing additionalDetails");
+		}
+
+		let additionalDetails = {};
+		try {
+			additionalDetails = JSON.parse(customer.metadata.additionalDetails);
+		} catch (error) {
+			console.error("Failed to parse additionalDetails:", error);
+		}
+
 		const constituentId = customer.metadata.donorfyConstituentId;
 		const campaign =
 			additionalDetails.campaign || "Donation App General Campaign";
@@ -37,7 +67,6 @@ export async function handlePaymentPaidOut(event) {
 		notes += "Payment and customer details found in Gocardless. ";
 
 		// Only process payments that are part of a subscription
-		// This can change if we take instant bank payments in the future
 		if (subscription) {
 			await createTransaction(
 				product,
@@ -58,7 +87,7 @@ export async function handlePaymentPaidOut(event) {
 				eventStatus: "processed",
 			};
 		} else {
-			notes += "Payment not part of subscription";
+			notes += "Payment not part of a subscription.";
 			return {
 				message: notes,
 				status: 200,
@@ -66,14 +95,15 @@ export async function handlePaymentPaidOut(event) {
 			};
 		}
 	} catch (error) {
-		console.error("Error handling payment payout event:", error);
+		console.error("Error handling payment payout event:", error.message);
 
+		// Ensure we only return serializable error data
 		const errorMessage =
 			error instanceof Error ? error.message : "Unknown error";
 
 		return {
 			message: "Error handling payment payout event",
-			error: errorMessage, // Return a safe string instead of the full error object
+			error: errorMessage,
 			status: 500,
 		};
 	}
