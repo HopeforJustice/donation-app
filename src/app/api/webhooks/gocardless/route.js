@@ -44,18 +44,26 @@ export async function POST(req) {
 			return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
 		}
 
-		console.log("webhook recieved: ", JSON.stringify(body, null, 2));
+		console.log("webhook received: ", JSON.stringify(body, null, 2));
+
+		const responses = [];
 
 		for (const event of body.events) {
-			const hasBeenProcessed = await checkProcessedEvents(event.id);
+			try {
+				const hasBeenProcessed = await checkProcessedEvents(event.id);
 
-			if (!hasBeenProcessed) {
-				const eventKey = `${event.resource_type}:${event.action}`;
-				const handler = eventHandlers[eventKey];
+				if (!hasBeenProcessed) {
+					const eventKey = `${event.resource_type}:${event.action}`;
+					const handler = eventHandlers[eventKey];
 
-				if (handler) {
-					try {
+					if (handler) {
 						const response = await handler(event);
+						responses.push({
+							event: event.id,
+							message: response.message,
+							status: response.status,
+						});
+
 						if (response.eventStatus && response.message) {
 							await storeWebhookEvent(
 								stripMetadata(event),
@@ -63,32 +71,35 @@ export async function POST(req) {
 								response.message
 							);
 						}
-
-						return NextResponse.json(response, { status: response.status });
-					} catch (error) {
-						console.error("Error handling event:", error);
-						await storeWebhookEvent(
-							stripMetadata(event),
-							"failed",
-							error.message
-						);
-
-						// Send error email
-						await sendErrorEmail(error, {
-							name: "Gocardless webhook event failed to process",
-							event: stripMetadata(event),
+					} else {
+						console.log("No handler for event:", eventKey);
+						responses.push({
+							event: event.id,
+							message: "No handler for event",
+							status: 200,
 						});
 					}
-				} else {
-					console.log("No handler for event:", eventKey);
 				}
+			} catch (error) {
+				console.error("Error handling event:", error);
+				responses.push({
+					event: event.id,
+					message: "Error handling event",
+					error: error.message,
+					status: 500,
+				});
+
+				await storeWebhookEvent(stripMetadata(event), "failed", error.message);
+
+				await sendErrorEmail(error, {
+					name: "Gocardless webhook event failed to process",
+					event: stripMetadata(event),
+				});
 			}
 		}
 
 		return NextResponse.json(
-			{
-				message: "All events either successfully processed or skipped",
-			},
+			{ message: "Webhook processed", results: responses },
 			{ status: 200 }
 		);
 	} catch (error) {
