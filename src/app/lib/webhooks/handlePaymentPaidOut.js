@@ -67,9 +67,13 @@ export async function handlePaymentPaidOut(event) {
 		}
 	} catch (error) {
 		console.error("Error handling payment payout event:", error);
+
+		const errorMessage =
+			error instanceof Error ? error.message : "Unknown error";
+
 		return {
 			message: "Error handling payment payout event",
-			error,
+			error: errorMessage, // Return a safe string instead of the full error object
 			status: 500,
 		};
 	}
