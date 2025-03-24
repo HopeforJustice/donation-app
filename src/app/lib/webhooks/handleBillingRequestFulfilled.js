@@ -19,6 +19,7 @@ import addUpdateSubscriber from "../mailchimp/addUpdateSubscriber";
 import addTag from "../mailchimp/addTag";
 import sendDirectDebitConfirmationEmail from "../sparkpost/sendDirectDebitConfirmationEmail";
 import { v4 as uuid } from "uuid";
+import { stripMetadata } from "@/app/lib/utilities";
 
 const client = getGoCardlessClient();
 
@@ -134,13 +135,13 @@ export async function handleBillingRequestFulfilled(event) {
 				id: webhookId,
 			}),
 		});
-		await storeWebhookEvent(event, "completed", notes);
+		await storeWebhookEvent(stripMetadata(event), "completed", notes);
 
 		return { message: "Billing request webhook processed", status: 200 };
 	} catch (error) {
 		console.error("Error processing billing request fulfilled", error);
 		await storeWebhookEvent(
-			event,
+			stripMetadata(event),
 			"failed",
 			`Error occurred: ${error.message} Notes: ${notes}`
 		);
