@@ -12,34 +12,40 @@ import ProgressIndicator from "./ProgressIndicator";
 import HorizontalRule from "@/app/ui/HorizontalRule";
 import {
 	extractDefaultValues,
-	getAcceptedCurrencies,
 	updateStepsWithParams,
 	updateStepsBasedOnSelections,
 	getFieldIdsExcludingRemoved,
 	extractPreferences,
 } from "@/app/lib/utilities";
+import { getStripePromise } from "@/app/lib/stripe/getStripePromise";
 
-const MultiStepForm = () => {
+const MultiStepForm = ({ onCurrencyChange }) => {
 	const searchParams = useSearchParams();
 	const { defaultValues, initialCurrency, amountProvided } =
 		extractDefaultValues(initialSteps, searchParams);
-	const acceptedCurrencies = getAcceptedCurrencies(initialSteps);
-	const isCurrencyAccepted = acceptedCurrencies.some(
-		(currency) => currency.value === initialCurrency
-	);
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
-
 	const [step, setStep] = useState(0);
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
+	const paymentGateway = searchParams.get("paymentGateway") || "gocardless";
+	const stripeMode = searchParams.get("stripeMode") || "live";
+	const projectId = searchParams.get("projectId") || null;
+	const givingTo = searchParams.get("givingTo") || null;
+	const donorType = searchParams.get("donorType") || null;
+	const organisationName = searchParams.get("organisationName") || null;
 
+	const supportedCurrencies = {
+		gocardless: ["gbp"],
+		stripe: ["usd", "gbp"],
+	};
+	const isCurrencyAccepted =
+		supportedCurrencies[paymentGateway]?.includes(initialCurrency);
 	const methods = useForm({
 		resolver: zodResolver(formSchema),
 		mode: "onTouched",
 		defaultValues,
 	});
-
 	const {
 		trigger,
 		handleSubmit,
@@ -48,9 +54,12 @@ const MultiStepForm = () => {
 		watch,
 		setValue,
 	} = methods;
-
 	const [steps, setSteps] = useState(() => {
-		let updatedSteps = updateStepsWithParams(initialSteps, searchParams);
+		let updatedSteps = updateStepsWithParams(
+			initialSteps,
+			searchParams,
+			paymentGateway
+		);
 		const currency = searchParams.get("currency") || initialCurrency;
 		const givingFrequency =
 			searchParams.get("givingFrequency") || defaultValues.givingFrequency;
@@ -63,11 +72,12 @@ const MultiStepForm = () => {
 
 	useEffect(() => {
 		// Watch all fields, extract currency and givingFrequency
+		let currency = initialCurrency;
 		const subscription = watch((value) => {
-			const currency = value.currency || initialCurrency;
+			currency = value.currency || initialCurrency;
 			const givingFrequency =
 				value.givingFrequency || defaultValues.givingFrequency;
-
+			onCurrencyChange(currency);
 			//then update steps
 			setSteps((currentSteps) => {
 				const updatedSteps = updateStepsBasedOnSelections(
@@ -78,9 +88,9 @@ const MultiStepForm = () => {
 				return updatedSteps;
 			});
 		});
-
+		onCurrencyChange(currency);
 		return () => subscription.unsubscribe();
-	}, [watch, initialCurrency, defaultValues.givingFrequency]);
+	}, [watch, initialCurrency, defaultValues.givingFrequency, onCurrencyChange]);
 
 	//next step
 	const nextStep = async () => {
@@ -94,8 +104,8 @@ const MultiStepForm = () => {
 			const stepData = getValues(fields);
 			console.log(`Data from step ${step + 1}:`, stepData);
 
-			//look for preferences if the step is 0
-			if (step === 0) {
+			//look for preferences if the step is 0 and the currency is gbp
+			if (step === 0 && formData.currency === "gbp") {
 				const getPreferences = await fetch("/api/getPreferences", {
 					method: "POST",
 					headers: {
@@ -182,44 +192,87 @@ const MultiStepForm = () => {
 	const onSubmit = async () => {
 		const valid = await trigger();
 
-		if (valid) {
-			const formData = getValues();
-			setIsSubmitting(true);
+		if (!valid) return;
 
-			try {
-				// Process Direct Debit via API
-				const response = await fetch("/api/processDirectDebit", {
+		const formData = getValues();
+		setIsSubmitting(true);
+
+		try {
+			let response;
+
+			if (paymentGateway === "stripe") {
+				const stripe = await getStripePromise({
+					currency: formData.currency,
+					mode: stripeMode,
+				});
+
+				response = await fetch("/api/processStripe", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						...formData,
+						stripeMode,
+						projectId,
+						givingTo,
+						donorType,
+						organisationName,
+					}),
+				});
+
+				const data = await response.json();
+
+				if (!response.ok) {
+					throw new Error(data.message || "Stripe session creation failed.");
+				}
+
+				// Redirect to Stripe Checkout
+				const result = await stripe.redirectToCheckout({
+					sessionId: data.sessionId,
+				});
+
+				if (result.error) {
+					throw new Error(result.error.message);
+				}
+
+				return; // stop here after Stripe redirect
+			}
+
+			// Handle GoCardless
+			if (paymentGateway === "gocardless") {
+				response = await fetch("/api/processDirectDebit", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify(formData),
 				});
+
 				const data = await response.json();
-				// Check for error response
+
 				if (!response.ok) {
-					throw new Error(data.message || "Submission failed.");
+					throw new Error(data.message || "GoCardless submission failed.");
 				}
-				// If successful, handle the success (e.g., redirect)
+
 				if (data.response.authorisationUrl) {
-					window.location.href = data.response.authorisationUrl; // Redirect to GoCardless
+					window.location.href = data.response.authorisationUrl;
 				}
-			} catch (error) {
-				//General error if the final submit step fails
-				setSubmissionError([
-					"Error submitting. Please try again or get in touch at ",
-					<a
-						key="error"
-						href="https://hopeforjustice.org/contact"
-						className="underline"
-					>
-						hopeforjustice.org/contact
-					</a>,
-				]);
-				console.error("Error submitting data:", error);
-			} finally {
-				setIsSubmitting(false);
 			}
+		} catch (error) {
+			console.error("Error submitting data:", error);
+			setSubmissionError([
+				"Error submitting. Please try again or get in touch at ",
+				<a
+					key="error"
+					href="https://hopeforjustice.org/contact"
+					className="underline"
+				>
+					hopeforjustice.org/contact
+				</a>,
+			]);
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -227,7 +280,11 @@ const MultiStepForm = () => {
 	const showGivingDetailsHandler = () => setShowAmountField(true);
 
 	if (!isCurrencyAccepted) {
-		return <div>The currency set is not currently accepted</div>;
+		return (
+			<div>
+				The currency set is not currently accepted for this payment gateway
+			</div>
+		);
 	}
 
 	return (
@@ -246,6 +303,11 @@ const MultiStepForm = () => {
 						submissionError === null && (
 							<p className="text-hfj-red text-sm">
 								Something went wrong. Please check your submission.
+								{Object.entries(errors).map(([key, value]) => (
+									<span key={key} className="block">
+										{value.message}
+									</span>
+								))}
 							</p>
 						)}
 					{step === steps.length - 1 && submissionError && (
@@ -269,6 +331,14 @@ const MultiStepForm = () => {
 						text={isLoading ? "Loading..." : "Next Step"}
 						size="extraLarge"
 						extraClasses="ml-auto"
+					/>
+				) : paymentGateway === "stripe" ? (
+					<Button
+						onClick={onSubmit}
+						text={isSubmitting ? "Submitting..." : "Proceed to payment"}
+						size="extraLarge"
+						extraClasses="ml-auto"
+						disabled={isSubmitting}
 					/>
 				) : (
 					<Button

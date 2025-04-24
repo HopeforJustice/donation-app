@@ -14,11 +14,15 @@ export async function createConstituent(data, instance) {
 				AddressLine1: data.address1,
 				AddressLine2: data.address2,
 				Town: data.townCity,
+				County: data.stateCounty,
+				Country: data.country,
 				PostalCode: data.postcode,
 				EmailAddress: data.email,
 				Phone1: data.phone,
 				RecruitmentCampaign: data.campaign,
-			}).filter(([_, value]) => value !== undefined && value !== null) // Exclude undefined and null values
+			}).filter(
+				([_, value]) => value !== undefined && value !== null && value !== ""
+			) // Exclude undefined and null values
 		);
 
 		const url = `https://data.donorfy.com/api/v1/${tenant}/constituents/`;

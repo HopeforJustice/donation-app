@@ -16,7 +16,11 @@ export async function updateConstituent(data, constituentId, instance) {
 				Town: data.townCity,
 				PostalCode: data.postcode,
 				Phone1: data.phone,
-			}).filter(([_, value]) => value !== undefined && value !== null) // Exclude undefined and null values
+				County: data.stateCounty,
+				Country: data.country,
+			}).filter(
+				([_, value]) => value !== undefined && value !== null && value !== ""
+			) // Exclude undefined and null values
 		);
 
 		const url = `https://data.donorfy.com/api/v1/${tenant}/constituents/${constituentId}`;

@@ -7,7 +7,8 @@ export default async function addUpdateSubscriber(
 	firstname,
 	lastname,
 	status,
-	country = "uk"
+	country = "uk",
+	additionalMergeFields = {}
 ) {
 	try {
 		const mailchimp = getMailchimpConfig();
@@ -15,6 +16,15 @@ export default async function addUpdateSubscriber(
 
 		const subscriberHash = getSubscriberHash(email);
 		// console.log(list.id, subscriberHash);
+
+		//email updates interests
+		//these are difficult to find, you have to use the api
+		let interests = {};
+		if (country === "uk") {
+			interests = { "60a2c211ce": true };
+		} else if (country === "us") {
+			interests = { b90c533e0c: true };
+		}
 
 		const response = await mailchimp.lists.setListMember(
 			list.id,
@@ -25,7 +35,9 @@ export default async function addUpdateSubscriber(
 				merge_fields: {
 					FNAME: firstname,
 					LNAME: lastname,
+					...additionalMergeFields,
 				},
+				interests,
 			}
 		);
 

@@ -23,50 +23,77 @@ export const formSchema = z.object({
 		.string()
 		.min(5, { message: "Please enter a valid phone number" })
 		.max(15, { message: "Please enter a valid phone number" }),
-	directDebitStartDate: z.coerce
-		.number()
-		.min(1, { message: "Please select a date" }),
+	directDebitStartDate: z
+		.union([
+			z.coerce.number().min(1, { message: "Please select a date" }),
+			z.undefined(),
+		])
+		.optional(),
 	address1: z.string().min(1, { message: "Please enter your address" }),
 	address2: z.string().optional(),
 	postcode: z
 		.string()
-		.regex(/^[A-Za-z0-9\s]{3,10}$/, "Invalid postcode format"),
+		.regex(
+			/^([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}|^\d{5}(-\d{4})?)$/i,
+			"Invalid format"
+		),
 	country: z.string().min(1, { message: "Please select your country" }),
+	stateCounty: z.string().optional(),
 	townCity: z.string().min(1, { message: "Please enter your Town/City" }),
 
 	giftAid: z
 		.string()
-		.refine((value) => value === "true" || value === "false", {
-			message: "This field is required",
-		})
-		.transform((value) => value === "true"), // Transform to boolean
+		.optional()
+		.refine(
+			(value) => value === undefined || value === "true" || value === "false",
+			{
+				message: "This field is required",
+			}
+		)
+		.transform((value) => value === "true"),
 
 	emailPreference: z
 		.string()
-		.refine((value) => value === "true" || value === "false", {
-			message: "This field is required",
-		})
+		.optional()
+		.refine(
+			(value) => value === undefined || value === "true" || value === "false",
+			{
+				message: "This field is required",
+			}
+		)
 		.transform((value) => value === "true"),
 
 	postPreference: z
 		.string()
-		.refine((value) => value === "true" || value === "false", {
-			message: "This field is required",
-		})
+		.optional()
+		.refine(
+			(value) => value === undefined || value === "true" || value === "false",
+			{
+				message: "This field is required",
+			}
+		)
 		.transform((value) => value === "true"),
 
 	smsPreference: z
 		.string()
-		.refine((value) => value === "true" || value === "false", {
-			message: "This field is required",
-		})
+		.optional()
+		.refine(
+			(value) => value === undefined || value === "true" || value === "false",
+			{
+				message: "This field is required",
+			}
+		)
 		.transform((value) => value === "true"),
 
 	phonePreference: z
 		.string()
-		.refine((value) => value === "true" || value === "false", {
-			message: "This field is required",
-		})
+		.optional()
+		.refine(
+			(value) => value === undefined || value === "true" || value === "false",
+			{
+				message: "This field is required",
+			}
+		)
 		.transform((value) => value === "true"),
 
 	inspirationQuestion: z.string().optional(),

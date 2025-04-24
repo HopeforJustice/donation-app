@@ -7,6 +7,7 @@ import { findCurrencySymbol, formatAmount } from "@/app/lib/utilities";
 import Button from "../buttons/Button";
 import AmountField from "./fields/AmountField";
 import AddressSearchLoqate from "./fields/AddressSearchLoqate";
+import { useSearchParams } from "next/navigation";
 
 const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 	const {
@@ -16,31 +17,46 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 	} = useFormContext();
 
 	const values = watch();
+	const searchParams = useSearchParams();
+
+	const givingTo = searchParams.get("givingTo") || null;
+	const allowChange = searchParams.get("allowChange") || "true";
 
 	// Watch the value of inspirationQuestion
 	const inspirationValue = watch("inspirationQuestion");
+
+	const amount = Number(values.amount);
+
+	const formattedAmount =
+		amount % 1 === 0
+			? amount.toLocaleString() // whole number — no decimals
+			: amount.toLocaleString(undefined, {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+			  }); // decimal — show 2 places
 
 	switch (field.type) {
 		case "givingPreview":
 			if (values.amount) {
 				return (
-					<p id="givingPreview" className="mb-4">
+					<p id="givingPreview" className="mb-4 flex gap-2 flex-wrap">
 						You&apos;re giving {values.currency?.toUpperCase()}{" "}
 						{values.currency !== "nok"
 							? findCurrencySymbol(values.currency)
 							: ""}
-						{formatAmount(values.amount, values.currency)}{" "}
+						{formattedAmount}{" "}
 						{values.currency === "nok"
 							? findCurrencySymbol(values.currency) + " "
 							: ""}
-						{values.givingFrequency}.{" "}
-						{/* button to change giving details to come in future */}
-						<Button
-							text="Change giving details"
-							size="small"
-							onClick={onShowGivingDetails}
-							buttonType="secondary"
-						/>
+						{values.givingFrequency} {givingTo && `to ${givingTo}`}
+						{allowChange === "true" && (
+							<Button
+								text="Change giving details"
+								size="small"
+								onClick={onShowGivingDetails}
+								buttonType="secondary"
+							/>
+						)}
 					</p>
 				);
 			} else {
@@ -184,10 +200,12 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 						<strong>Giving Frequency:</strong>{" "}
 						<span className="capitalize">{values.givingFrequency}</span>
 					</p>
-					<p>
-						<strong>Gift Aid:</strong>{" "}
-						{values.giftAid === "true" ? "Yes" : "No"}
-					</p>
+					{values.currency === "gbp" && (
+						<p>
+							<strong>Gift Aid:</strong>{" "}
+							{values.giftAid === "true" ? "Yes" : "No"}
+						</p>
+					)}
 				</div>
 			);
 		case "textarea":

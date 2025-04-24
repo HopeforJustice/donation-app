@@ -462,11 +462,11 @@ export const steps = [
 		status: "upcoming",
 		title: "Gift Aid:",
 		description:
-			"Boost your monthly gifts by 25p for every £1 you donate, at no extra cost to you.",
+			"Boost your gift by 25p for every £1 you donate, at no extra cost to you.",
 		fields: [
 			{
 				id: "giftAid",
-				label: "Do you want to Gift Aid your monthly donation?",
+				label: "Do you want to Gift Aid your donation?",
 				type: "select",
 				options: [
 					{ text: "Yes", value: true },
@@ -489,6 +489,7 @@ export const steps = [
 		fields: [
 			{
 				type: "fieldGroup",
+				id: "contactPreferences",
 				description: [
 					<p>
 						Select &apos;Yes&apos; if you wish Hope for Justice to contact you

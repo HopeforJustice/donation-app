@@ -13,6 +13,7 @@ export async function createGiftAidDeclaration(data, constituentId, instance) {
 
 		const donorfyData = {
 			DeclarationMethod: "Web",
+			TaxPayerTitle: data.title || "Mr",
 			TaxPayerFirstName: data.firstName,
 			TaxPayerLastName: data.lastName,
 			DeclarationDate: dateNow,

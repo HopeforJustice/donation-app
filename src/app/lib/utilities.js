@@ -122,19 +122,82 @@ export const extractDefaultValues = (steps, searchParams) => {
 	return { defaultValues, initialCurrency, amountProvided };
 };
 
-//fill fields with url params if they exist
-export const updateStepsWithParams = (steps, searchParams) => {
+//edit fields based on url params if they exist
+export const updateStepsWithParams = (steps, searchParams, paymentGateway) => {
 	return steps.map((step) => {
 		const newFields = step.fields.map((field) => {
 			if (field.type === "fieldGroup") {
-				const newSubFields = field.fields.map((subField) => {
+				let updatedField = { ...field };
+
+				// Remove the description if using Stripe
+				if (paymentGateway === "stripe" && field.id === "givingDetails") {
+					updatedField.description = null;
+					//specific description for Freedom Foundation
+					if (searchParams.get("campaign") === "FreedomFoundation") {
+						updatedField.description = (
+							<p>
+								This page is set up to take one off payments towards Freedom
+								Foundation via card or bank transfer. If you are looking to
+								donate in a different way please visit our{" "}
+								<a
+									className="underline"
+									href="https://hopeforjustice.org/donate"
+								>
+									donate page
+								</a>{" "}
+								or{" "}
+								<a
+									className="underline"
+									href="https://hopeforjustice.org/contact"
+								>
+									contact us
+								</a>
+							</p>
+						);
+					}
+				}
+
+				if (
+					paymentGateway === "stripe" &&
+					field.id === "directDebitStartDate"
+				) {
+					return null; // Remove the field
+				}
+
+				// Update subfields
+				const newSubFields = updatedField.fields.map((subField) => {
+					let updatedSubField = { ...subField };
 					const defaultValue = searchParams.get(subField.id);
-					return defaultValue ? { ...subField, defaultValue } : subField;
+					if (defaultValue !== null) {
+						updatedSubField.defaultValue = defaultValue;
+					}
+					if (
+						searchParams.get("monthlyAllowed") === "false" &&
+						subField.id === "givingFrequency"
+					) {
+						updatedSubField.options = [{ text: "Once", value: "once" }];
+					}
+					if (subField.id === "amount" && paymentGateway === "stripe") {
+						updatedSubField.acceptedCurrencies = [
+							{ text: "GBP", value: "gbp" },
+							{ text: "USD", value: "usd" },
+						];
+					}
+					return updatedSubField;
 				});
-				return { ...field, fields: newSubFields };
+
+				updatedField.fields = newSubFields;
+				return updatedField;
 			} else {
+				// console.log("field", field);
+				let updatedField = { ...field };
+
 				const defaultValue = searchParams.get(field.id);
-				return defaultValue ? { ...field, defaultValue } : field;
+				if (defaultValue !== null) {
+					updatedField.defaultValue = defaultValue;
+				}
+
+				return updatedField;
 			}
 		});
 		return { ...step, fields: newFields };
@@ -143,13 +206,33 @@ export const updateStepsWithParams = (steps, searchParams) => {
 
 //edit the structure of the steps config based on currency
 //and giving Frequency
+
+//storing original GiftAid Step
+let giftAidStep;
+let step4;
 export const updateStepsBasedOnSelections = (
 	steps,
 	currency,
 	givingFrequency
 ) => {
+	console.log("updating steps based on selections");
 	let updatedSteps = steps;
-
+	if (steps.find((step) => step.id === "step3")) {
+		giftAidStep = steps.find((step) => step.id === "step3");
+	}
+	if (steps.find((step) => step.id === "step4")) {
+		step4 = steps.find((step) => step.id === "step4");
+	}
+	if (currency === "gbp" && giftAidStep) {
+		// Ensure giftAidStep is included in updatedSteps
+		if (!updatedSteps.some((step) => step.id === "step3")) {
+			updatedSteps.splice(2, 0, giftAidStep); // Insert giftAidStep at the correct position
+		}
+		// Replace step 4 of updatedSteps with original step4
+		updatedSteps = updatedSteps.map((step) =>
+			step.id === "step4" ? step4 : step
+		);
+	}
 	// Add / remove / edit fields based on currency and givingFrequency
 	updatedSteps = updatedSteps
 		.map((step) => {
@@ -158,12 +241,11 @@ export const updateStepsBasedOnSelections = (
 					if (field.type === "fieldGroup") {
 						let newSubFields = field.fields
 							.map((subField) => {
-								if (subField.id === "specificField" && currency === "usd") {
+								if (subField.id === "postcode" && currency === "usd") {
+									subField.label = "ZIP Code";
 									return subField;
-								} else if (
-									subField.id === "anotherField" &&
-									givingFrequency === "monthly"
-								) {
+								} else if (subField.id === "postcode" && currency === "gbp") {
+									subField.label = "Postcode";
 									return subField;
 								} else {
 									return subField;
@@ -196,20 +278,20 @@ export const updateStepsBasedOnSelections = (
 				};
 			}
 
-			if (
-				step.id === "step4" &&
-				(currency !== "gbp" ||
-					(currency === "gbp" && givingFrequency !== "monthly"))
-			) {
+			if (step.id === "step4" && currency === "usd") {
 				step = {
 					...step,
 					description: null,
+					title: "Giving Summary",
 				};
+				step.fields = step.fields.filter(
+					(field) => field.id !== "contactPreferences"
+				);
+				return step;
 			}
 
-			//removing a step based on currency and givingFrequency
-			//step 3 is giftaid
-			if (step.id === "step3" && currency === "usd") {
+			// Removing gift aid if the currency is not gbp
+			if (step.id === "step3" && currency !== "gbp") {
 				return null; // Remove the step
 			}
 
@@ -235,25 +317,6 @@ export const getFieldIdsExcludingRemoved = (fields) => {
 		}
 		return acc.concat(field.id);
 	}, []);
-};
-
-// get accepted currencies from config
-// might be easier to do this differently
-export const getAcceptedCurrencies = (steps) => {
-	return steps
-		.flatMap((step) =>
-			step.fields.flatMap((field) =>
-				field.type === "fieldGroup"
-					? field.fields.flatMap(
-							(subField) => subField.acceptedCurrencies || []
-					  )
-					: field.acceptedCurrencies || []
-			)
-		)
-		.filter(
-			(currency, index, self) =>
-				self.findIndex((c) => c.value === currency.value) === index
-		);
 };
 
 // fetchWithAuth helper function
