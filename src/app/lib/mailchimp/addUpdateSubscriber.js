@@ -17,6 +17,7 @@ export default async function addUpdateSubscriber(
 		const subscriberHash = getSubscriberHash(email);
 
 		//email updates interests
+
 		//these are difficult to find, you have to use the api
 		let interests = {};
 		if (country === "uk") {
