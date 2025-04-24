@@ -1,11 +1,8 @@
 import Stripe from "stripe";
 import { handleStripeWebhookEvent } from "@/app/lib/webhooks/stripe/handleStripeWebhookEvent";
 
-export const config = {
-	api: {
-		bodyParser: false,
-	},
-};
+export const dynamic = "force-dynamic";
+export const bodyParser = false;
 
 const stripe = new Stripe(process.env.STRIPE_US_SECRET_KEY_TEST, {
 	apiVersion: "2023-10-16",
