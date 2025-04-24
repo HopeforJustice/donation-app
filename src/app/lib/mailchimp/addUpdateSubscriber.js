@@ -15,7 +15,6 @@ export default async function addUpdateSubscriber(
 		const list = await getList(country);
 
 		const subscriberHash = getSubscriberHash(email);
-		// console.log(list.id, subscriberHash);
 
 		//email updates interests
 		//these are difficult to find, you have to use the api
