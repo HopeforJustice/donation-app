@@ -185,6 +185,7 @@ export async function handleStripeWebhookEvent(
 						notes: `Freedom Foundation Donation created. Amount: ${
 							session.amount_total / 100
 						} metadata: ${JSON.stringify(metadata)}`,
+						campaign: "FreedomFoundation",
 						activityType: "FreedomFoundation Donation",
 					};
 					const addActivityData = await addActivity(

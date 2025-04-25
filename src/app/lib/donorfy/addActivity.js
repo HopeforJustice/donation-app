@@ -10,6 +10,7 @@ export async function addActivity(data, constituentId, instance) {
 
 		const donorfyData = {
 			Notes: data.notes,
+			Campaign: data.campaign,
 			ActivityType: data.activityType,
 			ExistingConstituentId: constituentId,
 			Number1: data.amount || 0,
