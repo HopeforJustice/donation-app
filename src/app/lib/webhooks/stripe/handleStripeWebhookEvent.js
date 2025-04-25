@@ -321,6 +321,8 @@ export async function handleStripeWebhookEvent(
 						amount: `${currencySymbol}${friendlyAmount}`,
 						givingTo: metadata.givingTo,
 					};
+
+					//SPECIFIC THANK YOU TEMPLATES PER PROJEXT
 					const thankYouEmailData = await sendEmailByTemplateName(
 						"freedom-foundation-thank-you",
 						session.customer_details?.email,

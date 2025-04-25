@@ -136,7 +136,7 @@ export const steps = [
 					{ id: "postcode", label: "Postcode", type: "text" },
 				],
 			},
-			{ id: "stateCounty", label: "State/County", type: "text" },
+			{ id: "stateCounty", label: "County", type: "text" },
 			{
 				id: "country",
 				label: "Country",

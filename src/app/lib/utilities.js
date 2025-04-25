@@ -259,6 +259,9 @@ export const updateStepsBasedOnSelections = (
 							(currency !== "gbp" || givingFrequency !== "monthly")
 						) {
 							return null;
+						} else if (field.id === "stateCounty") {
+							field.label = currency === "usd" ? "State" : "County";
+							return field;
 						} else {
 							return field;
 						}

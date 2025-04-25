@@ -35,6 +35,7 @@ export async function POST(req) {
 	const formattedGivingTo = decodeURIComponent(givingTo);
 
 	const origin = req.headers.get("origin");
+	const fullUrl = new URL(req.url);
 	const amountInMinor = Math.round(amount * 100);
 	let bankTransferType = null;
 
@@ -64,7 +65,7 @@ export async function POST(req) {
 		],
 		mode: "payment",
 		success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-		cancel_url: `${origin}/cancel`,
+		// cancel_url: `${origin}/`,
 		payment_method_types: ["card"],
 		payment_intent_data: {
 			metadata: {
