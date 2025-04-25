@@ -322,9 +322,24 @@ export async function handleStripeWebhookEvent(
 						givingTo: metadata.givingTo,
 					};
 
+					let sparkPostTemplate;
+					if (metadata.projectId === "PP1028 Deborah") {
+						sparkPostTemplate = "freedom-foundation-thank-you-PP1028-Deborah";
+					} else if (metadata.projectId === "PP1006 Advocacy") {
+						sparkPostTemplate = "freedom-foundation-thank-you-PP1006-Advocacy";
+					} else if (metadata.projectId === "PP1010 Midwest") {
+						sparkPostTemplate = "freedom-foundation-thank-you-PP1010-Midwest";
+					} else if (metadata.projectId === "PP1009 Tennessee") {
+						sparkPostTemplate = "freedom-foundation-thank-you-PP1009-Tennessee";
+					} else if (metadata.projectId === "FF25 USA Policy") {
+						sparkPostTemplate = "freedom-foundation-thank-you-FF25-USA-Policy";
+					} else if (metadata.projectId === "PP1018 Uganda") {
+						sparkPostTemplate = "freedom-foundation-thank-you-PP1018-Uganda";
+					}
+
 					//SPECIFIC THANK YOU TEMPLATES PER PROJEXT
 					const thankYouEmailData = await sendEmailByTemplateName(
-						"freedom-foundation-thank-you",
+						sparkPostTemplate,
 						session.customer_details?.email,
 						thankYouEmailSubstitutionData
 					);
