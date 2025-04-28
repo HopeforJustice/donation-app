@@ -52,7 +52,7 @@ export async function handleStripeWebhookEvent(
 			const metadata = paymentIntent?.metadata || session.metadata || {};
 			const source = metadata.source || "unknown";
 
-			// Only handle events from Freedom foundation
+			// Handle events from Freedom foundation
 			if (
 				source === "donation app" &&
 				metadata.campaign === "FreedomFoundation"
@@ -267,8 +267,6 @@ export async function handleStripeWebhookEvent(
 							notes += "Added/updated subscriber in Mailchimp. ";
 						}
 						// Add tags to the subscriber
-						//FreedomFoundation Type Organisation
-						//FreedomFoundation ProjectId
 						if (metadata.donorType === "organisation") {
 							const addDonorTypeTagData = await addTag(
 								session.customer_details?.email,
@@ -278,6 +276,15 @@ export async function handleStripeWebhookEvent(
 							if (addDonorTypeTagData.success) {
 								notes += "Added donor type tag in Mailchimp. ";
 							}
+						}
+
+						const addDontSendWelcomeEmailTagData = await addTag(
+							session.customer_details?.email,
+							`Dont send welcome email`,
+							metadata.donorfyInstance
+						);
+						if (addDontSendWelcomeEmailTagData.success) {
+							notes += "Added donor type tag in Mailchimp. ";
 						}
 
 						const addProjectTagData = await addTag(
@@ -338,7 +345,6 @@ export async function handleStripeWebhookEvent(
 						sparkPostTemplate = "freedom-foundation-thank-you-PP1018-Uganda";
 					}
 
-					//SPECIFIC THANK YOU TEMPLATES PER PROJEXT
 					const thankYouEmailData = await sendEmailByTemplateName(
 						sparkPostTemplate,
 						session.customer_details?.email,
