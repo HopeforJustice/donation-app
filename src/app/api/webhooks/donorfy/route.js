@@ -14,6 +14,8 @@ import { addActiveTags } from "@/app/lib/donorfy/addActiveTags";
 import { addActivity } from "@/app/lib/donorfy/addActivity";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 const client = getGoCardlessClient();
+export const runtime = "nodejs";
+import crypto from "crypto";
 
 export async function POST(req) {
 	const rawBody = await req.text();

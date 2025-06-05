@@ -20,6 +20,7 @@ import addTag from "../mailchimp/addTag";
 import sendDirectDebitConfirmationEmail from "../sparkpost/sendDirectDebitConfirmationEmail";
 import { v4 as uuid } from "uuid";
 import { stripMetadata } from "@/app/lib/utilities";
+export const runtime = "nodejs";
 import crypto from "crypto";
 
 const client = getGoCardlessClient();
