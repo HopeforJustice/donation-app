@@ -63,7 +63,7 @@ test.describe("Test the multistep form validation", () => {
 			"Please enter your Town/City"
 		);
 		await expect(page.locator("#postcode-error")).toContainText(
-			"Invalid postcode format"
+			"Invalid format"
 		);
 		await expect(page.locator("#country-error")).toContainText(
 			"Please select your country"
@@ -73,9 +73,9 @@ test.describe("Test the multistep form validation", () => {
 		await page.getByLabel("Town/City").click();
 		await page.getByLabel("Town/City").fill("London");
 		await page.getByLabel("Postcode").click();
-		await page.getByLabel("Postcode").fill("HP1234");
-		await page.getByLabel("State/County").click();
-		await page.getByLabel("State/County").fill("London");
+		await page.getByLabel("Postcode").fill("LS72TD");
+		await page.getByLabel("County").click();
+		await page.getByLabel("County").fill("London");
 		await page.getByLabel("Country").selectOption("United Kingdom");
 		await page.locator(".rounded-lg").click();
 		await page.getByLabel("Address Line 2").click();

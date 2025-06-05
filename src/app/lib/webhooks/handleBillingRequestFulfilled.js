@@ -20,6 +20,7 @@ import addTag from "../mailchimp/addTag";
 import sendDirectDebitConfirmationEmail from "../sparkpost/sendDirectDebitConfirmationEmail";
 import { v4 as uuid } from "uuid";
 import { stripMetadata } from "@/app/lib/utilities";
+import crypto from "crypto";
 
 const client = getGoCardlessClient();
 
@@ -122,18 +123,28 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		// add webhook here to process data into Donorfy
+		// add webhook here to process data into Donorfy
 		const webhookId = uuid();
 		console.log("uuid:", webhookId);
+
+		const payload = {
+			customerId: customerId,
+			type: "New GoCardless Subscriber",
+			id: webhookId,
+		};
+		const rawPayload = JSON.stringify(payload);
+		const signature = crypto
+			.createHmac("sha256", process.env.DONORFY_WEBHOOK_SECRET)
+			.update(rawPayload)
+			.digest("hex");
+
 		await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/webhooks/donorfy`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
+				"Webhook-Signature": signature,
 			},
-			body: JSON.stringify({
-				customerId: customerId,
-				type: "New GoCardless Subscriber",
-				id: webhookId,
-			}),
+			body: rawPayload,
 		});
 		await storeWebhookEvent(stripMetadata(event), "completed", notes);
 

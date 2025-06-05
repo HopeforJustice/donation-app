@@ -16,7 +16,26 @@ import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 const client = getGoCardlessClient();
 
 export async function POST(req) {
-	const data = await req.json();
+	const rawBody = await req.text();
+	const receivedSignature = req.headers.get("Webhook-Signature");
+	const webhookSecret = process.env.DONORFY_WEBHOOK_SECRET;
+	const computedSignature = crypto
+		.createHmac("sha256", webhookSecret)
+		.update(rawBody)
+		.digest("hex");
+
+	let data;
+	try {
+		data = JSON.parse(rawBody);
+	} catch (e) {
+		return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+	}
+
+	if (receivedSignature !== computedSignature) {
+		await storeWebhookEvent(data, "failed", "Invalid signature");
+		return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+	}
+
 	console.log("webhook recieved:", data);
 	let notes;
 	try {

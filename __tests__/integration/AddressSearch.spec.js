@@ -32,7 +32,7 @@ test.describe("Test the Loqate address finder", () => {
 		await expect(page.getByLabel("Address Line 2")).toHaveValue("Meanwood");
 		await expect(page.getByLabel("Town/City")).toHaveValue("Leeds");
 		await expect(page.getByLabel("Postcode")).toHaveValue("LS7 2TD");
-		await expect(page.getByLabel("State/County")).toHaveValue("West Yorkshire");
+		await expect(page.getByLabel("County")).toHaveValue("West Yorkshire");
 		await expect(page.getByLabel("Country")).toHaveValue("United Kingdom");
 		await page.getByRole("button", { name: "Next Step" }).click();
 	});
