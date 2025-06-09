@@ -62,7 +62,7 @@ export async function handlePaymentPaidOut(event) {
 		const channel = "Gocardless Subscription";
 		const paymentMethod = "GoCardless DD";
 		const donorfyInstance = "uk";
-		const chargeDate = payment.created_at;
+		const chargeDate = payment.charge_date;
 
 		notes += "Payment and customer details found in Gocardless. ";
 
