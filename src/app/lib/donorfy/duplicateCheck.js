@@ -27,7 +27,6 @@ export async function duplicateCheck(email, instance) {
 			alreadyInDonorfy,
 		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Duplicate check failed");
+		throw new Error(`Duplicate check failed, error: ${error.message}`);
 	}
 }

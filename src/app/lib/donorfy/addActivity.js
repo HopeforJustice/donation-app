@@ -18,13 +18,9 @@ export async function addActivity(data, constituentId, instance) {
 
 		const url = `https://data.donorfy.com/api/v1/${tenant}/Activities`;
 		await makeDonorfyRequest(url, "POST", authString, donorfyData);
-
-		return {
-			success: true,
-			message: "Add Activity successful",
-		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Add Activity failed");
+		throw new Error(
+			`Add Activity failed, type:${data.ActivityType}, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

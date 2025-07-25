@@ -45,7 +45,8 @@ export async function updatePreferences(data, constituentId, instance) {
 			message: "Update constituent preferences successful",
 		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Update constituent preferences failed");
+		throw new Error(
+			`Update Constituent Preferences failed, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

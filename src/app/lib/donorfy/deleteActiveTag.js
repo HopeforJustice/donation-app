@@ -16,7 +16,8 @@ export async function deleteActiveTag(tag, constituentId, instance) {
 			message: "Delete tag successful",
 		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Delete Tag Failed");
+		throw new Error(
+			`Delete Active Tag failed, tag:${tag}, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

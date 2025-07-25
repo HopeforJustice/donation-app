@@ -6,12 +6,12 @@
 
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { handleBillingRequestFulfilled } from "@/app/lib/webhooks/handleBillingRequestFulfilled";
-import { handlePaymentPaidOut } from "@/app/lib/webhooks/handlePaymentPaidOut";
+import { handleBillingRequestFulfilled } from "@/app/lib/webhookHandlers/goCardless/handleBillingRequestFulfilled";
+import { handlePaymentPaidOut } from "@/app/lib/webhookHandlers/goCardless/handlePaymentPaidOut";
 import checkProcessedEvents from "@/app/lib/db/checkProcessedEvents";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
-import { handlePaymentFailed } from "@/app/lib/webhooks/handlePaymentFailed";
-import { handleSubscriptionCancelled } from "@/app/lib/webhooks/handleSubscriptionCancelled";
+import { handlePaymentFailed } from "@/app/lib/webhookHandlers/goCardless/handlePaymentFailed";
+import { handleSubscriptionCancelled } from "@/app/lib/webhookHandlers/goCardless/handleSubscriptionCancelled";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
 import { stripMetadata } from "@/app/lib/utilities";
 
@@ -62,13 +62,16 @@ export async function POST(req) {
 							event: event.id,
 							message: response.message,
 							status: response.status,
+							results: response.results || [],
 						});
 
 						if (response.eventStatus && response.message) {
 							await storeWebhookEvent(
 								stripMetadata(event),
 								response.eventStatus,
-								response.message
+								response.message +
+									"\n\nResults:\n" +
+									JSON.stringify(response.results || [], null, 2)
 							);
 						}
 					} else {
@@ -81,19 +84,39 @@ export async function POST(req) {
 					}
 				}
 			} catch (error) {
-				console.error("Error handling event:", error);
+				const errorResults = error.results || [];
+				const constituentId = error.constituentId || "unknown";
+				const goCardlessCustomerId = error.goCardlessCustomerId || "unknown";
+
+				const notes = {
+					constituentId,
+					goCardlessCustomerId,
+					errorResults,
+				};
+
+				console.error("Error handling event:", notes);
 				responses.push({
 					event: event.id,
 					message: "Error handling event",
 					error: error.message,
+					results: errorResults,
 					status: 500,
 				});
 
-				await storeWebhookEvent(stripMetadata(event), "failed", error.message);
+				await storeWebhookEvent(
+					stripMetadata(event),
+					"failed",
+					JSON.stringify(notes, null, 2),
+					constituentId,
+					goCardlessCustomerId
+				);
 
 				await sendErrorEmail(error, {
-					name: "Gocardless webhook event failed to process",
+					name: "Gocardless webhook event failed to fully process",
+					constituentId: constituentId,
+					goCardlessCustomerId: goCardlessCustomerId,
 					event: stripMetadata(event),
+					results: errorResults,
 				});
 			}
 		}
@@ -106,7 +129,7 @@ export async function POST(req) {
 		console.error("Error processing webhook:", error);
 		await storeWebhookEvent(body || {}, "failed", error.message);
 		await sendErrorEmail(error, {
-			name: "Gocardless webhook event failed to process",
+			name: "Gocardless webhook failed to process",
 			event: body || {},
 		});
 		return NextResponse.json(

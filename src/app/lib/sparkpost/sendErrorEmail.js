@@ -15,7 +15,7 @@ async function sendErrorEmail(error, additionalInfo = {}) {
                <pre>${error.message}</pre>
                <pre>${error.stack}</pre>`,
 			},
-			recipients: [{ address: "media@hopeforjustice.org" }],
+			recipients: [{ address: "james.holt@hopeforjustice.org" }],
 		});
 		if (response) {
 			return response;

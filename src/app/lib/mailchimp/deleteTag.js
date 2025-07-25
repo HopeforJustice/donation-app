@@ -10,23 +10,12 @@ export default async function deleteTag(email, tag, country = "uk") {
 		const subscriberHash = getSubscriberHash(email);
 		console.log(list.id, subscriberHash);
 
-		const response = await mailchimp.lists.updateListMemberTags(
-			list.id,
-			subscriberHash,
-			{
-				tags: [{ name: tag, status: "inactive" }],
-			}
-		);
-
-		console.log("removed subscriber tag", response);
-
-		return { success: true, response };
+		await mailchimp.lists.updateListMemberTags(list.id, subscriberHash, {
+			tags: [{ name: tag, status: "inactive" }],
+		});
 	} catch (error) {
-		console.error("error removing subscriber tag", error);
-		return {
-			success: false,
-			message: "error removing subscriber tag",
-			error,
-		};
+		throw new Error(
+			`Delete Tag from Mailchimp subscriber failed, tag: ${tag}, error: ${error.message}`
+		);
 	}
 }

@@ -10,12 +10,9 @@ export async function addActiveTags(tags, constituentId, instance) {
 
 		const url = `https://data.donorfy.com/api/v1/${tenant}/constituents/${constituentId}/AddActiveTags`;
 		await makeDonorfyRequest(url, "POST", authString, tags);
-
-		return {
-			message: "Add Active Tags successful",
-		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Add Active Tags failed");
+		throw new Error(
+			`Add active tags failed, tags:${tags}, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

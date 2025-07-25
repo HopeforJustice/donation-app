@@ -9,66 +9,65 @@
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
-import { addActivity } from "../donorfy/addActivity";
+import { addActivity } from "../../donorfy/addActivity";
 
 const client = getGoCardlessClient();
 
 export async function handlePaymentFailed(event) {
+	const results = [];
+	let currentStep = "";
+
 	try {
 		const paymentId = event.links.payment;
-		let notes = "";
+
+		currentStep = "Retrieve payment details from GoCardless";
 		const payment = await client.payments.find(paymentId);
+		results.push({ step: currentStep, success: true });
+
 		const subscription = payment.links.subscription;
 		const amount = payment.amount;
-		const mandate = await client.mandates.find(payment.links.mandate);
-		const customer = await client.customers.find(mandate.links.customer);
-		const constituentId = customer.metadata.donorfyConstituentId;
 		const friendlyAmount = amount / 100;
-		const donorfyInstance = "uk";
 
-		notes += "Payment and customer details found in Gocardless. ";
+		currentStep = "Retrieve mandate details from GoCardless";
+		const mandate = await client.mandates.find(payment.links.mandate);
+		results.push({ step: currentStep, success: true });
+
+		currentStep = "Retrieve customer details from GoCardless";
+		const customer = await client.customers.find(mandate.links.customer);
+		results.push({ step: currentStep, success: true });
+
+		const constituentId = customer.metadata.donorfyConstituentId || null;
+		const donorfyInstance = "uk";
 
 		// Only process payments that are part of a subscription
 		// This can change if we take instant bank payments in the future
 		if (subscription) {
-			//Add Activity to Donorfy
+			currentStep = "Add GoCardless Payment Failed Activity in Donorfy";
 			const activityData = {
 				activityType: "Gocardless Payment Failed",
 				notes: `Amount: ${friendlyAmount}`,
 			};
 
-			const addActivityData = await addActivity(
-				activityData,
-				constituentId,
-				donorfyInstance
-			);
-
-			if (addActivityData.success) {
-				notes += "Added Activity in Donorfy. ";
-			} else {
-				notes += "Activity creation failed in Donorfy. ";
-				throw new Error(notes);
-			}
+			await addActivity(activityData, constituentId, donorfyInstance);
+			results.push({ step: currentStep, success: true });
 
 			return {
-				message: notes,
+				message: `Payment failed successfully noted in Donorfy for constituent ${constituentId}`,
 				status: 200,
 				eventStatus: "processed",
 			};
 		} else {
-			notes += "Payment not part of subscription";
 			return {
-				message: notes,
+				message: "Payment not part of subscription",
 				status: 200,
 				eventStatus: "N/A",
+				results: results,
 			};
 		}
 	} catch (error) {
-		console.error("Error handling payment failed event:", error);
-		return {
-			message: "Error handling payment failed event",
-			error,
-			status: 500,
-		};
+		error.results = results;
+		error.goCardlessCustomerId = customer.id;
+		error.constituentId = constituentId || null;
+		throw error;
 	}
 }

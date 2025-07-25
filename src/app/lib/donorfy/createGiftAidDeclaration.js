@@ -22,19 +22,10 @@ export async function createGiftAidDeclaration(data, constituentId, instance) {
 		};
 
 		const url = `https://data.donorfy.com/api/v1/${tenant}/constituents/${constituentId}/GiftAidDeclarations`;
-		const responseData = await makeDonorfyRequest(
-			url,
-			"POST",
-			authString,
-			donorfyData
-		);
-
-		return {
-			message: "Create Gift Aid declaration successful",
-			constituentId: responseData.ConstituentId,
-		};
+		await makeDonorfyRequest(url, "POST", authString, donorfyData);
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Create Gift Aid declaration failed");
+		throw new Error(
+			`Create Gift Aid Declaration failed, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

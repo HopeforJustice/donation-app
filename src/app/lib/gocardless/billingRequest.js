@@ -1,3 +1,15 @@
+/*
+ * billingRequest.js
+ *
+ * Creates a billing request with GoCardless
+ * and returns an authorization url
+ *
+ * Imported getGoCardlessClient
+ *		Creates and retrieves GoCardless client
+ *
+ *
+ */
+
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 
 const client = getGoCardlessClient();
@@ -7,6 +19,8 @@ export async function billingRequest(data) {
 		const additionalDetails = {
 			currency: data.currency,
 			title: data.title,
+			firstName: data.firstName,
+			lastName: data.lastName,
 			phone: data.phone,
 			campaign: data.campaign,
 			amount: data.amount,
@@ -29,6 +43,7 @@ export async function billingRequest(data) {
 			mandate_request: {
 				scheme: "bacs",
 			},
+			//Store form data metadata
 			metadata: {
 				additionalDetails: JSON.stringify(additionalDetails),
 			},

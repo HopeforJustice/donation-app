@@ -26,30 +26,19 @@ export default async function addUpdateSubscriber(
 			interests = { b90c533e0c: true };
 		}
 
-		const response = await mailchimp.lists.setListMember(
-			list.id,
-			subscriberHash,
-			{
-				email_address: email,
-				status_if_new: status,
-				merge_fields: {
-					FNAME: firstname,
-					LNAME: lastname,
-					...additionalMergeFields,
-				},
-				interests,
-			}
-		);
-
-		console.log("added/updated subscriber in mailchimp");
-
-		return { success: true, response };
+		await mailchimp.lists.setListMember(list.id, subscriberHash, {
+			email_address: email,
+			status_if_new: status,
+			merge_fields: {
+				FNAME: firstname,
+				LNAME: lastname,
+				...additionalMergeFields,
+			},
+			interests,
+		});
 	} catch (error) {
-		console.error("error adding/updating subscriber", error);
-		return {
-			success: false,
-			message: "Error adding/updating subscriber",
-			error,
-		};
+		throw new Error(
+			`Add/Update Mailchimp subscriber failed, error: ${error.message}`
+		);
 	}
 }

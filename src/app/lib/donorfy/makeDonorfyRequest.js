@@ -1,3 +1,5 @@
+import { sanitiseForLogging } from "../utilities";
+
 export default async function makeDonorfyRequest(
 	url,
 	method,
@@ -18,7 +20,10 @@ export default async function makeDonorfyRequest(
 		options.body = JSON.stringify(data);
 	}
 
-	console.log("donorfy data to send: ", options.body);
+	console.log(
+		"donorfy data to send: ",
+		sanitiseForLogging(options.body ? options.body : "No data")
+	);
 
 	//timing
 	const startTime = Date.now();
@@ -26,6 +31,7 @@ export default async function makeDonorfyRequest(
 	const response = await fetch(url, options);
 
 	const endTime = Date.now();
+
 	console.log(`Request to ${url} took ${endTime - startTime} ms`);
 
 	//Check if the response has a body
@@ -38,7 +44,11 @@ export default async function makeDonorfyRequest(
 
 	if (!response.ok) {
 		throw new Error(
-			`Donorfy request failed: ${responseData?.message || response.statusText}`
+			`Donorfy request failed: ${
+				responseData?.message || response.statusText
+			}, url: ${url}, method: ${method}, data: ${JSON.stringify(
+				data
+			)}, response: ${JSON.stringify(responseData)}`
 		);
 	}
 

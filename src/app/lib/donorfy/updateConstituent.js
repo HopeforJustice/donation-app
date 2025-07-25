@@ -35,7 +35,8 @@ export async function updateConstituent(data, constituentId, instance) {
 			message: "Update constituent successful",
 		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Update constituent failed");
+		throw new Error(
+			`Update Constituent failed, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

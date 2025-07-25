@@ -9,21 +9,19 @@
  * Update Customer metadata in GoCardless so "additionalDetails" is attached to customer instead of billing request
  * Add/Update subscriber in Mailchimp (if selected preference is yes to email)
  * Send sparkpost email (regardless of consent as this is transactional)
- * Send seperate webhook to handle updating Donorfy (so this process can complete without relying on Donorfy's API)
+ * Update Donorfy (donorfy/newGoCardlessSubscriber.js)
  *
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
-import storeWebhookEvent from "../db/storeWebhookEvent";
-import addUpdateSubscriber from "../mailchimp/addUpdateSubscriber";
-import addTag from "../mailchimp/addTag";
-import sendDirectDebitConfirmationEmail from "../sparkpost/sendDirectDebitConfirmationEmail";
-import { v4 as uuid } from "uuid";
-import { stripMetadata } from "@/app/lib/utilities";
-export const runtime = "nodejs";
-import crypto from "crypto";
+import addUpdateSubscriber from "../../mailchimp/addUpdateSubscriber";
+import addTag from "../../mailchimp/addTag";
+import sendDirectDebitConfirmationEmail from "../../sparkpost/sendDirectDebitConfirmationEmail";
+import { sanitiseForLogging, stripMetadata } from "@/app/lib/utilities";
+import newGoCardlessSubscriber from "../../donorfy/newGoCardlessSubscriber";
 
 const client = getGoCardlessClient();
+export const runtime = "nodejs";
 
 export async function handleBillingRequestFulfilled(event) {
 	const {
@@ -32,28 +30,33 @@ export async function handleBillingRequestFulfilled(event) {
 		mandate_request_mandate: mandateId,
 	} = event.links;
 
-	let notes = "";
+	const results = [];
+	let currentStep = "";
+	let constituentId = null;
 
 	try {
 		// Extract all details needed from GoCardless
+		currentStep = "Retrieve billing request details and extract metadata";
 		const billingRequest = await client.billingRequests.find(billingRequestId);
 		const goCardlessCustomer = await client.customers.find(customerId);
 
 		const extractedData = {
 			additionalDetails: JSON.parse(billingRequest.metadata.additionalDetails),
 			email: goCardlessCustomer.email,
-			firstName: goCardlessCustomer.given_name,
-			lastName: goCardlessCustomer.family_name,
+			title: billingRequest.metadata.additionalDetails.title,
+			firstName: billingRequest.metadata.additionalDetails.firstName,
+			lastName: billingRequest.metadata.additionalDetails.lastName,
 			address1: goCardlessCustomer.address_line1,
 			address2: goCardlessCustomer.address_line2,
 			city: goCardlessCustomer.city,
 			postalCode: goCardlessCustomer.postal_code,
 		};
-
-		console.log(extractedData);
+		results.push({ step: currentStep, success: true });
+		console.log(sanitiseForLogging(extractedData));
 
 		// Create a subscription if frequency is monthly
 		if (extractedData.additionalDetails.frequency === "monthly") {
+			currentStep = "Create subscription";
 			const subscription = await client.subscriptions.create({
 				amount: extractedData.additionalDetails.amount * 100,
 				currency: "GBP",
@@ -65,14 +68,15 @@ export async function handleBillingRequestFulfilled(event) {
 
 			if (subscription.id) {
 				console.log("subscription Created", subscription.id);
-				notes += "Subscription created in GoCardless. ";
+				results.push({ step: currentStep, success: true });
 			} else {
-				notes += "Failed to create subscription in GoCardless";
+				results.push({ step: currentStep, success: false });
 				throw new Error("Failed to create subscription in GoCardless");
 			}
 		}
 
 		//Update customer metadata in GoCardless
+		currentStep = "Update customer metadata in GoCardless";
 		const updateCustomer = await client.customers.update(customerId, {
 			metadata: {
 				additionalDetails: billingRequest.metadata.additionalDetails,
@@ -80,18 +84,18 @@ export async function handleBillingRequestFulfilled(event) {
 		});
 
 		if (updateCustomer) {
-			notes += "Customer Updated in GoCardless. ";
+			results.push({ step: currentStep, success: true });
 		} else {
-			notes += "Failed to update Customer in GoCardless";
+			results.push({ step: currentStep, success: false });
 			throw new Error("Failed to update Customer in GoCardless");
 		}
+
 		/*
 		 * If the constituent has said yes to email comms
 		 * Add them to Mailchimp with an "GoCardless Active Subscription" tag
 		 */
-
 		if (extractedData.additionalDetails.preferences.email === "true") {
-			// Add/update subscriber on Mailchimp
+			currentStep = "Add/Update subscriber in Mailchimp";
 			await addUpdateSubscriber(
 				extractedData.email,
 				extractedData.firstName,
@@ -100,16 +104,14 @@ export async function handleBillingRequestFulfilled(event) {
 				"uk"
 			);
 
-			notes += "Subscriber added/updated in Mailchimp. ";
+			results.push({ step: currentStep, success: true });
 
+			currentStep = "Add subscriber tag in Mailchimp";
 			await addTag(extractedData.email, "GoCardless Active Subscription", "uk");
-
-			notes += "Subscriber tags added. ";
-		} else {
-			notes += "Constituent said not to email, skipping mailchimp steps. ";
+			results.push({ step: currentStep, success: true });
 		}
 
-		//Send confirmation email via Sparkpost
+		currentStep = "Send confirmation email";
 		const sendConfirmationEmailResponse =
 			await sendDirectDebitConfirmationEmail(
 				extractedData.email,
@@ -118,49 +120,34 @@ export async function handleBillingRequestFulfilled(event) {
 			);
 
 		if (sendConfirmationEmailResponse) {
-			notes += "Confirmation email sent. ";
+			results.push({ step: currentStep, success: true });
 		} else {
-			notes += "Failed to send confirmation email. ";
+			throw new Error("Failed to send confirmation email");
 		}
 
-		// add webhook here to process data into Donorfy
-		// add webhook here to process data into Donorfy
-		const webhookId = uuid();
-		console.log("uuid:", webhookId);
-
-		const payload = {
-			customerId: customerId,
-			type: "New GoCardless Subscriber",
-			id: webhookId,
-		};
-		const rawPayload = JSON.stringify(payload);
-		const signature = crypto
-			.createHmac("sha256", process.env.DONORFY_WEBHOOK_SECRET)
-			.update(rawPayload)
-			.digest("hex");
-
-		await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/webhooks/donorfy`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"Webhook-Signature": signature,
-			},
-			body: rawPayload,
-		});
-		await storeWebhookEvent(stripMetadata(event), "completed", notes);
-
-		return { message: "Billing request webhook processed", status: 200 };
-	} catch (error) {
-		console.error("Error processing billing request fulfilled", error);
-		await storeWebhookEvent(
-			stripMetadata(event),
-			"failed",
-			`Error occurred: ${error.message} Notes: ${notes}`
+		currentStep = "Update Donorfy with new GoCardless subscriber";
+		const newSubscriberResult = await newGoCardlessSubscriber(
+			goCardlessCustomer,
+			extractedData,
+			results
 		);
+		results.push({ step: currentStep, success: true });
+
+		constituentId = newSubscriberResult.constituentId;
+
 		return {
-			message: "Error processing billing request fulfilled",
-			error: error,
-			status: 500,
+			message: `GoCardless customer ${customerId} subscription created. Successfully logged in Donorfy with constituent ID ${constituentId}`,
+			status: 200,
+			eventStatus: "processed",
+			results,
+			customerId,
+			constituentId,
 		};
+	} catch (error) {
+		error.results = error.results || results;
+		error.goCardlessCustomerId =
+			error.goCardlessCustomerId || customerId || null;
+		error.constituentId = error.constituentId || constituentId || null;
+		throw error;
 	}
 }

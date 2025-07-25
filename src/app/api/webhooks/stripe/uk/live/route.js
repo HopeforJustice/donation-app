@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { handleStripeWebhookEvent } from "@/app/lib/webhooks/stripe/handleStripeWebhookEvent";
+import { handleStripeWebhookEvent } from "@/app/lib/webhookHandlers/stripe/handleStripeWebhookEvent";
 
 export const dynamic = "force-dynamic";
 export const bodyParser = false;

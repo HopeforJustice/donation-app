@@ -1,3 +1,5 @@
+//creates a constituent and returns the id
+
 import getDonorfyCredentials from "@/app/lib/donorfy/getDonorfyCredentials";
 import makeDonorfyRequest from "@/app/lib/donorfy/makeDonorfyRequest";
 
@@ -9,6 +11,7 @@ export async function createConstituent(data, instance) {
 		const filteredData = Object.fromEntries(
 			Object.entries({
 				ConstituentType: "individual", // donation app is currently only setup to work with individuals
+				Title: data.title,
 				FirstName: data.firstName,
 				LastName: data.lastName,
 				AddressLine1: data.address1,
@@ -34,11 +37,9 @@ export async function createConstituent(data, instance) {
 		);
 
 		return {
-			message: "Create constituent successful",
 			constituentId: responseData.ConstituentId,
 		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Create constituent failed");
+		throw new Error(`Create Constituent failed, error: ${error.message}`);
 	}
 }

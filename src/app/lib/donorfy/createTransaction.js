@@ -29,8 +29,6 @@ export async function createTransaction(
 			DatePaid: chargeDate || new Date().toISOString(),
 		};
 
-		console.log(url);
-
 		const responseData = await makeDonorfyRequest(
 			url,
 			"POST",
@@ -45,7 +43,8 @@ export async function createTransaction(
 			};
 		}
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Create transaction not successful");
+		throw new Error(
+			`Create Transaction failed, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }

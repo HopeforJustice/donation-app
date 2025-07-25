@@ -15,7 +15,8 @@ export async function getConstituent(constituentId, instance) {
 			constituentData: data,
 		};
 	} catch (error) {
-		console.error("Error:", error);
-		throw new Error("Get constituent failed");
+		throw new Error(
+			`Get Constituent failed, error: ${error.message}, constituentId: ${constituentId}`
+		);
 	}
 }
