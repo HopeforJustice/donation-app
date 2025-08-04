@@ -9,16 +9,20 @@
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
-import { createTransaction } from "@/app/lib/donorfy/createTransaction";
-
-const client = getGoCardlessClient();
+import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
+const donorfyUK = new DonorfyClient(
+	process.env.DONORFY_UK_KEY,
+	process.env.DONORFY_UK_TENANT
+);
 
 export async function handlePaymentPaidOut(event) {
+	const client = getGoCardlessClient();
 	const results = [];
 	let currentStep = "";
 	let customer = null;
 	let constituentId = null;
-
+	const test = process.env.VERCEL_ENV === "production" ? false : true;
+	console.log("attempting to process payment paid out");
 	try {
 		currentStep = "Retrieve payment details from GoCardless";
 		const paymentId = event.links.payment;
@@ -29,7 +33,7 @@ export async function handlePaymentPaidOut(event) {
 		results.push({ step: currentStep, success: true });
 
 		currentStep = "Check if payment is part of a subscription";
-		const subscription = payment.links.subscription || null; // Ensure it is either a value or null
+		const subscription = payment.links.subscription || null;
 		const amount = payment.amount;
 		// Ensure mandate and customer exist before accessing metadata
 		if (!payment.links.mandate) {
@@ -38,7 +42,7 @@ export async function handlePaymentPaidOut(event) {
 		results.push({ step: currentStep, success: true });
 
 		// Only process payments that are part of a subscription
-		if (subscription) {
+		if (subscription || test) {
 			currentStep = "Retrieve mandate details from GoCardless";
 			const mandate = await client.mandates.find(payment.links.mandate);
 			if (!mandate || !mandate.links || !mandate.links.customer) {
@@ -71,31 +75,36 @@ export async function handlePaymentPaidOut(event) {
 			const campaign =
 				additionalDetails.campaign || "Donation App General Campaign";
 			const friendlyAmount = amount / 100;
-			const product = "Donation";
 			const fund = "Unrestricted";
 			const channel = "Gocardless Subscription";
 			const paymentMethod = "GoCardless DD";
-			const donorfyInstance = "uk";
 			const chargeDate = payment.charge_date;
 
-			await createTransaction(
-				product,
+			const createTransactionResult = await donorfyUK.createTransaction(
 				friendlyAmount,
 				campaign,
-				channel,
 				paymentMethod,
-				fund,
 				constituentId,
-				donorfyInstance,
-				chargeDate
+				chargeDate,
+				channel,
+				fund
 			);
-			results.push({ step: currentStep, success: true });
-
+			if (createTransactionResult.Id) {
+				results.push({ step: currentStep, success: true });
+			} else {
+				throw new Error("Failed to create transaction in Donorfy");
+			}
+			console.log(
+				`Payment of ${friendlyAmount} processed successfully into Donorfy for subscription ${subscription} with transactionId ${createTransactionResult.Id}`
+			);
 			return {
 				message: `Payment of ${friendlyAmount} processed successfully into Donorfy for subscription ${subscription}`,
 				status: 200,
 				eventStatus: "processed",
 				results: results,
+				donorfyTransactionId: createTransactionResult.Id,
+				customerId: customer.id,
+				constituentId: constituentId,
 			};
 		} else {
 			return {
@@ -106,6 +115,7 @@ export async function handlePaymentPaidOut(event) {
 			};
 		}
 	} catch (error) {
+		console.error(error);
 		error.results = results;
 		error.goCardlessCustomerId = customer.id;
 		error.constituentId = constituentId || null;

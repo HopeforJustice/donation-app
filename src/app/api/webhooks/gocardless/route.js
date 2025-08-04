@@ -44,7 +44,7 @@ export async function POST(req) {
 			return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
 		}
 
-		console.log("webhook received: ", JSON.stringify(body, null, 2));
+		// console.log("webhook received: ", JSON.stringify(body, null, 2));
 
 		const responses = [];
 
@@ -71,7 +71,10 @@ export async function POST(req) {
 								response.eventStatus,
 								response.message +
 									"\n\nResults:\n" +
-									JSON.stringify(response.results || [], null, 2)
+									JSON.stringify(response.results || [], null, 2),
+								response.constituentId || null,
+								response.customerId || null,
+								response.donorfyTransactionId || null
 							);
 						}
 					} else {
@@ -84,6 +87,7 @@ export async function POST(req) {
 					}
 				}
 			} catch (error) {
+				console.error(error.message);
 				const errorResults = error.results || [];
 				const constituentId = error.constituentId || "unknown";
 				const goCardlessCustomerId = error.goCardlessCustomerId || "unknown";
@@ -94,30 +98,31 @@ export async function POST(req) {
 					errorResults,
 				};
 
-				console.error("Error handling event:", notes);
-				responses.push({
-					event: event.id,
-					message: "Error handling event",
-					error: error.message,
-					results: errorResults,
-					status: 500,
-				});
+				//dont store error if the customer has been removed
+				if (error.message !== "This customer data has been removed") {
+					responses.push({
+						event: event.id,
+						message: "Error handling event",
+						error: error.message,
+						results: errorResults,
+						status: 500,
+					});
 
-				await storeWebhookEvent(
-					stripMetadata(event),
-					"failed",
-					JSON.stringify(notes, null, 2),
-					constituentId,
-					goCardlessCustomerId
-				);
-
-				await sendErrorEmail(error, {
-					name: "Gocardless webhook event failed to fully process",
-					constituentId: constituentId,
-					goCardlessCustomerId: goCardlessCustomerId,
-					event: stripMetadata(event),
-					results: errorResults,
-				});
+					await storeWebhookEvent(
+						stripMetadata(event),
+						"failed",
+						JSON.stringify(notes, null, 2),
+						constituentId,
+						goCardlessCustomerId
+					);
+					await sendErrorEmail(error, {
+						name: "Gocardless webhook event failed to fully process",
+						constituentId: constituentId,
+						goCardlessCustomerId: goCardlessCustomerId,
+						event: stripMetadata(event),
+						results: errorResults,
+					});
+				}
 			}
 		}
 

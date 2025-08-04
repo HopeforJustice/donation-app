@@ -7,10 +7,14 @@
  *
  */
 import { getGoCardlessClient } from "../../gocardless/gocardlessclient";
-import { addActivity } from "../../donorfy/addActivity";
-import { deleteActiveTag } from "../../donorfy/deleteActiveTag";
 import deleteTag from "../../mailchimp/deleteTag";
 const client = getGoCardlessClient();
+import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
+import getSubscriber from "../../mailchimp/getSubscriber";
+const donorfyUK = new DonorfyClient(
+	process.env.DONORFY_UK_KEY,
+	process.env.DONORFY_UK_TENANT
+);
 
 export async function handleSubscriptionCancelled(event) {
 	const results = [];
@@ -28,29 +32,37 @@ export async function handleSubscriptionCancelled(event) {
 		constituentId = customer.metadata.donorfyConstituentId;
 		results.push({ step: currentStep, success: true });
 
-		currentStep = "Add Activity to Donorfy";
-		const donorfyInstance = "uk";
-		const activityData = {
-			activityType: "Gocardless Subscription Cancelled",
-			notes: `Amount: ${additionalDetails.amount}`,
-			amount: additionalDetails.amount,
-		};
-
-		await addActivity(activityData, constituentId, donorfyInstance);
-		results.push({ step: currentStep, success: true });
-
-		//Delete active Tag in Donorfy
-		currentStep = "Delete active tag in Donorfy";
-		await deleteActiveTag(
-			"Gocardless_Active Subscription",
-			constituentId,
-			"uk"
-		);
-		results.push({ step: currentStep, success: true });
+		if (!customer) {
+			throw new Error("Customer not found in GoCardless");
+		}
 
 		// Delete tag in mailchimp
 		currentStep = "Delete active tag in mailchimp";
-		await deleteTag(customer.email, "Gocardless Active Subscription", "uk");
+		const constituent = await donorfyUK.getConstituent(constituentId);
+		let subscriber;
+		try {
+			subscriber = await getSubscriber(constituent.EmailAddress);
+		} catch (error) {
+			console.error(error);
+		}
+		if (subscriber) {
+			await deleteTag(customer.email, "Gocardless Active Subscription", "uk");
+		}
+		results.push({ step: currentStep, success: true });
+
+		// Delete tag in donorfy
+		currentStep = "Delete active tag in Donorfy";
+		await donorfyUK.removeTag(constituentId, "Gocardless_Active Subscription");
+		results.push({ step: currentStep, success: true });
+
+		//add activity in donorfy
+		currentStep = "Add Activity to Donorfy";
+		await donorfyUK.addActivity({
+			ActivityType: "Gocardless Subscription Cancelled",
+			Notes: `Amount: ${additionalDetails.amount}`,
+			Number1: additionalDetails.amount,
+			ExistingConstituentId: constituentId,
+		});
 		results.push({ step: currentStep, success: true });
 
 		return {
@@ -60,6 +72,7 @@ export async function handleSubscriptionCancelled(event) {
 			results: results,
 		};
 	} catch (error) {
+		results.push({ step: currentStep, success: false, error: error.message });
 		error.results = results;
 		error.goCardlessCustomerId = customer?.id || null;
 		error.constituentId = constituentId || null;

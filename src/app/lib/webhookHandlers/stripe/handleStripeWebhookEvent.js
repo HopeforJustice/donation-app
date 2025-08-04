@@ -3,18 +3,18 @@
 
 import storeWebhookEvent from "../../db/storeWebhookEvent";
 import { sql } from "@vercel/postgres";
-import { duplicateCheck } from "../../donorfy/duplicateCheck";
-import { createConstituent } from "../../donorfy/createConstituent";
-import { updateConstituent } from "../../donorfy/updateConstituent";
-import { updatePreferences } from "../../donorfy/updatePreferences";
-import { createTransaction } from "../../donorfy/createTransaction";
-import { addActiveTags } from "../../donorfy/addActiveTags";
-import { addActivity } from "../../donorfy/addActivity";
-import { createGiftAidDeclaration } from "../../donorfy/createGiftAidDeclaration";
+import { duplicateCheck } from "../../donorfy/old/duplicateCheck";
+import { createConstituent } from "../../donorfy/old/createConstituent";
+import { updateConstituent } from "../../donorfy/old/updateConstituent";
+import { updatePreferences } from "../../donorfy/old/updatePreferences";
+import { createTransaction } from "../../donorfy/old/createTransaction";
+import { addActiveTags } from "../../donorfy/old/addActiveTags";
+import { addActivity } from "../../donorfy/old/addActivity";
+import { createGiftAidDeclaration } from "../../donorfy/old/createGiftAidDeclaration";
 import addUpdateSubscriber from "../../mailchimp/addUpdateSubscriber";
 import addTag from "../../mailchimp/addTag";
 import sendEmailByTemplateName from "../../sparkpost/sendEmailByTemplateName";
-import { getConstituent } from "../../donorfy/getConstituent";
+import { getConstituent } from "../../donorfy/old/getConstituent";
 
 async function isDuplicateEvent(eventId) {
 	const { rows } =
@@ -32,7 +32,7 @@ export async function handleStripeWebhookEvent(
 
 	//check if we have already processed the event
 	if (await isDuplicateEvent(eventId)) {
-		console.log(`🔁 Duplicate webhook ignored: ${eventId}`);
+		console.log(`Duplicate webhook ignored: ${eventId}`);
 		return;
 	}
 
@@ -58,7 +58,7 @@ export async function handleStripeWebhookEvent(
 				metadata.campaign === "FreedomFoundation"
 			) {
 				console.log(
-					`🎯 ${region.toUpperCase()} ${mode.toUpperCase()} | Processing:`,
+					`${region.toUpperCase()} ${mode.toUpperCase()} | Processing:`,
 					{
 						email: session.customer_details?.email,
 						amount: session.amount_total,

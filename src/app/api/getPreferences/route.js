@@ -2,8 +2,8 @@
 // Currently hardcoded to UK, can change to be dynamic based on currency
 
 import { NextResponse } from "next/server";
-import { duplicateCheck } from "@/app/lib/donorfy/duplicateCheck";
-import { getConstituentPreferences } from "@/app/lib/donorfy/getConstituentPreferences";
+import { duplicateCheck } from "@/app/lib/donorfy/old/duplicateCheck";
+import { getConstituentPreferences } from "@/app/lib/donorfy/old/getConstituentPreferences";
 
 export async function POST(req) {
 	const donorfyInstance = "uk";

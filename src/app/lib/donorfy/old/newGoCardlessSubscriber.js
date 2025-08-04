@@ -1,120 +1,49 @@
 /*
- * handleBillingRequestFulfilled.js
- * Function for handling GoCardless webhook event for billing request fulfilled
+ * newGoCardlessSubscriber.js
  *
- * Webhook event sent from Gocardless to api/webhooks/gocardless
+ * New GoCardless Subscriber
+ * (UK only)
  *
- * Exctract "additionalDetails" from billing request metadata
- * Create supscription in GoCardless (using additional details if frequency is monthly)
- * Update Customer metadata in GoCardless so "additionalDetails" is attached to customer instead of billing request
- * Add/Update subscriber in Mailchimp (if selected preference is yes to email)
- * Send sparkpost email (regardless of consent as this is transactional)
- * Update Donorfy (donorfy/newGoCardlessSubscriber.js)
+ * Extract data from GoCardless using Customer Id
+ * Duplicate check in Donorfy -> Constituent Id
+ * Possibly create new constituent -> Constituent Id
+ * Add Constituent Id to GoCardless metadata
+ * Possibly Update Constituent details
+ * Update preferences
+ * Possibly Add Gift Aid declaration
+ * Add Inspiration tag
+ * Add Inspiration Activity with notes
+ * Add Subscription Activity
+ * Add Subscription Tag
+ * Store Webhook in db (?)
  *
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
-import addUpdateSubscriber from "../../mailchimp/addUpdateSubscriber";
-import addTag from "../../mailchimp/addTag";
-import sendDirectDebitConfirmationEmail from "../../sparkpost/sendDirectDebitConfirmationEmail";
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
+// import { duplicateCheck } from "@/app/lib/donorfy/duplicateCheck";
+// import { createConstituent } from "@/app/lib/donorfy/createConstituent";
+// import { updateConstituent } from "@/app/lib/donorfy/updateConstituent";
+// import { updatePreferences } from "@/app/lib/donorfy/updatePreferences";
+// import { createGiftAidDeclaration } from "@/app/lib/donorfy/createGiftAidDeclaration";
+// import { addActiveTags } from "@/app/lib/donorfy/addActiveTags";
+// import { addActivity } from "@/app/lib/donorfy/addActivity";
+
 const client = getGoCardlessClient();
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
 	process.env.DONORFY_UK_TENANT
 );
-export const runtime = "nodejs";
 
-export async function handleBillingRequestFulfilled(event) {
-	const {
-		billing_request: billingRequestId,
-		customer: customerId,
-		mandate_request_mandate: mandateId,
-	} = event.links;
-
-	const results = [];
+export default async function newGoCardlessSubscriber(
+	goCardlessCustomer,
+	extractedData,
+	results
+) {
 	let currentStep = "";
-	let constituentId = null;
+	let constituentId;
 	let alreadyInDonorfy = false;
-
 	try {
-		// Extract all details needed from GoCardless
-		currentStep = "Retrieve billing request details and extract metadata";
-		const billingRequest = await client.billingRequests.find(billingRequestId);
-		const goCardlessCustomer = await client.customers.find(customerId);
-		const additionalDetails = JSON.parse(
-			billingRequest.metadata.additionalDetails || "{}"
-		);
-
-		const extractedData = {
-			additionalDetails: additionalDetails,
-			email: goCardlessCustomer.email,
-			title: additionalDetails.title,
-			firstName: additionalDetails.firstName,
-			lastName: additionalDetails.lastName,
-			address1: goCardlessCustomer.address_line1,
-			address2: goCardlessCustomer.address_line2,
-			stateCounty: additionalDetails.stateCounty,
-			city: goCardlessCustomer.city,
-			postalCode: goCardlessCustomer.postal_code,
-		};
-		results.push({ step: currentStep, success: true });
-
-		// Create a subscription if frequency is monthly
-		if (extractedData.additionalDetails.frequency === "monthly") {
-			currentStep = "Create subscription";
-			const subscription = await client.subscriptions.create({
-				amount: extractedData.additionalDetails.amount * 100,
-				currency: "GBP",
-				name: "Monthly Guardian",
-				interval_unit: extractedData.additionalDetails.frequency,
-				day_of_month: extractedData.additionalDetails.directDebitDay,
-				links: { mandate: mandateId },
-			});
-
-			if (subscription.id) {
-				results.push({ step: currentStep, success: true });
-			} else {
-				results.push({ step: currentStep, success: false });
-				throw new Error("Failed to create subscription in GoCardless");
-			}
-		}
-
-		/*
-		 * If the constituent has said yes to email comms
-		 * Add them to Mailchimp with an "GoCardless Active Subscription" tag
-		 */
-		if (extractedData.additionalDetails.preferences.email === "true") {
-			currentStep = "Add/Update subscriber in Mailchimp";
-			await addUpdateSubscriber(
-				extractedData.email,
-				extractedData.firstName,
-				extractedData.lastName,
-				"subscribed",
-				"uk"
-			);
-
-			results.push({ step: currentStep, success: true });
-
-			currentStep = "Add subscriber tag in Mailchimp";
-			await addTag(extractedData.email, "GoCardless Active Subscription", "uk");
-			results.push({ step: currentStep, success: true });
-		}
-
-		currentStep = "Send confirmation email";
-		const sendConfirmationEmailResponse =
-			await sendDirectDebitConfirmationEmail(
-				extractedData.email,
-				extractedData.firstName,
-				extractedData.additionalDetails.amount
-			);
-
-		if (sendConfirmationEmailResponse) {
-			results.push({ step: currentStep, success: true });
-		} else {
-			throw new Error("Failed to send confirmation email");
-		}
-
 		currentStep = "Donorfy duplicate check";
 		const duplicateCheckData = await donorfyUK.duplicateCheck({
 			EmailAddress: extractedData.email,
@@ -122,7 +51,7 @@ export async function handleBillingRequestFulfilled(event) {
 		results.push({ step: currentStep, success: true });
 
 		// Find or create Constituent
-		if (duplicateCheckData.length > 0 && duplicateCheckData[0].Score >= 15) {
+		if (duplicateCheckData[0].Score >= 15) {
 			currentStep = "Retrieve Constituent";
 			constituentId = duplicateCheckData[0].ConstituentId;
 			alreadyInDonorfy = true;
@@ -155,7 +84,7 @@ export async function handleBillingRequestFulfilled(event) {
 		await client.customers.update(goCardlessCustomer.id, {
 			metadata: {
 				donorfyConstituentId: constituentId,
-				additionalDetails: billingRequest.metadata.additionalDetails,
+				additionalDetails: goCardlessCustomer.metadata.additionalDetails,
 			},
 		});
 		results.push({ step: currentStep, success: true });
@@ -264,7 +193,7 @@ export async function handleBillingRequestFulfilled(event) {
 				Notes: extractedData.additionalDetails.inspirationDetails,
 				ActivityType: "Donation inspiration",
 			};
-			await donorfyUK.addActivity({
+			await addActivity({
 				...inspirationActivityData,
 				ExistingConstituentId: constituentId,
 			});
@@ -272,18 +201,14 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		return {
-			message: `GoCardless customer ${customerId} subscription created. Successfully logged in Donorfy with constituent ID ${constituentId}`,
-			status: 200,
-			eventStatus: "processed",
-			results,
-			customerId,
-			constituentId,
+			constituentId: constituentId,
+			goCardlessCustomerId: goCardlessCustomer?.id || null,
 		};
 	} catch (error) {
-		results.push({ step: currentStep, success: false });
+		results.push({ step: currentStep, success: false, error: error.message });
 		error.results = results;
-		error.goCardlessCustomerId = customerId || null;
 		error.constituentId = constituentId || null;
+		error.goCardlessCustomerId = goCardlessCustomer?.id || null;
 		throw error;
 	}
 }

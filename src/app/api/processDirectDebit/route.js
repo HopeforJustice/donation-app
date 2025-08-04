@@ -5,9 +5,9 @@
  *
  * Imported billing request
  * 		Sets up Customer with Gocardless
- * 		stores form data in meta field as json string
+ * 		stores additional form data in metadata field as json string
  *
- * Sets up billing request and sends user to GoCardless for completion
+ * Sets up billing request returns auth url
  *
  */
 
@@ -23,8 +23,6 @@ export async function POST(req) {
 
 		if (!billingRequestData) {
 			throw new Error("Billing Request Error");
-		} else {
-			console.log(billingRequestData);
 		}
 
 		// Redirect to GoCardless authorisation URL

@@ -399,6 +399,10 @@ export const sanitiseForLogging = (body) => {
 		"PostalCode",
 		"phone",
 		"Phone1",
+		"title",
+		"Title",
+		"TaxPayerFirstName",
+		"TaxPayerLastName",
 	];
 
 	sensitiveFields.forEach((field) => {
@@ -407,3 +411,14 @@ export const sanitiseForLogging = (body) => {
 
 	return JSON.stringify(data);
 };
+
+export async function poll(fn, { interval, timeout }) {
+	const endTime = Date.now() + timeout;
+	let result;
+	while (Date.now() < endTime) {
+		result = await fn();
+		if (result) return result;
+		await new Promise((res) => setTimeout(res, interval));
+	}
+	throw new Error("Poll timed out");
+}

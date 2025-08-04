@@ -9,13 +9,18 @@
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
-import { addActivity } from "../../donorfy/addActivity";
-
 const client = getGoCardlessClient();
+import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
+const donorfyUK = new DonorfyClient(
+	process.env.DONORFY_UK_KEY,
+	process.env.DONORFY_UK_TENANT
+);
 
 export async function handlePaymentFailed(event) {
 	const results = [];
 	let currentStep = "";
+	const test = process.env.VERCEL_ENV === "production" ? false : true;
+	console.log("attempting to process payment failed");
 
 	try {
 		const paymentId = event.links.payment;
@@ -37,24 +42,26 @@ export async function handlePaymentFailed(event) {
 		results.push({ step: currentStep, success: true });
 
 		const constituentId = customer.metadata.donorfyConstituentId || null;
-		const donorfyInstance = "uk";
 
 		// Only process payments that are part of a subscription
 		// This can change if we take instant bank payments in the future
-		if (subscription) {
+		if (subscription || test) {
 			currentStep = "Add GoCardless Payment Failed Activity in Donorfy";
-			const activityData = {
-				activityType: "Gocardless Payment Failed",
-				notes: `Amount: ${friendlyAmount}`,
-			};
 
-			await addActivity(activityData, constituentId, donorfyInstance);
+			await donorfyUK.addActivity({
+				ActivityType: "Gocardless Payment Failed",
+				Notes: `Amount: ${friendlyAmount}`,
+				Number1: friendlyAmount,
+				ExistingConstituentId: constituentId,
+			});
 			results.push({ step: currentStep, success: true });
 
 			return {
 				message: `Payment failed successfully noted in Donorfy for constituent ${constituentId}`,
 				status: 200,
 				eventStatus: "processed",
+				customerId: customer.id,
+				constituentId: constituentId,
 			};
 		} else {
 			return {
@@ -65,6 +72,7 @@ export async function handlePaymentFailed(event) {
 			};
 		}
 	} catch (error) {
+		console.error(error);
 		error.results = results;
 		error.goCardlessCustomerId = customer.id;
 		error.constituentId = constituentId || null;
