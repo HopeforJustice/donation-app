@@ -7,8 +7,9 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"test:unit": "jest",
-		"test:integration": "playwright test --config=playwright.config.js"
+		"test": "jest",
+		"test:playwright": "playwright test --reporter=html --config=playwright.config.js",
+		"test:playwright:report": "playwright show-report"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^3.9.0",

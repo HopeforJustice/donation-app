@@ -1,3 +1,16 @@
+/*
+ * billingRequest.js
+ *
+ * Creates a billing request with GoCardless
+ * and returns an authorization url
+ * recieves all form data in data param
+ *
+ * Imported getGoCardlessClient
+ *		Creates and retrieves GoCardless client
+ *
+ *
+ */
+
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 
 const client = getGoCardlessClient();
@@ -7,9 +20,12 @@ export async function billingRequest(data) {
 		const additionalDetails = {
 			currency: data.currency,
 			title: data.title,
+			firstName: data.firstName,
+			lastName: data.lastName,
 			phone: data.phone,
 			campaign: data.campaign,
 			amount: data.amount,
+			stateCounty: data.stateCounty,
 			directDebitDay: data.directDebitStartDate,
 			frequency: data.givingFrequency,
 			preferences: {
@@ -23,20 +39,19 @@ export async function billingRequest(data) {
 			inspirationDetails: data.inspirationDetails,
 		};
 
-		console.log("creating billing request");
+		console.log("creating billing request...");
 		// Creaate billing request
 		const billingRequest = await client.billingRequests.create({
 			mandate_request: {
 				scheme: "bacs",
 			},
+			//Store form data metadata
 			metadata: {
 				additionalDetails: JSON.stringify(additionalDetails),
 			},
 		});
 		if (!billingRequest) {
 			throw new Error("failed to create billing request");
-		} else {
-			console.log("billing request:", billingRequest);
 		}
 
 		const successUrl =

@@ -1,14 +1,15 @@
 const { defineConfig } = require("@playwright/test");
 
 module.exports = defineConfig({
-	testDir: "./__tests__/integration", // Specify the folder where Playwright should look for tests
-	timeout: 30000, // Set timeout for each test (30 seconds)
-	retries: 1, // Retry failed tests once
+	testDir: "./__tests__/playwright", // Specify the folder where Playwright should look for tests
+	timeout: 120000, // Set timeout for each test (120 seconds)
+	retries: 0, // Number of retries for failed tests
+	globalSetup: "./playwright.setup.js",
 	use: {
 		baseURL: "http://localhost:3000", // Your app's base URL
-		headless: false, // Run tests in headless mode
+		headless: true, // Run tests in headless mode
 		launchOptions: {
-			slowMo: 50, // Add a slight delay between actions for better observation
+			slowMo: 10, // Add a slight delay between actions for better observation
 		},
 		viewport: { width: 1800, height: 1000 }, // Set the default browser viewport
 		screenshot: "only-on-failure", // Take screenshots on failure

@@ -10,10 +10,13 @@ const createJestConfig = nextJest({
 const config = {
 	coverageProvider: "v8",
 	testEnvironment: "jsdom",
+	globals: {
+		fetch: global.fetch,
+	},
 	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/src/$1",
 	},
-	collectCoverage: true,
+	collectCoverage: false,
 	collectCoverageFrom: ["src/app/ui/**/*.{js,jsx,ts,tsx}"],
 	testMatch: [
 		"**/__tests__/unit/**/*.{js,jsx,ts,tsx}", // Look only in the `unit` folder inside `__tests__`

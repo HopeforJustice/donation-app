@@ -1,3 +1,8 @@
+/*
+ *	gocardlessclient.js
+ *		Creates and returns GoCardless client
+ */
+
 const gocardless = require("gocardless-nodejs");
 const constants = require("gocardless-nodejs/constants");
 

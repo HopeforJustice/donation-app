@@ -10,23 +10,12 @@ export default async function addTag(email, tag, country = "uk") {
 		const subscriberHash = getSubscriberHash(email);
 		console.log(list.id, subscriberHash);
 
-		const response = await mailchimp.lists.updateListMemberTags(
-			list.id,
-			subscriberHash,
-			{
-				tags: [{ name: tag, status: "active" }],
-			}
-		);
-
-		console.log("added subscriber tag", response);
-
-		return { success: true, response };
+		await mailchimp.lists.updateListMemberTags(list.id, subscriberHash, {
+			tags: [{ name: tag, status: "active" }],
+		});
 	} catch (error) {
-		console.error("error adding subscriber tag", error);
-		return {
-			success: false,
-			message: "error adding subscriber tag",
-			error,
-		};
+		throw new Error(
+			`Add Tag to Mailchimp subscriber failed, tag: ${tag}, error: ${error.message}`
+		);
 	}
 }

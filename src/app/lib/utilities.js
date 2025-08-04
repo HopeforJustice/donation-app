@@ -370,3 +370,55 @@ export const stripMetadata = (data) => {
 	const { resource_metadata, metadata, ...strippedData } = data;
 	return strippedData;
 };
+
+export const sanitiseForLogging = (body) => {
+	if (!body || typeof body !== "string") return "[no body]";
+	let data;
+	try {
+		data = JSON.parse(body);
+	} catch (e) {
+		return `[unparseable body: ${body}]`;
+	}
+
+	const sensitiveFields = [
+		"email",
+		"EmailAddress",
+		"firstName",
+		"FirstName",
+		"lastName",
+		"LastName",
+		"address1",
+		"address2",
+		"AddressLine1",
+		"AddressLine2",
+		"townCity",
+		"Town",
+		"County",
+		"Country",
+		"postcode",
+		"PostalCode",
+		"phone",
+		"Phone1",
+		"title",
+		"Title",
+		"TaxPayerFirstName",
+		"TaxPayerLastName",
+	];
+
+	sensitiveFields.forEach((field) => {
+		if (data[field]) data[field] = "[REDACTED]";
+	});
+
+	return JSON.stringify(data);
+};
+
+export async function poll(fn, { interval, timeout }) {
+	const endTime = Date.now() + timeout;
+	let result;
+	while (Date.now() < endTime) {
+		result = await fn();
+		if (result) return result;
+		await new Promise((res) => setTimeout(res, interval));
+	}
+	throw new Error("Poll timed out");
+}

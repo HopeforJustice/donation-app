@@ -1,29 +1,31 @@
 /*
- * processDirectDebit.js
+ * processDirectDebit/route.js
  *
- * Processes form submission for regular giving
- * Sets up Customer with Gocardless, stores form data in meta field as json
- * Sets up billing request and sends user to GoCardless for completion
+ * Processes client form submission for regular giving
+ *
+ * Imported billing request
+ * 		Sets up Customer with Gocardless
+ * 		stores additional form data in metadata field as json string
+ *
+ * Sets up billing request returns auth url
  *
  */
 
 import { NextResponse } from "next/server";
-
 import { billingRequest } from "@/app/lib/gocardless/billingRequest";
 
 export async function POST(req) {
 	const formData = await req.json();
 
 	try {
-		// 6. Create billing request
+		//Create billing request
 		const billingRequestData = await billingRequest(formData);
 
 		if (!billingRequestData) {
 			throw new Error("Billing Request Error");
-		} else {
-			console.log(billingRequestData);
 		}
 
+		// Redirect to GoCardless authorisation URL
 		return NextResponse.json(
 			{
 				message: "Processing successful, redirecting to GoCardless",
