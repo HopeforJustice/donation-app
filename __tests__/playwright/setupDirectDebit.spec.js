@@ -4,7 +4,7 @@
  * - GoCardless
  * - Donorfy
  * - Mailchimp
- *
+ * - Sparkpost (manual confirmation needed)
  */
 
 import { test, expect } from "@playwright/test";
@@ -23,14 +23,14 @@ const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_TENANT
 );
 
-// generate test email
+// Generate test email
 const timestamp = Date.now();
 const client = getGoCardlessClient();
 const testEmail = `james.holt+test${timestamp}@hopeforjustice.org`;
 let goCardlessCustomerId;
 let constituentId;
 
-//default campaign: Donation App General Campaign
+// Default campaign: Donation App General Campaign
 
 const deleteAfterTest = true;
 const testDetails = {
@@ -448,7 +448,7 @@ test.describe("E2E: Setup Direct Debit", () => {
 					console.warn(`Failed to delete Donorfy constituent: ${err}`);
 				}
 			}
-			//clean up mailchimp
+			// Clean up mailchimp
 			if (testDetails.preferences.email) {
 				try {
 					await deleteSubscriber(testEmail, "uk");
