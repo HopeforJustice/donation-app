@@ -5,47 +5,52 @@ import { useEffect, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSchema } from "@/app/lib/schema";
-import { steps as initialSteps } from "@/app/lib/steps";
 import Step from "./Step";
 import Button from "../buttons/Button";
 import ProgressIndicator from "./ProgressIndicator";
 import HorizontalRule from "@/app/ui/HorizontalRule";
-import {
-	extractDefaultValues,
-	updateStepsWithParams,
-	updateStepsBasedOnSelections,
-	getFieldIdsExcludingRemoved,
-	extractPreferences,
-} from "@/app/lib/utilities";
-import { getStripePromise } from "@/app/lib/stripe/getStripePromise";
+import { getFieldIdsExcludingRemoved } from "@/app/lib/utilities";
+import { extractDefaultValues } from "@/app/lib/utilities";
+import { generateSteps } from "@/app/lib/steps/generateSteps";
+import { stepTemplates } from "@/app/lib/steps/stepTemplates";
+import { getPreferences } from "@/app/lib/utilities";
+import { extractPreferences } from "@/app/lib/utilities";
 
-const MultiStepForm = ({ onCurrencyChange }) => {
+const MultiStepForm = ({
+	currency = "gbp",
+	frequency = "monthly",
+	setCurrency,
+	setAmount,
+	setGivingFrequency,
+}) => {
 	const searchParams = useSearchParams();
-	const { defaultValues, initialCurrency, amountProvided } =
-		extractDefaultValues(initialSteps, searchParams);
+	const validate = searchParams.get("validate") || true;
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [step, setStep] = useState(0);
-	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
-	const paymentGateway = searchParams.get("paymentGateway") || "gocardless";
-	const stripeMode = searchParams.get("stripeMode") || "live";
-	const projectId = searchParams.get("projectId") || null;
-	const givingTo = searchParams.get("givingTo") || null;
-	const donorType = searchParams.get("donorType") || null;
-	const organisationName = searchParams.get("organisationName") || null;
 
-	const supportedCurrencies = {
-		gocardless: ["gbp"],
-		stripe: ["usd", "gbp"],
-	};
-	const isCurrencyAccepted =
-		supportedCurrencies[paymentGateway]?.includes(initialCurrency);
+	// const paymentGateway = searchParams.get("paymentGateway") || "gocardless";
+	// const stripeMode = searchParams.get("stripeMode") || "live";
+	// const projectId = searchParams.get("projectId") || null;
+	// const givingTo = searchParams.get("givingTo") || null;
+	// const donorType = searchParams.get("donorType") || null;
+	// const organisationName = searchParams.get("organisationName") || null;
+
+	const supportedCurrencies = ["usd", "gbp", "nok", "aud"];
+	const isCurrencyAccepted = supportedCurrencies.includes(currency);
+	const { defaultValues, initialCurrency, amountProvided } =
+		extractDefaultValues(stepTemplates, searchParams);
+	function regenerateSteps({ currency, frequency }) {
+		return generateSteps({ currency, frequency });
+	}
 	const methods = useForm({
 		resolver: zodResolver(formSchema),
-		mode: "onTouched",
+		mode: "onChange",
+		delayError: 1500,
 		defaultValues,
 	});
+
 	const {
 		trigger,
 		handleSubmit,
@@ -54,139 +59,90 @@ const MultiStepForm = ({ onCurrencyChange }) => {
 		watch,
 		setValue,
 	} = methods;
-	const [steps, setSteps] = useState(() => {
-		let updatedSteps = updateStepsWithParams(
-			initialSteps,
-			searchParams,
-			paymentGateway
+
+	const formData = getValues();
+
+	const watchedCurrency = watch("currency") || defaultValues.currency;
+	const watchedFrequency =
+		watch("givingFrequency") || defaultValues.givingFrequency;
+	const watchedAmount = watch("amount") || null;
+
+	const [steps, setSteps] = useState(() =>
+		regenerateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
+	);
+
+	function updateStepDescription(stepId, newDescription) {
+		setSteps((prevSteps) =>
+			prevSteps.map((step) =>
+				step.id === stepId ? { ...step, description: newDescription } : step
+			)
 		);
-		const currency = searchParams.get("currency") || initialCurrency;
-		const givingFrequency =
-			searchParams.get("givingFrequency") || defaultValues.givingFrequency;
-		return updateStepsBasedOnSelections(
-			updatedSteps,
-			currency,
-			givingFrequency
-		);
-	});
+	}
+
+	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
 
 	useEffect(() => {
-		// Watch all fields, extract currency and givingFrequency
-		let currency = initialCurrency;
-		const subscription = watch((value) => {
-			currency = value.currency || initialCurrency;
-			const givingFrequency =
-				value.givingFrequency || defaultValues.givingFrequency;
-			onCurrencyChange(currency);
-			//then update steps
-			setSteps((currentSteps) => {
-				const updatedSteps = updateStepsBasedOnSelections(
-					currentSteps,
-					currency,
-					givingFrequency
-				);
-				return updatedSteps;
-			});
-		});
-		onCurrencyChange(currency);
-		return () => subscription.unsubscribe();
-	}, [watch, initialCurrency, defaultValues.givingFrequency, onCurrencyChange]);
+		setSteps(
+			generateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
+		);
+		setCurrency(watchedCurrency);
+		setGivingFrequency(watchedFrequency);
+		setAmount(watchedAmount);
+	}, [
+		watchedCurrency,
+		watchedFrequency,
+		watchedAmount,
+		setCurrency,
+		setGivingFrequency,
+		setAmount,
+	]);
 
-	//next step
 	const nextStep = async () => {
+		setIsLoading(true);
+		if (validate === "false") {
+			setStep((s) => s + 1);
+			setIsLoading(false);
+			return;
+		}
 		const fields = getFieldIdsExcludingRemoved(steps[step].fields);
 		const valid = await trigger(fields, { shouldFocus: true });
-		console.log(valid, errors);
-		const formData = getValues();
-
 		if (valid) {
-			setIsLoading(true);
-			const stepData = getValues(fields);
-			console.log(`Data from step ${step + 1}:`, stepData);
-
-			//look for preferences if the step is 0 and the currency is gbp
 			if (step === 0 && formData.currency === "gbp") {
-				const getPreferences = await fetch("/api/getPreferences", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						email: formData.email,
-					}),
-				});
-
-				const getPreferencesData = await getPreferences.json();
-
+				const getPreferencesData = await getPreferences(formData.email);
+				console.log(getPreferencesData);
 				if (getPreferencesData.preferences) {
-					// Update the form fields with the preferences
 					const extractedPreferences = await extractPreferences(
 						getPreferencesData
 					);
+
 					if (extractedPreferences) {
-						console.log(extractedPreferences);
-						setValue(
+						const preferenceFields = [
 							"emailPreference",
-							String(extractedPreferences.emailPreference)
-						);
-						setValue(
 							"postPreference",
-							String(extractedPreferences.postPreference)
-						);
-						setValue(
 							"smsPreference",
-							String(extractedPreferences.smsPreference)
-						);
-						setValue(
 							"phonePreference",
-							String(extractedPreferences.phonePreference)
+						];
+
+						for (const field of preferenceFields) {
+							const value = extractedPreferences[field];
+							if (value !== undefined) {
+								setValue(field, String(value));
+							}
+						}
+
+						updateStepDescription(
+							"preferences",
+							`These are the preferences we hold for ${formData.email} for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
 						);
 					}
-
-					// Update the description of step 4
-					setSteps((prevSteps) =>
-						prevSteps.map((s) =>
-							s.id === "step4"
-								? {
-										...s,
-										description: `These are the preferences we hold for ${formData.email} for how we can contact you about the work of Hope for Justice and how your support is making a difference:`,
-								  }
-								: s
-						)
-					);
 				}
 			}
-
-			setSteps((prevSteps) =>
-				prevSteps.map((s, index) => {
-					if (index === step) {
-						return { ...s, status: "complete" };
-					} else if (index === step + 1) {
-						return { ...s, status: "current" };
-					}
-					return s;
-				})
-			);
-			setIsLoading(false);
-			setStep(step + 1);
+			setStep((s) => s + 1);
 		}
+		setIsLoading(false);
 	};
 
-	//prev step
-	const prevStep = () => {
-		setSteps((prevSteps) =>
-			prevSteps.map((s, index) => {
-				if (index === step - 1) {
-					return { ...s, status: "current" };
-				} else if (index === step) {
-					return { ...s, status: "upcoming" };
-				}
-				return s;
-			})
-		);
-
-		setStep(step - 1);
-	};
+	const prevStep = () => setStep((s) => s - 1);
 
 	// On Submit
 	const onSubmit = async () => {
@@ -194,53 +150,16 @@ const MultiStepForm = ({ onCurrencyChange }) => {
 
 		if (!valid) return;
 
-		const formData = getValues();
 		setIsSubmitting(true);
 
 		try {
 			let response;
 
-			if (paymentGateway === "stripe") {
-				const stripe = await getStripePromise({
-					currency: formData.currency,
-					mode: stripeMode,
-				});
-
-				response = await fetch("/api/processStripe", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						...formData,
-						stripeMode,
-						projectId,
-						givingTo,
-						donorType,
-						organisationName,
-					}),
-				});
-
-				const data = await response.json();
-
-				if (!response.ok) {
-					throw new Error(data.message || "Stripe session creation failed.");
-				}
-
-				// Redirect to Stripe Checkout
-				const result = await stripe.redirectToCheckout({
-					sessionId: data.sessionId,
-				});
-
-				if (result.error) {
-					throw new Error(result.error.message);
-				}
-
-				return; // stop here after Stripe redirect
-			}
-
 			// Handle GoCardless
-			if (paymentGateway === "gocardless") {
+			if (
+				formData.currency === "gbp" &&
+				formData.givingFrequency === "monthly"
+			) {
 				response = await fetch("/api/processDirectDebit", {
 					method: "POST",
 					headers: {
@@ -280,21 +199,19 @@ const MultiStepForm = ({ onCurrencyChange }) => {
 	const showGivingDetailsHandler = () => setShowAmountField(true);
 
 	if (!isCurrencyAccepted) {
-		return (
-			<div>
-				The currency set is not currently accepted for this payment gateway
-			</div>
-		);
+		return <div>Error: The currency set is not currently accepted.</div>;
 	}
 
 	return (
 		<div className="">
-			<ProgressIndicator steps={steps} />
+			<ProgressIndicator steps={steps} currentStep={step} />
 			<FormProvider {...methods}>
 				<form onSubmit={handleSubmit(onSubmit)}>
 					<Step
 						stepData={steps[step]}
 						watch={watch}
+						currency={currency}
+						frequency={frequency}
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
 					/>
@@ -325,30 +242,39 @@ const MultiStepForm = ({ onCurrencyChange }) => {
 						size="extraLarge"
 					/>
 				)}
-				{step !== steps.length - 1 ? (
+				{step < steps.length - 1 && (
 					<Button
 						onClick={nextStep}
 						text={isLoading ? "Loading..." : "Next Step"}
 						size="extraLarge"
 						extraClasses="ml-auto"
 					/>
-				) : paymentGateway === "stripe" ? (
-					<Button
-						onClick={onSubmit}
-						text={isSubmitting ? "Submitting..." : "Proceed to payment"}
-						size="extraLarge"
-						extraClasses="ml-auto"
-						disabled={isSubmitting}
-					/>
-				) : (
-					<Button
-						onClick={onSubmit}
-						text={isSubmitting ? "Submitting..." : "Submit"}
-						size="extraLarge"
-						extraClasses="ml-auto"
-						disabled={isSubmitting}
-					/>
 				)}
+
+				{step === steps.length - 1 &&
+					formData.currency === "gbp" &&
+					formData.givingFrequency === "monthly" && (
+						<Button
+							onClick={onSubmit}
+							text={isSubmitting ? "Submitting..." : "Setup Direct Debit"}
+							size="extraLarge"
+							extraClasses="ml-auto"
+							disabled={isSubmitting}
+						/>
+					)}
+
+				{/* submit logic for stripe element lives in the stripe payment element component */}
+				{/* {step === steps.length - 1 &&
+					(formData.currency !== "gbp" ||
+						formData.givingFrequency !== "monthly") && (
+						<Button
+							onClick={onSubmit}
+							text={isSubmitting ? "Submitting..." : `Donate`}
+							size="extraLarge"
+							extraClasses="ml-auto"
+							disabled={isSubmitting}
+						/>
+					)} */}
 			</div>
 		</div>
 	);

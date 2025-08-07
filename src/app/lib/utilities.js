@@ -77,44 +77,28 @@ export const extractDefaultValues = (steps, searchParams) => {
 	let initialCurrency = "gbp"; // Default currency
 	let amountProvided = false; // Track if amount is provided in URL
 
+	// Helper to process a field (can be a direct field or subfield)
+	function setDefaultForField(field) {
+		const paramValue = searchParams.get(field.id);
+		if (paramValue !== null) {
+			defaultValues[field.id] = paramValue;
+		} else if (field.defaultValue !== undefined) {
+			defaultValues[field.id] = field.defaultValue;
+		}
+		if (field.id === "amount" && paramValue !== null) {
+			amountProvided = true;
+		}
+		if (field.id === "currency" && paramValue !== null) {
+			initialCurrency = paramValue;
+		}
+	}
+
 	steps.forEach((step) => {
 		step.fields.forEach((field) => {
-			if (field.type === "fieldGroup") {
-				//subfields
-				field.fields.forEach((subField) => {
-					const paramValue = searchParams.get(subField.id);
-					//default is param
-					if (paramValue) {
-						defaultValues[subField.id] = paramValue;
-					}
-					//default is set in config
-					if (subField.defaultValue && !defaultValues[subField.id]) {
-						defaultValues[subField.id] = subField.defaultValue;
-					}
-					//amount has been provided
-					//used to hide the amount fields
-					if (subField.id === "amount" && paramValue) {
-						amountProvided = true;
-					}
-					//set the initial currency if provided
-					if (subField.id === "currency" && paramValue) {
-						initialCurrency = paramValue;
-					}
-				});
+			if (field.type === "fieldGroup" && Array.isArray(field.fields)) {
+				field.fields.forEach(setDefaultForField);
 			} else {
-				//fields
-				// refactor: should contain same logic as subfields
-				//to allow structure to change
-				const paramValue = searchParams.get(field.id);
-
-				//is param vale
-				if (paramValue) {
-					defaultValues[field.id] = paramValue;
-				}
-				//has a default value in config
-				if (field.defaultValue && !defaultValues[field.id]) {
-					defaultValues[field.id] = field.defaultValue;
-				}
+				setDefaultForField(field);
 			}
 		});
 	});
@@ -208,104 +192,103 @@ export const updateStepsWithParams = (steps, searchParams, paymentGateway) => {
 //and giving Frequency
 
 //storing original GiftAid Step
-let giftAidStep;
-let step4;
-export const updateStepsBasedOnSelections = (
-	steps,
-	currency,
-	givingFrequency
-) => {
-	console.log("updating steps based on selections");
-	let updatedSteps = steps;
-	if (steps.find((step) => step.id === "step3")) {
-		giftAidStep = steps.find((step) => step.id === "step3");
-	}
-	if (steps.find((step) => step.id === "step4")) {
-		step4 = steps.find((step) => step.id === "step4");
-	}
-	if (currency === "gbp" && giftAidStep) {
-		// Ensure giftAidStep is included in updatedSteps
-		if (!updatedSteps.some((step) => step.id === "step3")) {
-			updatedSteps.splice(2, 0, giftAidStep); // Insert giftAidStep at the correct position
-		}
-		// Replace step 4 of updatedSteps with original step4
-		updatedSteps = updatedSteps.map((step) =>
-			step.id === "step4" ? step4 : step
-		);
-	}
-	// Add / remove / edit fields based on currency and givingFrequency
-	updatedSteps = updatedSteps
-		.map((step) => {
-			let newFields = step.fields
-				.map((field) => {
-					if (field.type === "fieldGroup") {
-						let newSubFields = field.fields
-							.map((subField) => {
-								if (subField.id === "postcode" && currency === "usd") {
-									subField.label = "ZIP Code";
-									return subField;
-								} else if (subField.id === "postcode" && currency === "gbp") {
-									subField.label = "Postcode";
-									return subField;
-								} else {
-									return subField;
-								}
-							})
-							.filter(Boolean); // Remove null values
-						return { ...field, fields: newSubFields };
-					} else {
-						if (
-							field.id === "directDebitStartDate" &&
-							(currency !== "gbp" || givingFrequency !== "monthly")
-						) {
-							return null;
-						} else if (field.id === "stateCounty") {
-							field.label = currency === "usd" ? "State" : "County";
-							return field;
-						} else {
-							return field;
-						}
-					}
-				})
-				.filter(Boolean); // Remove null values
+// let giftAidStep;
+// let step4;
+// export const updateStepsBasedOnSelections = (
+// 	steps,
+// 	currency,
+// 	givingFrequency
+// ) => {
+// 	console.log("updating steps based on selections");
+// 	let updatedSteps = steps;
+// 	if (steps.find((step) => step.id === "step3")) {
+// 		giftAidStep = steps.find((step) => step.id === "step3");
+// 	}
+// 	if (steps.find((step) => step.id === "step4")) {
+// 		step4 = steps.find((step) => step.id === "step4");
+// 	}
+// 	if (currency === "gbp" && giftAidStep) {
+// 		// Ensure giftAidStep is included in updatedSteps
+// 		if (!updatedSteps.some((step) => step.id === "step3")) {
+// 			updatedSteps.splice(2, 0, giftAidStep); // Insert giftAidStep at the correct position
+// 		}
+// 		// Replace step 4 of updatedSteps with original step4
+// 		updatedSteps = updatedSteps.map((step) =>
+// 			step.id === "step4" ? step4 : step
+// 		);
+// 	}
+// 	// Add / remove / edit fields based on currency and givingFrequency
+// 	updatedSteps = updatedSteps
+// 		.map((step) => {
+// 			let newFields = step.fields
+// 				.map((field) => {
+// 					if (field.type === "fieldGroup") {
+// 						let newSubFields = field.fields
+// 							.map((subField) => {
+// 								if (subField.id === "postcode" && currency === "usd") {
+// 									subField.label = "ZIP Code";
+// 									return subField;
+// 								} else if (subField.id === "postcode" && currency === "gbp") {
+// 									subField.label = "Postcode";
+// 									return subField;
+// 								} else {
+// 									return subField;
+// 								}
+// 							})
+// 							.filter(Boolean); // Remove null values
+// 						return { ...field, fields: newSubFields };
+// 					} else {
+// 						if (
+// 							field.id === "directDebitStartDate" &&
+// 							(currency !== "gbp" || givingFrequency !== "monthly")
+// 						) {
+// 							return null;
+// 						} else if (field.id === "stateCounty") {
+// 							field.label = currency === "usd" ? "State" : "County";
+// 							return field;
+// 						} else {
+// 							return field;
+// 						}
+// 					}
+// 				})
+// 				.filter(Boolean); // Remove null values
 
-			// Changing step descriptions based on currency and givingFrequency
-			if (
-				step.id === "step2" &&
-				(currency !== "gbp" ||
-					(currency === "gbp" && givingFrequency !== "monthly"))
-			) {
-				step = {
-					...step,
-					description: null,
-				};
-			}
+// 			// Changing step descriptions based on currency and givingFrequency
+// 			if (
+// 				step.id === "step2" &&
+// 				(currency !== "gbp" ||
+// 					(currency === "gbp" && givingFrequency !== "monthly"))
+// 			) {
+// 				step = {
+// 					...step,
+// 					description: null,
+// 				};
+// 			}
 
-			if (step.id === "step4" && currency === "usd") {
-				step = {
-					...step,
-					description: null,
-					title: "Giving Summary",
-				};
-				step.fields = step.fields.filter(
-					(field) => field.id !== "contactPreferences"
-				);
-				return step;
-			}
+// 			if (step.id === "step4" && currency === "usd") {
+// 				step = {
+// 					...step,
+// 					description: null,
+// 					title: "Giving Summary",
+// 				};
+// 				step.fields = step.fields.filter(
+// 					(field) => field.id !== "contactPreferences"
+// 				);
+// 				return step;
+// 			}
 
-			// Removing gift aid if the currency is not gbp
-			if (step.id === "step3" && currency !== "gbp") {
-				return null; // Remove the step
-			}
+// 			// Removing gift aid if the currency is not gbp
+// 			if (step.id === "step3" && currency !== "gbp") {
+// 				return null; // Remove the step
+// 			}
 
-			return { ...step, fields: newFields };
-		})
-		.filter(Boolean); // Remove null values
-	return updatedSteps;
-};
+// 			return { ...step, fields: newFields };
+// 		})
+// 		.filter(Boolean); // Remove null values
+// 	return updatedSteps;
+// };
 
 //get fields that haven't been removed from the structure
-// for accurate validation of remaining fields
 export const getFieldIdsExcludingRemoved = (fields) => {
 	return fields.reduce((acc, field) => {
 		if (!field) {
@@ -363,6 +346,18 @@ export async function extractPreferences(data) {
 	}
 
 	return extractedPreferences;
+}
+
+//call donorfy for preference data
+export async function getPreferences(email) {
+	const response = await fetch("/api/getPreferences", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ email }),
+	});
+	return await response.json();
 }
 
 //strip metadata from event object in webhook before storage in db

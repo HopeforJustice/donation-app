@@ -10,6 +10,7 @@ const InputField = ({
 	errors,
 	placeholder,
 	defaultValue,
+	description,
 	ariaDescription,
 	extraClasses = "",
 	extraInputClasses = "",
@@ -58,6 +59,25 @@ const InputField = ({
 				<p id={`${id}-error`} className="mt-2 text-sm text-red-600">
 					{errors[id]?.message}
 				</p>
+			)}
+
+			{description && (
+				<div id={`${id}-description`}>
+					{Array.isArray(description) ? (
+						description.map((paragraph, index) => (
+							<p key={index} className="mt-4 text-sm text-hfj-black-tint1">
+								{paragraph}
+							</p>
+						))
+					) : (
+						<p
+							id={`${id}-description`}
+							className="mt-4 text-sm text-hfj-black-tint1"
+						>
+							{description}
+						</p>
+					)}
+				</div>
 			)}
 		</div>
 	);

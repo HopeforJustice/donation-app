@@ -22,6 +22,6 @@ export function getStripeInstance({ currency, mode = "test" }) {
 	}
 
 	return new Stripe(secretKey, {
-		apiVersion: "2023-10-16",
+		apiVersion: "2025-07-30.basil",
 	});
 }

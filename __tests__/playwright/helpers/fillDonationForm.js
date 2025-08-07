@@ -55,5 +55,5 @@ export default async function fillDonationForm(page, testDetails) {
 	await page
 		.getByLabel("Please tell us more")
 		.fill(testDetails.inspirationNotes);
-	await page.getByRole("button", { name: "Submit" }).click();
+	await page.getByRole("button", { name: "Donate" }).click();
 }

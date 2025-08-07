@@ -1,0 +1,205 @@
+import { onlyNumbers } from "@/app/lib/utilities";
+import { handlePhoneInput } from "@/app/lib/utilities";
+
+export const stepTemplates = [
+	{
+		id: "basicInfo",
+		status: "current",
+		title: "Your Details:",
+		fields: [
+			{
+				id: "campaign",
+				type: "text",
+				defaultValue: "Donation App General Campaign",
+				hidden: true,
+			},
+			{
+				id: "currency",
+				type: "text",
+				defaultValue: "gbp",
+				hidden: true,
+			},
+			{ id: "givingPreview", type: "givingPreview" },
+			{
+				type: "fieldGroup",
+				id: "givingDetails",
+				// descriptionToken: "givingDetailsDescription",
+				fields: [
+					{
+						id: "amount",
+						labelToken: "amount",
+						type: "amount",
+						placeholder: "0.00",
+						ariaDescription: "amount-currency",
+						onInput: onlyNumbers,
+						acceptedCurrencies: [
+							{ text: "GBP", value: "gbp" },
+							{ text: "USD", value: "usd" },
+							{ text: "AUD", value: "aud" },
+							{ text: "NOK", value: "nok" },
+						],
+					},
+					{
+						id: "givingFrequency",
+						type: "select",
+						labelToken: "frequency",
+						defaultValue: "monthly",
+						optionsToken: "frequencyOptions",
+					},
+				],
+			},
+			{
+				id: "title",
+				labelToken: "title",
+				type: "select",
+				optionsToken: "titleOptions",
+				visibilityConditions: {
+					currency: "gbp",
+				},
+			},
+			{
+				type: "fieldGroup",
+				fields: [
+					{ id: "firstName", labelToken: "firstName", type: "text" },
+					{ id: "lastName", labelToken: "lastName", type: "text" },
+				],
+			},
+			{ id: "email", labelToken: "email", type: "email" },
+			{
+				id: "phone",
+				labelToken: "phoneNumber",
+				type: "text",
+				onInput: handlePhoneInput,
+				descriptionToken: "phoneDescription",
+			},
+			{
+				id: "directDebitStartDate",
+				labelToken: "directDebitDay",
+				type: "select",
+				optionsToken: "directDebitDayOptions",
+				descriptionToken: "directDebitStartDateDescription",
+				visibilityConditions: {
+					currency: "gbp",
+					frequency: "monthly",
+				},
+			},
+			{
+				id: "inspirationQuestion",
+				labelToken: "What inspired you to give?",
+				optional: true,
+				type: "select",
+				optionsToken: "inspirationOptions",
+			},
+			{
+				id: "inspirationDetails",
+				labelToken: "Please tell us more",
+				type: "textarea",
+				optional: true,
+			},
+		],
+	},
+
+	{
+		id: "addressDetails",
+		status: "upcoming",
+		title: "Address Details:",
+		descriptionToken: "addressDescription",
+		fields: [
+			{
+				id: "addressSearch",
+				labelToken: "addressSearch",
+				type: "addressSearch",
+			},
+			{ id: "address1", labelToken: "address1", type: "text" },
+			{ id: "address2", labelToken: "address2", type: "text", optional: true },
+			{
+				type: "fieldGroup",
+				fields: [
+					{ id: "townCity", labelToken: "townCity", type: "text" },
+					{ id: "postcode", labelToken: "postcode", type: "text" },
+				],
+			},
+			{ id: "stateCounty", labelToken: "countyOrState", type: "text" },
+			{
+				id: "country",
+				label: "Country",
+				type: "select",
+				optionsToken: "countryOptions",
+			},
+		],
+	},
+
+	{
+		id: "giftAid",
+		status: "upcoming",
+		title: "Gift Aid:",
+		descriptionToken: "giftAidDescription",
+		fields: [
+			{
+				id: "giftAid",
+				labelToken: "giftAidLabel",
+				type: "select",
+				optionsToken: "giftAidOptions",
+				descriptionToken: "giftAidOptionsDescription",
+			},
+		],
+		visibilityConditions: {
+			currency: "gbp",
+		},
+	},
+
+	{
+		id: "preferences",
+		status: "upcoming",
+		title: "Hear about your impact",
+		descriptionToken: "preferencesDescription",
+		fields: [
+			{
+				type: "fieldGroup",
+				id: "contactPreferences",
+				descriptionToken: "contactPreferencesDescription",
+				fields: [
+					{
+						id: "emailPreference",
+						labelToken: "Email",
+						type: "select",
+						optionsToken: "yesNoOptions",
+					},
+					{
+						id: "postPreference",
+						labelToken: "Post",
+						type: "select",
+						optionsToken: "yesNoOptions",
+					},
+					{
+						id: "smsPreference",
+						labelToken: "SMS",
+						type: "select",
+						optionsToken: "yesNoOptions",
+					},
+					{
+						id: "phonePreference",
+						labelToken: "Phone",
+						type: "select",
+						optionsToken: "yesNoOptions",
+					},
+				],
+			},
+			//giving summary moved to right hand side
+			// { id: "givingSummary", type: "givingSummary" },
+		],
+	},
+	{
+		id: "paymentDetails",
+		title: "Choose your payment method",
+		fields: [
+			{
+				id: "stripePayment",
+				type: "stripePaymentElement",
+				labelToken: "placeholder for Stipe element",
+				visibilityConditions: ({ currency, frequency }) =>
+					!(currency === "gbp" && frequency === "monthly"),
+			},
+		],
+	},
+];

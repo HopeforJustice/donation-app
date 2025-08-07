@@ -15,7 +15,7 @@ export const formSchema = z.object({
 		.refine((val) => val >= 2, {
 			message: "Please enter an amount of 2 or higher.",
 		}),
-	title: z.string().optional(),
+	title: z.string().min(1, { message: "Please select a title" }),
 	firstName: z.string().min(1, { message: "Please enter your first name" }),
 	lastName: z.string().min(1, { message: "Please enter your last name" }),
 	email: z.string().email({ message: "Please enter a valid email" }),

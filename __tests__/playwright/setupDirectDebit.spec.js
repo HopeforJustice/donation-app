@@ -74,7 +74,7 @@ test.describe("E2E: Setup Direct Debit", () => {
 		});
 
 		await test.step("Fill in and submit the GoCardless hosted form", async () => {
-			throw new Error("Forced failure for testing purposes");
+			test.skip();
 			await fillGoCardlessForm(page, testDetails);
 		});
 

@@ -1,14 +1,20 @@
-export default function ProgressIndicator({ steps }) {
+export default function ProgressIndicator({ steps, currentStep }) {
 	return (
-		<div aria-label="Progress" className="flex items-center justify-start mb-8">
+		<div
+			aria-label="Progress"
+			className="flex items-center justify-start mb-8 gap-8"
+		>
+			<p className="text-hfj-black-tint2">
+				Step {currentStep + 1} of {steps.length}
+			</p>
 			<ol role="list" className="flex items-center space-x-5">
-				{steps.map((step) => (
+				{steps.map((step, i) => (
 					<li key={step.id}>
-						{step.status === "complete" ? (
-							<div className="block h-2.5 w-2.5 rounded-full bg-hfj-red">
+						{i < currentStep ? (
+							<div className="block h-2.5 w-2.5 rounded-full bg-hfj-green">
 								<span className="sr-only">{step.title}</span>
 							</div>
-						) : step.status === "current" ? (
+						) : i === currentStep ? (
 							<div
 								aria-current="step"
 								className="relative flex items-center justify-center"

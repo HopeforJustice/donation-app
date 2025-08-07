@@ -8,8 +8,15 @@ import Button from "../buttons/Button";
 import AmountField from "./fields/AmountField";
 import AddressSearchLoqate from "./fields/AddressSearchLoqate";
 import { useSearchParams } from "next/navigation";
+import StripePaymentStep from "./fields/StripePaymentStep";
 
-const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
+const Field = ({
+	field,
+	showGivingDetails,
+	onShowGivingDetails,
+	currency,
+	frequency,
+}) => {
 	const {
 		register,
 		watch,
@@ -49,7 +56,7 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 							? findCurrencySymbol(values.currency) + " "
 							: ""}
 						{values.givingFrequency} {givingTo && `to ${givingTo}`}
-						{allowChange === "true" && (
+						{allowChange === "true" && !showGivingDetails && (
 							<Button
 								text="Change giving details"
 								size="small"
@@ -163,6 +170,7 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 								field={subField}
 								showGivingDetails={showGivingDetails}
 								onShowGivingDetails={onShowGivingDetails}
+								currency={currency}
 							/>
 						))}
 					</div>
@@ -170,14 +178,17 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 						<div className="">
 							{Array.isArray(field.description) ? (
 								field.description.map((paragraph, index) => (
-									<div key={index} className="mb-4 text-sm text-gray-500">
-										{paragraph}
-									</div>
+									<div
+										key={index}
+										className="mb-4 text-sm text-gray-500"
+										dangerouslySetInnerHTML={{ __html: paragraph }}
+									></div>
 								))
 							) : (
-								<div className="mb-4 text-sm text-gray-500">
-									{field.description}
-								</div>
+								<div
+									className="mb-4 text-sm text-gray-500"
+									dangerouslySetInnerHTML={{ __html: field.description }}
+								></div>
 							)}
 						</div>
 					)}
@@ -224,7 +235,14 @@ const Field = ({ field, showGivingDetails, onShowGivingDetails }) => {
 					optional={field.optional}
 				/>
 			);
-
+		case "stripePaymentElement":
+			return (
+				<StripePaymentStep
+					amount={values.amount}
+					givingFrequency={values.givingFrequency}
+					currency={values.currency}
+				/>
+			);
 		default:
 			return null;
 	}
@@ -235,6 +253,7 @@ const Step = ({
 	showGivingDetails,
 	onShowGivingDetails,
 	currency,
+	frequency,
 	onCurrencyChange,
 }) => {
 	return (
@@ -248,6 +267,7 @@ const Step = ({
 					showGivingDetails={showGivingDetails}
 					onShowGivingDetails={onShowGivingDetails}
 					currency={currency}
+					frequency={frequency}
 					onCurrencyChange={onCurrencyChange}
 				/>
 			))}

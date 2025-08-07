@@ -1,6 +1,7 @@
 import "./globals.css";
 import localFont from "next/font/local";
 import clsx from "clsx";
+import { Suspense } from "react";
 
 const canela = localFont({
 	src: "../fonts/Canela-Medium.woff2",
@@ -50,7 +51,7 @@ export default function RootLayout({ children }) {
 					fk.variable
 				)}
 			>
-				{children}
+				<Suspense>{children}</Suspense>
 			</body>
 		</html>
 	);

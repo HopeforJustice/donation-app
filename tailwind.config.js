@@ -14,6 +14,9 @@ module.exports = {
 					tint2: "#e57a88",
 					tint3: "#edb7be",
 				},
+				"hfj-green": {
+					DEFAULT: "#5CAA7F",
+				},
 				"hfj-yellow": {
 					DEFAULT: "#F79429",
 					tint1: "#F3C05D",
