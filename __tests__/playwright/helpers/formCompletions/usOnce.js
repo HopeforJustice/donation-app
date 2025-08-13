@@ -1,5 +1,5 @@
 /* 
-One off UK
+One off US
 Needs to handle filling in details for
     Card payments [x]
         successful card [x]
@@ -13,7 +13,7 @@ Needs to handle filling in details for
     
 */
 
-export default async function fillUkOnce(page, testDetails) {
+export default async function fillUSOnce(page, testDetails) {
 	let stripeFrame;
 	const url = new URL("http://localhost:3000/");
 	url.searchParams.set("test", "true");
@@ -31,9 +31,9 @@ export default async function fillUkOnce(page, testDetails) {
 	await page.goto(url.toString());
 
 	await page.getByLabel("Frequency").selectOption("once");
+	await page.locator('select[name="currency"]').selectOption("usd");
 	await page.getByPlaceholder("0.00").click();
 	await page.getByPlaceholder("0.00").fill(testDetails.amount.toString());
-	await page.getByLabel("Title").selectOption(testDetails.title);
 	await page.getByLabel("First name").click();
 	await page.getByLabel("First name").fill(testDetails.firstName);
 	await page.getByLabel("Last name").click();
@@ -56,27 +56,10 @@ export default async function fillUkOnce(page, testDetails) {
 	await page.getByLabel("Address Line 2").fill(testDetails.address2);
 	await page.getByLabel("Town/City").click();
 	await page.getByLabel("Town/City").fill(testDetails.townCity);
-	await page.getByLabel("Postcode").click();
-	await page.getByLabel("Postcode").fill(testDetails.postalCode);
+	await page.getByLabel("Zip Code").click();
+	await page.getByLabel("Zip Code").fill(testDetails.postalCode);
 	await page.getByLabel("Country").selectOption(testDetails.country);
-	await page.getByRole("button", { name: "Next Step" }).click();
-	await page
-		.getByLabel("Do you want to Gift Aid your")
-		.selectOption(testDetails.giftAid ? "true" : "false");
-	await page.getByRole("button", { name: "Next Step" }).click();
-	await page
-		.getByLabel("Email")
-		.selectOption(testDetails.preferences.email ? "true" : "false");
-	await page
-		.getByLabel("Post")
-		.selectOption(testDetails.preferences.post ? "true" : "false");
-	await page
-		.getByLabel("SMS")
-		.selectOption(testDetails.preferences.sms ? "true" : "false");
-	await page
-		.getByLabel("Phone")
-		.selectOption(testDetails.preferences.phone ? "true" : "false");
-
+	await page.getByLabel("State").selectOption(testDetails.state);
 	await page.getByRole("button", { name: "Next Step" }).click();
 	stripeFrame = page.frameLocator('iframe[allow="payment *; clipboard-write"]');
 	await page.getByTestId("stripe-payment-step").locator("iframe").click();

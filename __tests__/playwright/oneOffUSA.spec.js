@@ -1,5 +1,5 @@
 /*
- * End to End Test: One off card payments via Stripe UK
+ * End to End Test: One off card payments via Stripe USA
  * Integrations tested
  * - Stripe
  * - Donorfy
@@ -7,7 +7,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import fillUkOnce from "./helpers/formCompletions/ukOnce";
+import fillUSOnce from "./helpers/formCompletions/usOnce";
 import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import pollForConstituent from "./helpers/pollForConstituent";
@@ -33,7 +33,8 @@ const testDetails = {
 	address2: "Test Area",
 	townCity: "Test City",
 	postalCode: "LS7 2TD",
-	country: "United Kingdom",
+	state: "Texas",
+	country: "United States",
 	giftAid: true,
 	preferences: {
 		//change email to test mailchimp
@@ -66,7 +67,7 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 		const testEmail = `james.holt+testScard${timestamp}@hopeforjustice.org`;
 		emails.push(testEmail);
 		await test.step("Fill the donation form with test details", async () => {
-			await fillUkOnce(page, {
+			await fillUSOnce(page, {
 				stripe: { pathway: "successful card" },
 				email: testEmail,
 				...testDetails,
@@ -102,7 +103,7 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 			// Delete the test constituents from Donorfy
 			for (const email of emails) {
 				try {
-					const constituentId = await pollForConstituent(email, "uk");
+					const constituentId = await pollForConstituent(email, "us");
 					console.log("pollForConstituent", constituentId);
 					await donorfyUK.deleteConstituent(constituentId);
 					console.log(`Deleted Donorfy constituent: ${constituentId}`);
