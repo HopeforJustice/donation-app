@@ -15,6 +15,7 @@ import { generateSteps } from "@/app/lib/steps/generateSteps";
 import { stepTemplates } from "@/app/lib/steps/stepTemplates";
 import { getPreferences } from "@/app/lib/utilities";
 import { extractPreferences } from "@/app/lib/utilities";
+import GivingSummary from "./GivingSummary";
 
 const MultiStepForm = ({
 	currency = "gbp",
@@ -22,28 +23,30 @@ const MultiStepForm = ({
 	setCurrency,
 	setAmount,
 	setGivingFrequency,
+	setGiftAid,
+	setLastStep,
+	lastStep,
+	desktopSize,
 }) => {
 	const searchParams = useSearchParams();
 	const validate = searchParams.get("validate") || true;
+
 	const [submissionError, setSubmissionError] = useState(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [step, setStep] = useState(0);
 
-	// const paymentGateway = searchParams.get("paymentGateway") || "gocardless";
-	// const stripeMode = searchParams.get("stripeMode") || "live";
-	// const projectId = searchParams.get("projectId") || null;
-	// const givingTo = searchParams.get("givingTo") || null;
-	// const donorType = searchParams.get("donorType") || null;
-	// const organisationName = searchParams.get("organisationName") || null;
-
 	const supportedCurrencies = ["usd", "gbp", "nok", "aud"];
 	const isCurrencyAccepted = supportedCurrencies.includes(currency);
-	const { defaultValues, initialCurrency, amountProvided } =
-		extractDefaultValues(stepTemplates, searchParams);
+
+	const { defaultValues, amountProvided } = extractDefaultValues(
+		stepTemplates,
+		searchParams
+	);
+
 	function regenerateSteps({ currency, frequency }) {
 		return generateSteps({ currency, frequency });
 	}
+
 	const methods = useForm({
 		resolver: zodResolver(formSchema),
 		mode: "onChange",
@@ -53,7 +56,6 @@ const MultiStepForm = ({
 
 	const {
 		trigger,
-		handleSubmit,
 		getValues,
 		formState: { errors },
 		watch,
@@ -66,6 +68,7 @@ const MultiStepForm = ({
 	const watchedFrequency =
 		watch("givingFrequency") || defaultValues.givingFrequency;
 	const watchedAmount = watch("amount") || null;
+	const watchedGiftAid = watch("giftAid") || false;
 
 	const [steps, setSteps] = useState(() =>
 		regenerateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
@@ -85,16 +88,30 @@ const MultiStepForm = ({
 		setSteps(
 			generateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
 		);
+
+		if (step === steps.length - 1) {
+			setLastStep(true);
+		} else {
+			setLastStep(false);
+		}
+
 		setCurrency(watchedCurrency);
 		setGivingFrequency(watchedFrequency);
 		setAmount(watchedAmount);
+		setGiftAid(watchedGiftAid);
 	}, [
 		watchedCurrency,
 		watchedFrequency,
 		watchedAmount,
+		watchedGiftAid,
 		setCurrency,
 		setGivingFrequency,
 		setAmount,
+		setGiftAid,
+		setLastStep,
+		lastStep,
+		step,
+		steps.length,
 	]);
 
 	const nextStep = async () => {
@@ -106,33 +123,27 @@ const MultiStepForm = ({
 		}
 		const fields = getFieldIdsExcludingRemoved(steps[step].fields);
 		const valid = await trigger(fields, { shouldFocus: true });
-		if (valid) {
-			if (step === 0 && formData.currency === "gbp") {
-				const getPreferencesData = await getPreferences(formData.email);
-				console.log(getPreferencesData);
-				if (getPreferencesData.preferences) {
-					const extractedPreferences = await extractPreferences(
-						getPreferencesData
-					);
 
-					if (extractedPreferences) {
+		if (valid) {
+			const formVals = getValues();
+			if (step === 0 && formVals.currency === "gbp") {
+				const prefsRes = await getPreferences(formVals.email);
+				if (prefsRes?.preferences) {
+					const extracted = await extractPreferences(prefsRes);
+					if (extracted) {
 						const preferenceFields = [
 							"emailPreference",
 							"postPreference",
 							"smsPreference",
 							"phonePreference",
 						];
-
 						for (const field of preferenceFields) {
-							const value = extractedPreferences[field];
-							if (value !== undefined) {
-								setValue(field, String(value));
-							}
+							const value = extracted[field];
+							if (value !== undefined) setValue(field, String(value));
 						}
-
 						updateStepDescription(
 							"preferences",
-							`These are the preferences we hold for ${formData.email} for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
+							`These are the preferences we hold for ${formVals.email} for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
 						);
 					}
 				}
@@ -144,58 +155,87 @@ const MultiStepForm = ({
 
 	const prevStep = () => setStep((s) => s - 1);
 
-	// On Submit
-	const onSubmit = async () => {
-		const valid = await trigger();
-
-		if (!valid) return;
-
-		setIsSubmitting(true);
-
-		try {
-			let response;
-
-			// Handle GoCardless
-			if (
-				formData.currency === "gbp" &&
-				formData.givingFrequency === "monthly"
-			) {
-				response = await fetch("/api/processDirectDebit", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(formData),
-				});
-
-				const data = await response.json();
-
-				if (!response.ok) {
-					throw new Error(data.message || "GoCardless submission failed.");
+	// Global submit orchestrator: validate, then route to GoCardless or card flow
+	useEffect(() => {
+		const fields = getFieldIdsExcludingRemoved(steps[step].fields);
+		console.log("Fields to validate:", fields);
+		async function handleGlobalSubmit() {
+			window.dispatchEvent(
+				new CustomEvent("donation:submitting", { detail: true })
+			);
+			try {
+				const valid = await trigger(fields);
+				if (!valid) {
+					window.dispatchEvent(
+						new CustomEvent("donation:submitting", { detail: false })
+					);
+					return;
 				}
 
-				if (data.response.authorisationUrl) {
-					window.location.href = data.response.authorisationUrl;
+				const data = getValues();
+
+				// GoCardless path (GBP monthly)
+				if (data.currency === "gbp" && data.givingFrequency === "monthly") {
+					try {
+						const res = await fetch("/api/processDirectDebit", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(data),
+						});
+						const json = await res.json();
+						if (!res.ok)
+							throw new Error(json.message || "GoCardless submission failed.");
+
+						if (json.response?.authorisationUrl) {
+							window.location.href = json.response.authorisationUrl;
+							return; // redirecting
+						}
+					} catch (err) {
+						console.error(err);
+						setSubmissionError([
+							"Error submitting. Please try again or get in touch at ",
+							<a
+								key="error"
+								href="https://hopeforjustice.org/contact"
+								className="underline"
+							>
+								hopeforjustice.org/contact
+							</a>,
+						]);
+						window.dispatchEvent(
+							new CustomEvent("donation:submitting", { detail: false })
+						);
+						return;
+					}
+				} else {
+					// Card/PaymentElement path — let the PaymentElement confirm
+					window.dispatchEvent(new Event("donation:confirmPayment"));
 				}
+			} catch (e) {
+				console.error(e);
+				window.dispatchEvent(
+					new CustomEvent("donation:submitting", { detail: false })
+				);
 			}
-		} catch (error) {
-			console.error("Error submitting data:", error);
-			setSubmissionError([
-				"Error submitting. Please try again or get in touch at ",
-				<a
-					key="error"
-					href="https://hopeforjustice.org/contact"
-					className="underline"
-				>
-					hopeforjustice.org/contact
-				</a>,
-			]);
-		} finally {
-			setIsSubmitting(false);
 		}
-	};
 
-	//function to show giving details passed to step component
+		window.addEventListener("donation:requestSubmit", handleGlobalSubmit);
+		return () =>
+			window.removeEventListener("donation:requestSubmit", handleGlobalSubmit);
+	}, [trigger, getValues, steps, step]);
+
+	// Show the submit button for GoCardless if conditions are met
+	useEffect(() => {
+		const isGoCardless =
+			watchedCurrency === "gbp" && watchedFrequency === "monthly";
+		const isLastStep = step === steps.length - 1;
+
+		if (isGoCardless && isLastStep) {
+			window.dispatchEvent(new Event("donation:showButton"));
+		}
+	}, [watchedCurrency, watchedFrequency, step, steps.length]);
+
+	// show giving details
 	const showGivingDetailsHandler = () => setShowAmountField(true);
 
 	if (!isCurrencyAccepted) {
@@ -206,7 +246,8 @@ const MultiStepForm = ({
 		<div className="">
 			<ProgressIndicator steps={steps} currentStep={step} />
 			<FormProvider {...methods}>
-				<form onSubmit={handleSubmit(onSubmit)}>
+				{/* prevent default submit; we use global events instead */}
+				<form onSubmit={(e) => e.preventDefault()}>
 					<Step
 						stepData={steps[step]}
 						watch={watch}
@@ -222,7 +263,7 @@ const MultiStepForm = ({
 								Something went wrong. Please check your submission.
 								{Object.entries(errors).map(([key, value]) => (
 									<span key={key} className="block">
-										{value.message}
+										{value.message ? value.message : key}
 									</span>
 								))}
 							</p>
@@ -232,7 +273,18 @@ const MultiStepForm = ({
 					)}
 				</form>
 			</FormProvider>
+
+			{lastStep && !desktopSize && (
+				<GivingSummary
+					amount={watchedAmount}
+					givingFrequency={watchedFrequency}
+					currency={watchedCurrency}
+					giftAid={watchedGiftAid}
+				/>
+			)}
+
 			<HorizontalRule className="my-8" />
+
 			<div className="mt-4 flex justify-between">
 				{step > 0 && (
 					<Button
@@ -242,7 +294,8 @@ const MultiStepForm = ({
 						size="extraLarge"
 					/>
 				)}
-				{step < steps.length - 1 && (
+
+				{!lastStep && (
 					<Button
 						onClick={nextStep}
 						text={isLoading ? "Loading..." : "Next Step"}
@@ -250,31 +303,6 @@ const MultiStepForm = ({
 						extraClasses="ml-auto"
 					/>
 				)}
-
-				{step === steps.length - 1 &&
-					formData.currency === "gbp" &&
-					formData.givingFrequency === "monthly" && (
-						<Button
-							onClick={onSubmit}
-							text={isSubmitting ? "Submitting..." : "Setup Direct Debit"}
-							size="extraLarge"
-							extraClasses="ml-auto"
-							disabled={isSubmitting}
-						/>
-					)}
-
-				{/* submit logic for stripe element lives in the stripe payment element component */}
-				{/* {step === steps.length - 1 &&
-					(formData.currency !== "gbp" ||
-						formData.givingFrequency !== "monthly") && (
-						<Button
-							onClick={onSubmit}
-							text={isSubmitting ? "Submitting..." : `Donate`}
-							size="extraLarge"
-							extraClasses="ml-auto"
-							disabled={isSubmitting}
-						/>
-					)} */}
 			</div>
 		</div>
 	);

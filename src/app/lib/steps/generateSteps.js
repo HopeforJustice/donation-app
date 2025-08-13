@@ -59,18 +59,16 @@ export function generateSteps({ currency, frequency }) {
 	}
 
 	function fillField(field) {
-		// Only keep field if it's visible
+		//Only keep field if it's visible
 		if (!isVisible(field.visibilityConditions, context)) return null;
 
-		// If it's a field group, process children recursively
+		// If it's a field group process children
 		if (field.type === "fieldGroup" && Array.isArray(field.fields)) {
 			const filledFields = field.fields.map(fillField).filter(Boolean);
-			// If no inner fields remain visible, skip group too
 			if (filledFields.length === 0) return null;
 			return {
 				...field,
 				fields: filledFields,
-				// Optional: resolve labels/descriptions as before
 				label: resolveText(field.labelToken, context) || field.label,
 				description:
 					resolveText(field.descriptionToken, context) || field.description,

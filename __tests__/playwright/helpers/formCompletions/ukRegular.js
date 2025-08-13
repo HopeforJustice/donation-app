@@ -1,4 +1,8 @@
-export default async function fillDonationForm(page, testDetails) {
+/* 
+For progressing the UK regular form up to GoCardless hosted page
+*/
+
+export default async function fillUkRegular(page, testDetails) {
 	await page.goto(
 		`http://localhost:3000/${
 			testDetails.campaign ? `campaign=${testDetails.campaign}` : ""
@@ -34,8 +38,8 @@ export default async function fillDonationForm(page, testDetails) {
 	await page.getByLabel("Town/City").fill(testDetails.townCity);
 	await page.getByLabel("Postcode").click();
 	await page.getByLabel("Postcode").fill(testDetails.postalCode);
-	await page.getByLabel("County").click();
-	await page.getByLabel("County").fill(testDetails.county);
+	// await page.getByLabel("County").click();
+	// await page.getByLabel("County").fill(testDetails.county);
 	await page.getByLabel("Country").selectOption(testDetails.country);
 	await page.getByRole("button", { name: "Next Step" }).click();
 	await page

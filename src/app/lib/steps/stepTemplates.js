@@ -14,6 +14,12 @@ export const stepTemplates = [
 				hidden: true,
 			},
 			{
+				id: "fund",
+				type: "text",
+				defaultValue: "unrestricted",
+				hidden: true,
+			},
+			{
 				id: "currency",
 				type: "text",
 				defaultValue: "gbp",
@@ -35,8 +41,8 @@ export const stepTemplates = [
 						acceptedCurrencies: [
 							{ text: "GBP", value: "gbp" },
 							{ text: "USD", value: "usd" },
-							{ text: "AUD", value: "aud" },
-							{ text: "NOK", value: "nok" },
+							// { text: "AUD", value: "aud" },
+							// { text: "NOK", value: "nok" },
 						],
 					},
 					{
@@ -119,7 +125,15 @@ export const stepTemplates = [
 					{ id: "postcode", labelToken: "postcode", type: "text" },
 				],
 			},
-			{ id: "stateCounty", labelToken: "countyOrState", type: "text" },
+			{
+				id: "stateCounty",
+				labelToken: "countyOrState",
+				type: "select",
+				optionsToken: "stateCountyOptions",
+				visibilityConditions: {
+					currency: "usd",
+				},
+			},
 			{
 				id: "country",
 				label: "Country",
@@ -185,9 +199,10 @@ export const stepTemplates = [
 					},
 				],
 			},
-			//giving summary moved to right hand side
-			// { id: "givingSummary", type: "givingSummary" },
 		],
+		visibilityConditions: {
+			currency: "gbp",
+		},
 	},
 	{
 		id: "paymentDetails",
@@ -195,8 +210,8 @@ export const stepTemplates = [
 		fields: [
 			{
 				id: "stripePayment",
-				type: "stripePaymentElement",
-				labelToken: "placeholder for Stipe element",
+				type: "stripePaymentStep",
+				labelToken: null,
 				visibilityConditions: ({ currency, frequency }) =>
 					!(currency === "gbp" && frequency === "monthly"),
 			},

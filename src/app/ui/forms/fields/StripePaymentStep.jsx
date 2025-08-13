@@ -1,30 +1,96 @@
 "use client";
 import { CheckoutProvider } from "@stripe/react-stripe-js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import StripePaymentElement from "./StripePaymentElement";
+import { useFormContext } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
 
 export default function StripePaymentStep({
 	amount,
 	currency,
 	givingFrequency,
 }) {
-	const [stripePromise, setStripePromise] = useState(() =>
-		loadStripe(process.env.NEXT_PUBLIC_STRIPE_UK_PUBLISHABLE_KEY_TEST)
-	);
+	const { getValues } = useFormContext();
+	const formData = getValues();
+	const searchParams = useSearchParams();
+	const [stripePromise, setStripePromise] = useState(null);
 	const [clientSecret, setClientSecret] = useState(null);
 	useEffect(() => {
 		fetch("/api/createCheckoutSession", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ amount, currency, givingFrequency }),
+			body: JSON.stringify({
+				amount,
+				currency,
+				givingFrequency,
+				email: formData.email,
+				metadata: {
+					title: formData.title || "",
+					firstName: formData.firstName || "",
+					lastName: formData.lastName || "",
+					email: formData.email || "",
+					phone: formData.phone || "",
+					fund: formData.fund || "",
+					inspiration: formData.inspiration || "",
+					address1: formData.address1 || "",
+					address2: formData.address2 || "",
+					postcode: formData.postcode || "",
+					country: formData.country || "",
+					stateCounty: formData.stateCounty || "",
+					giftAid: formData.giftAid || "",
+					emailPreference: formData.emailPreference || "",
+					postPreference: formData.postPreference || "",
+					smsPreference: formData.smsPreference || "",
+					phonePreference: formData.phonePreference || "",
+					inspirationDetails: formData.inspirationDetails || "",
+					campaign: formData.campaign || "",
+					source: "donation-app",
+					utmSource: searchParams.get("utm_source") || "",
+					utmMedium: searchParams.get("utm_medium") || "",
+					utmCampaign: searchParams.get("utm_campaign") || "",
+				},
+			}),
 		})
 			.then((res) => res.json())
-			.then((data) => setClientSecret(data.clientSecret));
-	}, [amount, currency, givingFrequency]);
+			.then((data) => {
+				setClientSecret(data.clientSecret);
+				setStripePromise(loadStripe(data.publishableKey));
+			});
+	}, [
+		amount,
+		currency,
+		givingFrequency,
+		formData.email,
+		formData.title,
+		formData.firstName,
+		formData.lastName,
+		formData.phone,
+		formData.fund,
+		formData.channel,
+		formData.inspiration,
+		formData.address1,
+		formData.address2,
+		formData.postcode,
+		formData.country,
+		formData.stateCounty,
+		formData.emailPreference,
+		formData.postPreference,
+		formData.smsPreference,
+		formData.phonePreference,
+		formData.inspirationDetails,
+		formData.campaign,
+		formData.giftAid,
+		searchParams,
+	]);
 
 	if (!clientSecret) {
-		return <div>Loading payment form...</div>;
+		return (
+			<div className="flex flex-col gap-4">
+				<div className="w-full h-12 rounded-lg animate-pulse bg-gray-200"></div>
+				<div className="w-full h-12 rounded-lg animate-pulse bg-gray-200"></div>
+			</div>
+		);
 	}
 	return (
 		<CheckoutProvider
@@ -32,30 +98,12 @@ export default function StripePaymentStep({
 			key={clientSecret}
 			options={{
 				fetchClientSecret: () => Promise.resolve(clientSecret),
-				elementsOptions: { appearance: { theme: "stripe" } },
+				elementsOptions: {
+					appearance: { theme: "stripe" },
+				},
 			}}
 		>
-			<div>
-				{amount},{givingFrequency}, {currency}
-			</div>
 			<StripePaymentElement />
 		</CheckoutProvider>
 	);
 }
-
-// //testing stripe
-// if (formData.givingFrequency !== "monthly") {
-// 	const updateEmail = await checkout.updateEmail(formData.email);
-// 	if (!updateEmail) return;
-// 	const confirmResult = await checkout.confirm();
-
-// 	// This point will only be reached if there is an immediate error when
-// 	// confirming the payment. Otherwise, your customer will be redirected to
-// 	// your `return_url`. For some payment methods like iDEAL, your customer will
-// 	// be redirected to an intermediate site first to authorize the payment, then
-// 	// redirected to the `return_url`.
-// 	if (confirmResult.type === "error") {
-// 		alert(confirmResult.error.message);
-// 		// setMessage(confirmResult.error.message);
-// 	}
-// }

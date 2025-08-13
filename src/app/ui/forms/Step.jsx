@@ -235,13 +235,15 @@ const Field = ({
 					optional={field.optional}
 				/>
 			);
-		case "stripePaymentElement":
+		case "stripePaymentStep":
 			return (
-				<StripePaymentStep
-					amount={values.amount}
-					givingFrequency={values.givingFrequency}
-					currency={values.currency}
-				/>
+				<div data-testid="stripe-payment-step">
+					<StripePaymentStep
+						amount={values.amount}
+						givingFrequency={values.givingFrequency}
+						currency={values.currency}
+					/>
+				</div>
 			);
 		default:
 			return null;
@@ -255,6 +257,7 @@ const Step = ({
 	currency,
 	frequency,
 	onCurrencyChange,
+	onSubmit,
 }) => {
 	return (
 		<div className="">

@@ -1,4 +1,5 @@
 import { countries } from "./countries";
+import { usStates } from "./usStates";
 
 export const options = {
 	frequencyOptions: [
@@ -32,6 +33,7 @@ export const options = {
 		{ text: "No", value: false },
 	],
 	countryOptions: countries,
+	stateCountyOptions: usStates,
 	inspirationOptions: [
 		{ text: "Faith based", value: "Inspiration_Faith" },
 		{ text: "Social media", value: "Inspiration_SocialMedia" },

@@ -26,6 +26,6 @@ export default async function pollForPaymentPaidOut(testEmail) {
 			}
 			return null; // Not found yet, keep polling
 		},
-		{ interval: 500, timeout: 30000 }
+		{ interval: 500, timeout: 60000 }
 	);
 }

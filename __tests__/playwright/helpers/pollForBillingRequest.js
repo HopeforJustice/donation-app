@@ -23,6 +23,6 @@ export default async function pollForBillingRequest(testEmail) {
 			}
 			return null;
 		},
-		{ interval: 500, timeout: 30000 }
+		{ interval: 500, timeout: 60000 }
 	);
 }

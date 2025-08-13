@@ -109,18 +109,22 @@ class DonorfyClient {
 		paymentMethod,
 		constituentId,
 		chargeDate = null,
-		channel = null,
-		fund = "unrestricted"
+		fund = "unrestricted",
+		utmSource = "",
+		utmMedium = "",
+		utmCampaign = ""
 	) {
 		const modifiedData = {
 			Product: "Donation",
 			Amount: amount,
 			Campaign: campaign,
-			Channel: channel,
 			PaymentMethod: paymentMethod,
 			Fund: fund,
 			ExistingConstituentId: constituentId,
 			DatePaid: chargeDate || new Date().toISOString(),
+			UtmSource: utmSource,
+			UtmMedium: utmMedium,
+			UtmCampaign: utmCampaign,
 		};
 		return this.request("transactions", "POST", modifiedData);
 	}

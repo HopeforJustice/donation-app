@@ -131,7 +131,7 @@ export async function handleBillingRequestFulfilled(event) {
 			currentStep = "Create Constituent";
 			const createConstituentInputData = {
 				ConstituentType: "individual",
-				Title: extractedData.additionalDetails.title || "Mr",
+				Title: extractedData.additionalDetails.title || "",
 				FirstName: extractedData.firstName || "",
 				LastName: extractedData.lastName || "",
 				AddressLine1: extractedData.address1 || "",

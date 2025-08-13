@@ -1,9 +1,36 @@
-export default async function fillDonationForm(page, testDetails) {
-	await page.goto(
-		`http://localhost:3000/${
-			testDetails.campaign ? `campaign=${testDetails.campaign}` : ""
-		}`
-	);
+/* 
+One off UK
+Needs to handle filling in details for
+    Card payments
+        successful card
+        failed card
+        3D secure
+            Pass
+            failure
+    Pay by Bank
+        Success
+        Fail
+    
+*/
+
+export default async function fillUkOnce(page, testDetails) {
+	let stripeFrame;
+	const url = new URL("http://localhost:3000/");
+	url.searchParams.set("test", "true");
+
+	if (testDetails.campaign)
+		url.searchParams.set("campaign", testDetails.campaign);
+	if (testDetails.fund) url.searchParams.set("fund", testDetails.fund);
+	if (testDetails.utmSource)
+		url.searchParams.set("utm_source", testDetails.utmSource);
+	if (testDetails.utmMedium)
+		url.searchParams.set("utm_medium", testDetails.utmMedium);
+	if (testDetails.utmCampaign)
+		url.searchParams.set("utm_campaign", testDetails.utmCampaign);
+
+	await page.goto(url.toString());
+
+	await page.getByLabel("Frequency").selectOption("once");
 	await page.getByPlaceholder("0.00").click();
 	await page.getByPlaceholder("0.00").fill(testDetails.amount.toString());
 	await page.getByLabel("Title").selectOption(testDetails.title);
@@ -15,9 +42,6 @@ export default async function fillDonationForm(page, testDetails) {
 	await page.getByLabel("Email").fill(testDetails.email);
 	await page.getByLabel("Phone number").click();
 	await page.getByLabel("Phone number").fill(testDetails.phoneNumber);
-	await page
-		.getByLabel("On what date each month would")
-		.selectOption(testDetails.directDebitDay.toString());
 	await page
 		.getByLabel("What inspired you to give?")
 		.selectOption(testDetails.inspiration);
@@ -34,8 +58,8 @@ export default async function fillDonationForm(page, testDetails) {
 	await page.getByLabel("Town/City").fill(testDetails.townCity);
 	await page.getByLabel("Postcode").click();
 	await page.getByLabel("Postcode").fill(testDetails.postalCode);
-	await page.getByLabel("County").click();
-	await page.getByLabel("County").fill(testDetails.county);
+	// await page.getByLabel("County").click();
+	// await page.getByLabel("County").fill(testDetails.county);
 	await page.getByLabel("Country").selectOption(testDetails.country);
 	await page.getByRole("button", { name: "Next Step" }).click();
 	await page
@@ -54,5 +78,16 @@ export default async function fillDonationForm(page, testDetails) {
 	await page
 		.getByLabel("Phone")
 		.selectOption(testDetails.preferences.phone ? "true" : "false");
+
+	await page.getByRole("button", { name: "Next Step" }).click();
+	stripeFrame = page.frameLocator('iframe[allow="payment *; clipboard-write"]');
+	await page.getByTestId("stripe-payment-step").locator("iframe").click();
+	await stripeFrame.getByLabel("Open Stripe Developer Tools").click();
+	if (testDetails.stripe.pathway === "successful card") {
+		await stripeFrame
+			.getByRole("button", { name: "Successful card ••••" })
+			.click();
+	}
+	await page.locator("body").click({ position: { x: 0, y: 0 } });
 	await page.getByTestId("donate-button").click();
 }

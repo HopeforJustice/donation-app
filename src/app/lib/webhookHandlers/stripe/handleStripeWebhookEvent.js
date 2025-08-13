@@ -3,18 +3,25 @@
 
 import storeWebhookEvent from "../../db/storeWebhookEvent";
 import { sql } from "@vercel/postgres";
-import { duplicateCheck } from "../../donorfy/old/duplicateCheck";
-import { createConstituent } from "../../donorfy/old/createConstituent";
-import { updateConstituent } from "../../donorfy/old/updateConstituent";
-import { updatePreferences } from "../../donorfy/old/updatePreferences";
-import { createTransaction } from "../../donorfy/old/createTransaction";
-import { addActiveTags } from "../../donorfy/old/addActiveTags";
-import { addActivity } from "../../donorfy/old/addActivity";
-import { createGiftAidDeclaration } from "../../donorfy/old/createGiftAidDeclaration";
+import DonorfyClient from "../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../mailchimp/addUpdateSubscriber";
 import addTag from "../../mailchimp/addTag";
 import sendEmailByTemplateName from "../../sparkpost/sendEmailByTemplateName";
-import { getConstituent } from "../../donorfy/old/getConstituent";
+
+const donorfyUK = new DonorfyClient(
+	process.env.DONORFY_UK_KEY,
+	process.env.DONORFY_UK_TENANT
+);
+const donorfyUS = new DonorfyClient(
+	process.env.DONORFY_US_KEY,
+	process.env.DONORFY_US_TENANT
+);
+
+// Helper function to get the appropriate Donorfy client
+let donorfyInstance;
+function getDonorfyClient(instance) {
+	return instance === "us" ? donorfyUS : donorfyUK;
+}
 
 async function isDuplicateEvent(eventId) {
 	const { rows } =
@@ -22,12 +29,7 @@ async function isDuplicateEvent(eventId) {
 	return rows.length > 0;
 }
 
-export async function handleStripeWebhookEvent(
-	event,
-	stripeClient,
-	region = "uk",
-	mode = "live"
-) {
+export async function handleStripeWebhookEvent(event, stripeClient) {
 	const eventId = event.id;
 
 	//check if we have already processed the event
@@ -39,338 +41,265 @@ export async function handleStripeWebhookEvent(
 	switch (event.type) {
 		case "checkout.session.completed": {
 			const session = event.data.object;
+			const results = [];
+			let currentStep = "";
+			let constituentId = null;
+			let alreadyInDonorfy = false;
 
-			// Optionally fetch full payment intent (optional but useful)
-			let paymentIntent = null;
-			if (session.payment_intent) {
-				paymentIntent = await stripeClient.paymentIntents.retrieve(
-					session.payment_intent
-				);
-			}
+			//donorfy determined by currency
+			donorfyInstance = session.currency === "usd" ? "us" : "uk";
 
-			// Metadata to track origin
-			const metadata = paymentIntent?.metadata || session.metadata || {};
-			const source = metadata.source || "unknown";
+			//if we plan to process on the confirmation page we should store the event straightaway to avoid duplicates
 
-			// Handle events from Freedom foundation
-			if (
-				source === "donation app" &&
-				metadata.campaign === "FreedomFoundation"
-			) {
-				console.log(
-					`${region.toUpperCase()} ${mode.toUpperCase()} | Processing:`,
-					{
-						email: session.customer_details?.email,
-						amount: session.amount_total,
-						currency: session.currency,
-						campaign: metadata.campaign,
-						projectId: metadata.projectId,
-					}
-				);
-				let notes = `${region.toUpperCase()} ${mode.toUpperCase()} | `;
-
-				//Logic here for Donorfy, Mailchimp, Sparkpost
-				try {
-					//check for a duplicate in Donorfy via email lookup
-					const duplicateCheckData = await duplicateCheck(
-						session.customer_details?.email,
-						metadata.donorfyInstance
+			try {
+				// Extract and validate session data
+				currentStep = "Extract session data and retrieve payment intent";
+				let paymentIntent = null;
+				if (session.payment_intent) {
+					paymentIntent = await stripeClient.paymentIntents.retrieve(
+						session.payment_intent
 					);
-
-					//Possibly create new constituent
-					let constituentId;
-					if (duplicateCheckData.alreadyInDonorfy) {
-						constituentId = duplicateCheckData.constituentId;
-						notes += "Found Duplicate in Donorfy. ";
-					} else {
-						const createConstituentInputData = {
-							firstName: metadata.firstName || "",
-							lastName: metadata.lastName || "",
-							address1: metadata.address1 || "",
-							address2: metadata.address2 || "",
-							townCity: metadata.townCity || "",
-							postcode: metadata.postcode || "",
-							email: session.customer_details?.email || "",
-							phone: metadata.phone || "",
-							campaign: metadata.campaign || "",
-							country: metadata.country || "",
-							stateCounty: metadata.stateCounty || "",
-						};
-						const createConstituentData = await createConstituent(
-							createConstituentInputData,
-							metadata.donorfyInstance
-						);
-						constituentId = createConstituentData.constituentId;
-						notes += "Created New Constituent. ";
-					}
-
-					//possibly update the constituent if found
-					if (duplicateCheckData.alreadyInDonorfy) {
-						const updateConstituentInputData = {
-							firstName: metadata.firstName || "",
-							lastName: metadata.lastName || "",
-							address1: metadata.address1 || "",
-							address2: metadata.address2 || "",
-							townCity: metadata.city || "",
-							postcode: metadata.postcode || "",
-							phone: metadata.phone || "",
-							country: metadata.country || "",
-							stateCounty: metadata.stateCounty || "",
-						};
-						await updateConstituent(
-							updateConstituentInputData,
-							constituentId,
-							metadata.donorfyInstance
-						);
-						notes += "Updated constituent details. ";
-					}
-
-					//update preferences | set all to true if US instance
-					const updatePreferencesData = {
-						emailPreference:
-							metadata.donorfyInstance === "us"
-								? true
-								: metadata.emailPreference,
-						postPreference:
-							metadata.donorfyInstance === "us"
-								? true
-								: metadata.postPreference,
-						smsPreference:
-							metadata.donorfyInstance === "us" ? true : metadata.smsPreference,
-						phonePreference:
-							metadata.donorfyInstance === "us"
-								? true
-								: metadata.phonePreference,
-					};
-					await updatePreferences(
-						updatePreferencesData,
-						constituentId,
-						metadata.donorfyInstance
-					);
-					notes += "Updated constituent preferences. ";
-
-					//create transaction with correct campaign and fund
-					const createTransactionData = await createTransaction(
-						"donation",
-						session.amount_total / 100,
-						metadata.campaign,
-						"Website",
-						"Stripe Checkout",
-						metadata.projectId,
-						constituentId,
-						metadata.donorfyInstance
-					);
-
-					if (createTransactionData.success) {
-						notes += "Transaction created in Donorfy. ";
-					}
-
-					//Add tags in Donorfy
-					const donorfyTags =
-						metadata.donorType === "organisation"
-							? `FreedomFoundation_${metadata.projectId},FreedomFoundation_Type Organisation`
-							: `FreedomFoundation_${metadata.projectId}`;
-
-					const addTagData = await addActiveTags(
-						donorfyTags,
-						constituentId,
-						metadata.donorfyInstance
-					);
-					if (addTagData.message) {
-						notes += "Tags added in Donorfy. ";
-					}
-
-					//add activity for Freedom Foundation (store organisation name here if needed)
-					const ffActivityData = {
-						notes: `Freedom Foundation Donation created. Amount: ${
-							session.amount_total / 100
-						} metadata: ${JSON.stringify(metadata)}`,
-						campaign: "FreedomFoundation",
-						activityType: "FreedomFoundation Donation",
-					};
-					const addActivityData = await addActivity(
-						ffActivityData,
-						constituentId,
-						metadata.donorfyInstance
-					);
-					if (addActivityData.success) {
-						notes += "Freedom Foundation Activity added in Donorfy. ";
-					}
-
-					//add activity for Donation inspiration
-					if (metadata.inspirationDetails) {
-						const inspirationActivityData = {
-							notes: metadata.inspirationDetails || "",
-							activityType: "Donation inspiration",
-						};
-						const addInspirationActivityData = await addActivity(
-							inspirationActivityData,
-							constituentId,
-							metadata.donorfyInstance
-						);
-						if (addInspirationActivityData.success) {
-							notes += "Inspiration Activity added in Donorfy. ";
-						}
-					}
-
-					//add inspiration tag
-					if (metadata.inspirationQuestion) {
-						const addInspirationTagData = await addActiveTags(
-							metadata.inspirationQuestion,
-							constituentId,
-							metadata.donorfyInstance
-						);
-						if (addInspirationTagData.message) {
-							notes += "Added inspiration tag in Donorfy. ";
-						}
-					}
-
-					//add gift aid if applicable
-					if (
-						metadata.giftAid === "true" &&
-						metadata.donorfyInstance === "uk"
-					) {
-						const createGiftAidData = await createGiftAidDeclaration(
-							{
-								title: metadata.title,
-								firstName: metadata.firstName,
-								lastName: metadata.lastName,
-							},
-							constituentId,
-							metadata.donorfyInstance
-						);
-						if (createGiftAidData.message) {
-							notes += "Added GiftAid declaration in Donorfy. ";
-						}
-					}
-
-					//if emailPreference is true or they are in the USA add/update mailchimp subscriber with tags and groups and potential merge tag for ORG
-					if (metadata.emailPreference || metadata.donorfyInstance === "us") {
-						const additionalMergeFields = {};
-
-						if (metadata.organisationName) {
-							additionalMergeFields.ORG = metadata.organisationName;
-						}
-
-						const addSubscriberData = await addUpdateSubscriber(
-							session.customer_details?.email,
-							metadata.firstName,
-							metadata.lastName,
-							"subscribed",
-							metadata.donorfyInstance,
-							Object.keys(additionalMergeFields).length > 0
-								? additionalMergeFields
-								: undefined
-						);
-
-						if (addSubscriberData.success) {
-							notes += "Added/updated subscriber in Mailchimp. ";
-						}
-						// Add tags to the subscriber
-						if (metadata.donorType === "organisation") {
-							const addDonorTypeTagData = await addTag(
-								session.customer_details?.email,
-								`FreedomFoundation Type Organisation`,
-								metadata.donorfyInstance
-							);
-							if (addDonorTypeTagData.success) {
-								notes += "Added donor type tag in Mailchimp. ";
-							}
-						}
-
-						const addDontSendWelcomeEmailTagData = await addTag(
-							session.customer_details?.email,
-							`Dont send welcome email`,
-							metadata.donorfyInstance
-						);
-						if (addDontSendWelcomeEmailTagData.success) {
-							notes += "Added donor type tag in Mailchimp. ";
-						}
-
-						const addProjectTagData = await addTag(
-							session.customer_details?.email,
-							`FreedomFoundation Fund ${metadata.projectId}`,
-							metadata.donorfyInstance
-						);
-
-						if (addProjectTagData.success) {
-							notes += "Added project tag in Mailchimp. ";
-						}
-					}
-
-					//trigger sparkpost emails (admin notification, thank you)
-					const constituent = await getConstituent(
-						constituentId,
-						metadata.donorfyInstance
-					);
-					const constituentNumber =
-						constituent.constituentData.ConstituentNumber;
-					const friendlyAmount = session.amount_total / 100;
-					const currencySymbol = session.currency === "gbp" ? "£" : "$";
-					const adminEmailTo =
-						metadata.donorfyInstance === "uk"
-							? "supporters@hopeforjustice.org"
-							: "donorsupport.us@hopeforjustice.org";
-
-					const adminEmailSubstitutionData = {
-						constituentNumber: constituentNumber,
-						fund: metadata.projectId,
-						amount: `${currencySymbol}${friendlyAmount}`,
-						donorfy: "US",
-					};
-					const adminEmailData = await sendEmailByTemplateName(
-						"freedom-foundation-admin-notification",
-						adminEmailTo,
-						adminEmailSubstitutionData
-					);
-
-					const thankYouEmailSubstitutionData = {
-						name: metadata.firstName,
-						amount: `${currencySymbol}${friendlyAmount}`,
-						givingTo: metadata.givingTo,
-					};
-
-					let sparkPostTemplate;
-					if (metadata.projectId === "PP1028 Deborah") {
-						sparkPostTemplate = "freedom-foundation-thank-you-PP1028-Deborah";
-					} else if (metadata.projectId === "PP1006 Advocacy") {
-						sparkPostTemplate = "freedom-foundation-thank-you-PP1006-Advocacy";
-					} else if (metadata.projectId === "PP1010 Midwest") {
-						sparkPostTemplate = "freedom-foundation-thank-you-PP1010-Midwest";
-					} else if (metadata.projectId === "PP1009 Tennessee") {
-						sparkPostTemplate = "freedom-foundation-thank-you-PP1009-Tennessee";
-					} else if (metadata.projectId === "FF25 USA Policy") {
-						sparkPostTemplate = "freedom-foundation-thank-you-FF25-USA-Policy";
-					} else if (metadata.projectId === "PP1018 Uganda") {
-						sparkPostTemplate = "freedom-foundation-thank-you-PP1018-Uganda";
-					}
-
-					const thankYouEmailData = await sendEmailByTemplateName(
-						sparkPostTemplate,
-						session.customer_details?.email,
-						thankYouEmailSubstitutionData
-					);
-
-					if (thankYouEmailData.results) {
-						notes += "Sent Thank You via SparkPost. ";
-					}
-					if (adminEmailData.results) {
-						notes += "Sent Admin notification via SparkPost. ";
-					}
-					//store the webhook event
-					await storeWebhookEvent(event, "success", notes);
-				} catch (error) {
-					console.error("Error processing webhook:", error);
-					// Store the error in the database
-					await storeWebhookEvent(event, "error", error.message);
 				}
-			} else {
-				console.log("Ignored webhook from unknown source:", source);
+
+				// Metadata to track origin
+				const metadata = paymentIntent?.metadata || session.metadata || {};
+				const source = metadata.source || "unknown";
+				results.push({ step: currentStep, success: true });
+
+				// Validate source and campaign
+				currentStep = "Validate webhook source and campaign";
+				if (source !== "donation-app") {
+					console.log("Ignored webhook from unknown source:", source);
+					return {
+						message: `Webhook ignored - source: ${source}, campaign: ${metadata.campaign}`,
+						status: 200,
+						eventStatus: "ignored",
+						results,
+					};
+				}
+				results.push({ step: currentStep, success: true });
+
+				console.log(`Processing Stripe Checkout Completed`);
+
+				currentStep = "Initialize Donorfy client";
+				const donorfy = getDonorfyClient(donorfyInstance);
+				results.push({ step: currentStep, success: true });
+
+				// Check for a duplicate in Donorfy via email lookup
+				currentStep = "Check for duplicate in Donorfy";
+				const duplicateCheckData = await donorfy.duplicateCheck({
+					EmailAddress: session.customer_details?.email,
+				});
+				results.push({ step: currentStep, success: true });
+
+				//Possibly create new constituent
+				if (
+					duplicateCheckData.length > 0 &&
+					duplicateCheckData[0].Score >= 15
+				) {
+					currentStep = "Retrieve Constituent";
+					constituentId = duplicateCheckData[0].ConstituentId;
+					alreadyInDonorfy = true;
+					results.push({ step: currentStep, success: true });
+				} else {
+					currentStep = "Create new constituent in Donorfy";
+					const createConstituentInputData = {
+						ConstituentType: "individual",
+						Title: metadata.title || "",
+						FirstName: metadata.firstName || "",
+						LastName: metadata.lastName || "",
+						AddressLine1: metadata.address1 || "",
+						AddressLine2: metadata.address2 || "",
+						Town: metadata.townCity || "",
+						PostalCode: metadata.postcode || "",
+						EmailAddress: session.customer_details?.email || "",
+						Phone1: metadata.phone || "",
+						RecruitmentCampaign: metadata.campaign || "",
+						County: metadata.stateCounty || "",
+					};
+					const createConstituentData = await donorfy.createConstituent(
+						createConstituentInputData
+					);
+					constituentId = createConstituentData.ConstituentId;
+					results.push({ step: currentStep, success: true });
+				}
+
+				//possibly update the constituent if found
+				if (alreadyInDonorfy) {
+					currentStep = "Update existing constituent details";
+					const updateConstituentInputData = {
+						Title: metadata.title || "",
+						FirstName: metadata.firstName || "",
+						LastName: metadata.lastName || "",
+						AddressLine1: metadata.address1 || "",
+						AddressLine2: metadata.address2 || "",
+						Town: metadata.townCity || "",
+						PostalCode: metadata.postcode || "",
+						EmailAddress: session.customer_details?.email || "",
+						Phone1: metadata.phone || "",
+						RecruitmentCampaign: metadata.campaign || "",
+						County: metadata.stateCounty || "",
+					};
+					await donorfy.updateConstituent(
+						constituentId,
+						updateConstituentInputData
+					);
+					results.push({ step: currentStep, success: true });
+				}
+
+				//update preferences | set all to true if US instance
+				currentStep = "Update constituent preferences";
+				const updatePreferencesData = {
+					PreferencesList: [
+						{
+							PreferenceType: "Channel",
+							PreferenceName: "Email",
+							PreferenceAllowed:
+								donorfyInstance === "us" ? true : metadata.emailPreference,
+						},
+						{
+							PreferenceType: "Channel",
+							PreferenceName: "Mail",
+							PreferenceAllowed:
+								donorfyInstance === "us" ? true : metadata.postPreference,
+						},
+						{
+							PreferenceType: "Channel",
+							PreferenceName: "Phone",
+							PreferenceAllowed:
+								donorfyInstance === "us" ? true : metadata.phonePreference,
+						},
+						{
+							PreferenceType: "Channel",
+							PreferenceName: "SMS",
+							PreferenceAllowed:
+								donorfyInstance === "us" ? true : metadata.smsPreference,
+						},
+						{
+							PreferenceType: "Purpose",
+							PreferenceName: "Email Updates",
+							PreferenceAllowed:
+								donorfyInstance === "us" ? true : metadata.emailPreference,
+						},
+					],
+				};
+				await donorfy.updateConstituentPreferences(
+					constituentId,
+					updatePreferencesData
+				);
+				results.push({ step: currentStep, success: true });
+
+				//create transaction with correct campaign and fund
+				currentStep = "Create transaction in Donorfy";
+				const transaction = await donorfy.createTransaction(
+					session.amount_total / 100,
+					metadata.campaign,
+					metadata.paymentMethod || "Stripe Checkout",
+					constituentId,
+					null, // chargeDate - will default to current date
+					metadata.fund || "unrestricted",
+					metadata.utmSource || "",
+					metadata.utmMedium || "",
+					metadata.utmCampaign || ""
+				);
+				const transactionId = transaction.Id;
+				results.push({ step: currentStep, success: true });
+
+				//add activity for Donation inspiration
+				if (metadata.inspirationDetails) {
+					currentStep = "Add inspiration activity";
+					const inspirationActivityData = {
+						ExistingConstituentId: constituentId,
+						ActivityType: "Donation inspiration",
+						Notes: metadata.inspirationDetails || "",
+					};
+					const addInspirationActivityData = await donorfy.addActivity(
+						inspirationActivityData
+					);
+					if (addInspirationActivityData) {
+						results.push({ step: currentStep, success: true });
+					} else {
+						results.push({ step: currentStep, success: false });
+					}
+				}
+
+				//add inspiration tag
+				if (metadata.inspirationQuestion) {
+					currentStep = "Add inspiration tag";
+					await donorfy.addActiveTags(constituentId, [
+						metadata.inspirationQuestion,
+					]);
+
+					results.push({ step: currentStep, success: true });
+				}
+
+				//add gift aid if applicable
+				if (metadata.giftAid === "true" && donorfyInstance === "uk") {
+					currentStep = "Create Gift Aid declaration";
+					const createGiftAidData = await donorfy.createGiftAidDeclaration(
+						constituentId,
+						{
+							TaxPayerTitle: metadata.title || "",
+							TaxPayerFirstName: metadata.firstName,
+							TaxPayerLastName: metadata.lastName,
+						}
+					);
+					if (createGiftAidData) {
+						results.push({ step: currentStep, success: true });
+					} else {
+						results.push({ step: currentStep, success: false });
+					}
+				}
+
+				//if emailPreference is true or they are in the USA add/update mailchimp subscriber with tags and groups and potential merge tag for ORG
+				if (metadata.emailPreference === "true" || donorfyInstance === "us") {
+					currentStep = "Add/Update Mailchimp subscriber";
+					const additionalMergeFields = {};
+
+					if (metadata.organisationName) {
+						additionalMergeFields.ORG = metadata.organisationName;
+					}
+
+					const addSubscriberData = await addUpdateSubscriber(
+						session.customer_details?.email,
+						metadata.firstName,
+						metadata.lastName,
+						"subscribed",
+						donorfyInstance,
+						Object.keys(additionalMergeFields).length > 0
+							? additionalMergeFields
+							: undefined
+					);
+
+					results.push({ step: currentStep, success: true });
+				}
+
+				console.log(results);
+				return {
+					message: `Stripe checkout session completed. Successfully processed Freedom Foundation donation for constituent ${constituentId}`,
+					status: 200,
+					eventStatus: "processed",
+					results,
+					constituentId,
+					eventId,
+					donorfyTransactionId: transactionId,
+				};
+			} catch (error) {
+				results.push({ step: currentStep, success: false });
+				console.error("Error processing webhook:", error);
+				error.results = results;
+				error.constituentId = constituentId || null;
+				error.eventId = eventId;
+				throw error;
 			}
-			break;
 		}
 
 		default:
 			console.log(`Unhandled event type: ${event.type}`);
+			return {
+				message: `Unhandled event type: ${event.type}`,
+				status: 200,
+				eventStatus: "ignored",
+			};
 	}
 }

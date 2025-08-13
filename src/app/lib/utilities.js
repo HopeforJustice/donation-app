@@ -362,8 +362,32 @@ export async function getPreferences(email) {
 
 //strip metadata from event object in webhook before storage in db
 export const stripMetadata = (data) => {
-	const { resource_metadata, metadata, ...strippedData } = data;
-	return strippedData;
+	if (!data || typeof data !== "object") {
+		return data;
+	}
+
+	// Handle arrays
+	if (Array.isArray(data)) {
+		return data.map((item) => stripMetadata(item));
+	}
+
+	// Handle objects
+	const result = {};
+	for (const [key, value] of Object.entries(data)) {
+		// Skip metadata fields at any level
+		if (key === "metadata" || key === "resource_metadata") {
+			continue;
+		}
+
+		// Recursively process nested objects/arrays
+		if (value && typeof value === "object") {
+			result[key] = stripMetadata(value);
+		} else {
+			result[key] = value;
+		}
+	}
+
+	return result;
 };
 
 export const sanitiseForLogging = (body) => {

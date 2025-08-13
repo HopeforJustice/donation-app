@@ -76,7 +76,6 @@ export async function handlePaymentPaidOut(event) {
 				additionalDetails.campaign || "Donation App General Campaign";
 			const friendlyAmount = amount / 100;
 			const fund = "Unrestricted";
-			const channel = "Gocardless Subscription";
 			const paymentMethod = "GoCardless DD";
 			const chargeDate = payment.charge_date;
 
@@ -86,7 +85,6 @@ export async function handlePaymentPaidOut(event) {
 				paymentMethod,
 				constituentId,
 				chargeDate,
-				channel,
 				fund
 			);
 			if (createTransactionResult.Id) {

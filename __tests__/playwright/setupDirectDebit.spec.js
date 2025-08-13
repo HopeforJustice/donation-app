@@ -11,8 +11,8 @@ import { test, expect } from "@playwright/test";
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 import pollForBillingRequest from "./helpers/pollForBillingRequest";
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
-import fillDonationForm from "./helpers/fillDonationForm";
-import fillGoCardlessForm from "./helpers/fillGoCardlessForm";
+import fillGoCardlessForm from "./helpers/formCompletions/fillGoCardlessForm";
+import fillUkRegular from "./helpers/formCompletions/ukRegular";
 import getSubscriber from "@/app/lib/mailchimp/getSubscriber";
 import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
 import pollForPaymentPaidOut from "./helpers/pollForPaymentPaidOut";
@@ -44,7 +44,6 @@ const testDetails = {
 	address2: "Test Area",
 	townCity: "Test City",
 	postalCode: "LS7 2TD",
-	county: "Yorkshire",
 	country: "United Kingdom",
 	giftAid: true,
 	email: testEmail,
@@ -70,11 +69,10 @@ test.describe("E2E: Setup Direct Debit", () => {
 		Fill in the form(s)
 		*/
 		await test.step("Fill the donation form with test details", async () => {
-			await fillDonationForm(page, testDetails);
+			await fillUkRegular(page, testDetails);
 		});
 
 		await test.step("Fill in and submit the GoCardless hosted form", async () => {
-			test.skip();
 			await fillGoCardlessForm(page, testDetails);
 		});
 
@@ -150,7 +148,6 @@ test.describe("E2E: Setup Direct Debit", () => {
 						AddressLine2: testDetails.address2,
 						Town: testDetails.townCity,
 						PostalCode: testDetails.postalCode,
-						County: testDetails.county,
 						Country: testDetails.country,
 						Phone1: testDetails.phoneNumber,
 					})
