@@ -46,9 +46,6 @@ export async function handleStripeWebhookEvent(event, stripeClient) {
 			let constituentId = null;
 			let alreadyInDonorfy = false;
 
-			//donorfy determined by currency
-			donorfyInstance = session.currency === "usd" ? "us" : "uk";
-
 			//if we plan to process on the confirmation page we should store the event straightaway to avoid duplicates
 
 			try {
@@ -82,6 +79,8 @@ export async function handleStripeWebhookEvent(event, stripeClient) {
 				console.log(`Processing Stripe Checkout Completed`);
 
 				currentStep = "Initialize Donorfy client";
+				//donorfy determined by currency
+				donorfyInstance = session.currency === "usd" ? "us" : "uk";
 				const donorfy = getDonorfyClient(donorfyInstance);
 				results.push({ step: currentStep, success: true });
 
@@ -115,7 +114,7 @@ export async function handleStripeWebhookEvent(event, stripeClient) {
 						EmailAddress: session.customer_details?.email || "",
 						Phone1: metadata.phone || "",
 						RecruitmentCampaign: metadata.campaign || "",
-						County: metadata.stateCounty || "",
+						County: donorfyInstance === "us" ? metadata.stateCounty : "",
 					};
 					const createConstituentData = await donorfy.createConstituent(
 						createConstituentInputData
@@ -138,7 +137,7 @@ export async function handleStripeWebhookEvent(event, stripeClient) {
 						EmailAddress: session.customer_details?.email || "",
 						Phone1: metadata.phone || "",
 						RecruitmentCampaign: metadata.campaign || "",
-						County: metadata.stateCounty || "",
+						County: donorfyInstance === "us" ? metadata.stateCounty : "",
 					};
 					await donorfy.updateConstituent(
 						constituentId,

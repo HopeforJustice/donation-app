@@ -85,21 +85,6 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 	//delete after test
 	test.afterAll(async () => {
 		if (deleteAfterTest) {
-			// Delete the test email from Mailchimp
-
-			// will need to wait for the webhook for this to be reliable
-			if (testDetails.preferences.email) {
-				for (const email of emails) {
-					try {
-						await deleteSubscriber(email, "uk");
-						console.log("Deleted Mailchimp Subscriber");
-					} catch (err) {
-						console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
-					}
-				}
-			} else {
-				console.log("Skipping Mailchimp deletion as email preference is false");
-			}
 			// Delete the test constituents from Donorfy
 			for (const email of emails) {
 				try {
@@ -109,6 +94,12 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 					console.log(`Deleted Donorfy constituent: ${constituentId}`);
 				} catch (err) {
 					console.warn(`Failed to delete Donorfy constituent: ${err}`);
+				}
+				try {
+					await deleteSubscriber(email, "uk");
+					console.log("Deleted Mailchimp Subscriber");
+				} catch (err) {
+					console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
 				}
 			}
 		}
