@@ -23,6 +23,7 @@ const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
 	process.env.DONORFY_UK_TENANT
 );
+const test = process.env.VERCEL_ENV !== "production";
 export const runtime = "nodejs";
 
 export async function handleBillingRequestFulfilled(event) {
@@ -84,7 +85,7 @@ export async function handleBillingRequestFulfilled(event) {
 		 * If the constituent has said yes to email comms
 		 * Add them to Mailchimp with an "GoCardless Active Subscription" tag
 		 */
-		if (extractedData.additionalDetails.preferences.email === "true") {
+		if (extractedData.additionalDetails.preferences.email === "true" && !test) {
 			currentStep = "Add/Update subscriber in Mailchimp";
 			await addUpdateSubscriber(
 				extractedData.email,

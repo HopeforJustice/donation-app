@@ -17,7 +17,6 @@ export default async function addUpdateSubscriber(
 		const subscriberHash = getSubscriberHash(email);
 
 		//email updates interests
-
 		//these are difficult to find, you have to use the api
 		let interests = {};
 		if (country === "uk") {
@@ -26,7 +25,7 @@ export default async function addUpdateSubscriber(
 			interests = { b90c533e0c: true };
 		}
 
-		await mailchimp.lists.setListMember(list.id, subscriberHash, {
+		const memberData = {
 			email_address: email,
 			status_if_new: status,
 			merge_fields: {
@@ -35,10 +34,53 @@ export default async function addUpdateSubscriber(
 				...additionalMergeFields,
 			},
 			interests,
-		});
+		};
+
+		console.log("Member data to send:", JSON.stringify(memberData, null, 2));
+
+		const result = await mailchimp.lists.setListMember(
+			list.id,
+			subscriberHash,
+			memberData
+		);
+		return result;
 	} catch (error) {
+		console.error("Detailed Mailchimp error:", {
+			message: error.message,
+			status: error.status,
+			detail: error.detail,
+			title: error.title,
+			type: error.type,
+			instance: error.instance,
+			response: error.response?.text || error.response?.body,
+		});
+
+		// Parse the response to get more detailed error information
+		let errorDetail = "";
+		try {
+			if (error.response?.text || error.response?.body) {
+				const responseText = error.response?.text || error.response?.body;
+				const parsedResponse = JSON.parse(responseText);
+				errorDetail = parsedResponse.detail || "";
+			}
+		} catch (parseError) {
+			// If we can't parse the response, use the original error
+		}
+
+		// Check for rate limiting error
+		if (errorDetail.includes("signed up to a lot of lists very recently")) {
+			console.warn("Mailchimp rate limiting detected");
+			// You might want to return a success status here or handle it differently
+			// For now, we'll still throw but with a clearer message
+			throw new Error(
+				`Mailchimp rate limiting, the email has been added to lists too frequently. Please try again later.`
+			);
+		}
+
 		throw new Error(
-			`Add/Update Mailchimp subscriber failed, error: ${error.message}`
+			`Add/Update Mailchimp subscriber failed, error: ${error.message}${
+				errorDetail ? ` - ${errorDetail}` : ""
+			}`
 		);
 	}
 }

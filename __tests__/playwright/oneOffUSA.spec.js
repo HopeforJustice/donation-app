@@ -8,13 +8,20 @@
 
 import { test, expect } from "@playwright/test";
 import fillUSOnce from "./helpers/formCompletions/usOnce";
+import getSubscriber from "@/app/lib/mailchimp/getSubscriber";
 import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import pollForConstituent from "./helpers/pollForConstituent";
+import pollForStripeWebhookEvent from "./helpers/pollForStripeWebhookEvent";
 
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
 	process.env.DONORFY_UK_TENANT
+);
+
+const donorfyUS = new DonorfyClient(
+	process.env.DONORFY_US_KEY,
+	process.env.DONORFY_US_TENANT
 );
 
 // Default campaign: Donation App General Campaign
@@ -24,7 +31,6 @@ const testDetails = {
 	fund: null,
 	frequency: "once",
 	amount: 10.25,
-	title: "Mr",
 	firstName: "James",
 	lastName: "Holt",
 	phoneNumber: "07777777777",
@@ -60,12 +66,15 @@ const emails = [];
 
 test.describe("E2E: Test one off giving via Stripe", () => {
 	test("Should test a successful card", async ({ page }) => {
+		const timestamp = Date.now();
+		const testEmail = `donationapp+usonce${timestamp}@hopeforjustice.org`;
+		emails.push(testEmail);
+		let constituentId;
+		let webhookEvent;
+
 		/*
 		Fill in the form(s)
 		*/
-		const timestamp = Date.now();
-		const testEmail = `james.holt+testScard${timestamp}@hopeforjustice.org`;
-		emails.push(testEmail);
 		await test.step("Fill the donation form with test details", async () => {
 			await fillUSOnce(page, {
 				stripe: { pathway: "successful card" },
@@ -73,13 +82,149 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 				...testDetails,
 			});
 		});
-		await page.waitForTimeout(10000); // wait for the payment to process
-		// need to setup success page/webhooks to perform stripe -> donorfy actions
-		// need to store completed actions in database
-		// need to test the actions completed here
-		await expect(page.getByRole("heading", { name: /Thank You/i })).toBeVisible(
-			{ timeout: 10000 }
-		);
+
+		await test.step("Verify successful payment completion", async () => {
+			await expect(
+				page.getByRole("heading", { name: /Thank You/i })
+			).toBeVisible({ timeout: 10000 });
+		});
+
+		/*
+		Poll for webhook event processing
+		*/
+		await test.step("Poll for Stripe webhook event", async () => {
+			webhookEvent = await pollForStripeWebhookEvent(
+				testEmail,
+				"usd", // Currency for US test
+				"checkout.session.completed"
+			);
+			expect(webhookEvent).toBeTruthy();
+			expect(webhookEvent.status).toBe("processed");
+		});
+
+		/*
+		Get constituent ID and validate Donorfy integration
+		*/
+		await test.step("Get constituent ID from Donorfy", async () => {
+			constituentId = await pollForConstituent(testEmail, "us");
+			expect(constituentId).toBeTruthy();
+		});
+
+		/*
+		Check Donorfy Details
+		*/
+		await test.step("Check Donorfy Details", async () => {
+			await test.step("Get the Constituent and check details", async () => {
+				const constituentData = await donorfyUS.getConstituent(constituentId);
+				expect(constituentData.EmailAddress).toBe(testEmail);
+				expect(constituentData).toEqual(
+					expect.objectContaining({
+						FirstName: testDetails.firstName,
+						LastName: testDetails.lastName,
+						AddressLine1: testDetails.address1,
+						AddressLine2: testDetails.address2,
+						Town: testDetails.townCity,
+						PostalCode: testDetails.postalCode,
+						Country: testDetails.country,
+						Phone1: testDetails.phoneNumber,
+						County: testDetails.state, // US uses state in County field
+					})
+				);
+			});
+
+			await test.step("Get the Constituent's preferences and check details", async () => {
+				const getConstituentPreferencesResult =
+					await donorfyUS.getConstituentPreferences(constituentId);
+				const preferencesArray =
+					getConstituentPreferencesResult.PreferencesList;
+
+				// For US, all preferences should be true
+				const channelPreferences = {};
+				preferencesArray
+					.filter((pref) => pref.PreferenceType === "Channel")
+					.forEach((pref) => {
+						const key =
+							pref.PreferenceName === "Mail" ? "Post" : pref.PreferenceName;
+						channelPreferences[key] = pref.PreferenceAllowed;
+					});
+
+				// US should default all to true
+				expect(channelPreferences).toEqual(
+					expect.objectContaining({
+						Email: true,
+						Post: true,
+						SMS: true,
+						Phone: true,
+					})
+				);
+
+				//Check "Email Updates" Purpose - should be true for US
+				const emailUpdatesPref = preferencesArray.find(
+					(pref) =>
+						pref.PreferenceType === "Purpose" &&
+						pref.PreferenceName === "Email Updates"
+				);
+
+				expect(emailUpdatesPref?.PreferenceAllowed).toBe(true);
+			});
+
+			// Note: No Gift Aid check for US donations
+			await test.step("Check the transaction was created", async () => {
+				// Get transaction ID from webhook event if available
+				if (webhookEvent.donorfy_transaction_id) {
+					const transaction = await donorfyUS.getTransaction(
+						webhookEvent.donorfy_transaction_id
+					);
+
+					await test.step("Verify transaction details", async () => {
+						const expectedCampaign =
+							testDetails.campaign || testDetails.defaultCampaign;
+						expect(transaction.Campaign).toEqual(expectedCampaign);
+						expect(transaction.PaymentMethod).toEqual("Stripe Checkout");
+						expect(transaction.Amount).toEqual(testDetails.amount);
+						console.log("Transaction details:", transaction);
+						expect(transaction.FundList).toEqual(
+							testDetails.fund || "Unrestricted"
+						);
+					});
+				}
+			});
+
+			await test.step("Check for inspiration tag if applicable", async () => {
+				if (testDetails.inspiration) {
+					const tags = await donorfyUS.getConstituentTags(constituentId);
+					expect(tags).toEqual(
+						expect.stringContaining(testDetails.inspiration)
+					);
+				}
+			});
+		});
+
+		/*
+		Check Mailchimp Details
+		*/
+		// await test.step("Check Mailchimp Details", async () => {
+		// 	// For US, email preferences are defaulted to true
+		// 	const subscriber = await getSubscriber(testEmail, "us");
+
+		// 	await test.step("Check email is subscribed", async () => {
+		// 		expect(subscriber.status).toEqual("subscribed");
+		// 	});
+
+		// 	await test.step("Check merge fields", async () => {
+		// 		expect(subscriber.merge_fields.FNAME).toEqual(testDetails.firstName);
+		// 		expect(subscriber.merge_fields.LNAME).toEqual(testDetails.lastName);
+		// 	});
+
+		// 	// Check for any organization merge field if provided
+		// 	if (testDetails.organisationName) {
+		// 		await test.step("Check organization merge field", async () => {
+		// 			expect(subscriber.merge_fields.ORG).toEqual(
+		// 				testDetails.organisationName
+		// 			);
+		// 		});
+		// 	}
+		// });
 	});
 
 	//delete after test
@@ -90,17 +235,18 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 				try {
 					const constituentId = await pollForConstituent(email, "us");
 					console.log("pollForConstituent", constituentId);
-					await donorfyUK.deleteConstituent(constituentId);
+					await donorfyUS.deleteConstituent(constituentId); // Use US instance
 					console.log(`Deleted Donorfy constituent: ${constituentId}`);
 				} catch (err) {
 					console.warn(`Failed to delete Donorfy constituent: ${err}`);
 				}
-				try {
-					await deleteSubscriber(email, "uk");
-					console.log("Deleted Mailchimp Subscriber");
-				} catch (err) {
-					console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
-				}
+				// Clean up Mailchimp subscriber off due to rate limiting
+				// try {
+				// 	await deleteSubscriber(email, "us"); // Use US instance
+				// 	console.log("Deleted Mailchimp Subscriber");
+				// } catch (err) {
+				// 	console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
+				// }
 			}
 		}
 	});

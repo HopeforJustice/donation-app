@@ -10,7 +10,7 @@ export default async function pollForBillingRequest(testEmail) {
 			if (!event) return null;
 			try {
 				const customer = await client.customers.find(
-					event.event.links.customer
+					event.gocardless_customer_id
 				);
 				if (customer.email === testEmail) {
 					return { customer, event };

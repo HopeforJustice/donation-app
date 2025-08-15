@@ -6,7 +6,8 @@ export default async function storeWebhookEvent(
 	additionalNotes,
 	constituentId = null,
 	goCardlessCustomerId = null,
-	donorfyTransactionId = null
+	donorfyTransactionId = null,
+	subscriptionId = null
 ) {
 	const test = process.env.VERCEL_ENV === "production" ? false : true;
 	try {
@@ -14,7 +15,7 @@ export default async function storeWebhookEvent(
 		const notes = `${additionalNotes}`;
 		const result = await sql`
 			INSERT INTO processed_events (
-				event_id, event_type, notes, processed_at, status, event, constituent_id, gocardless_customer_id, test, donorfy_transaction_id
+				event_id, event_type, notes, processed_at, status, event, constituent_id, gocardless_customer_id, test, donorfy_transaction_id, subscription_id
 			) VALUES (
 				${eventId},
 				${event.resource_type || event.type || "webhook"},
@@ -25,7 +26,8 @@ export default async function storeWebhookEvent(
 				${constituentId},
 				${goCardlessCustomerId},
 				${test},
-				${donorfyTransactionId}
+				${donorfyTransactionId},
+				${subscriptionId}
 			)
 			RETURNING id;
 		`;

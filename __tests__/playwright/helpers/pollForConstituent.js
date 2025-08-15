@@ -10,7 +10,6 @@ const donorfyUS = new DonorfyClient(
 );
 
 export default async function pollForConstituent(email, donorfyInstance) {
-	console.log(`polling for constituent with email: ${email}`);
 	const donorfy = donorfyInstance === "us" ? donorfyUS : donorfyUK;
 	return await poll(
 		async () => {
@@ -22,9 +21,6 @@ export default async function pollForConstituent(email, donorfyInstance) {
 					duplicateCheckData.length > 0 &&
 					duplicateCheckData[0].Score >= 15
 				) {
-					console.log(
-						`Found constituent with email: ${duplicateCheckData[0].ConstituentId}`
-					);
 					return duplicateCheckData[0].ConstituentId;
 				}
 			} catch (err) {

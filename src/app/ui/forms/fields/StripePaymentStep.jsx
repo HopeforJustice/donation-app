@@ -31,18 +31,23 @@ export default function StripePaymentStep({
 					lastName: formData.lastName || "",
 					email: formData.email || "",
 					phone: formData.phone || "",
-					fund: formData.fund || "",
-					inspiration: formData.inspiration || "",
+					fund: formData.fund || "unrestricted",
+					inspiration: formData.inspirationQuestion || "",
 					address1: formData.address1 || "",
 					address2: formData.address2 || "",
 					postcode: formData.postcode || "",
 					country: formData.country || "",
 					stateCounty: formData.stateCounty || "",
+					townCity: formData.townCity || "",
 					giftAid: formData.giftAid || "",
-					emailPreference: formData.emailPreference || "",
-					postPreference: formData.postPreference || "",
-					smsPreference: formData.smsPreference || "",
-					phonePreference: formData.phonePreference || "",
+					emailPreference:
+						formData.currency === "usd" ? true : formData.emailPreference || "",
+					postPreference:
+						formData.currency === "usd" ? true : formData.postPreference || "",
+					smsPreference:
+						formData.currency === "usd" ? true : formData.smsPreference || "",
+					phonePreference:
+						formData.currency === "usd" ? true : formData.phonePreference || "",
 					inspirationDetails: formData.inspirationDetails || "",
 					campaign: formData.campaign || "",
 					source: "donation-app",
@@ -82,6 +87,9 @@ export default function StripePaymentStep({
 		formData.campaign,
 		formData.giftAid,
 		searchParams,
+		formData.inspirationQuestion,
+		formData.townCity,
+		formData.currency,
 	]);
 
 	if (!clientSecret) {

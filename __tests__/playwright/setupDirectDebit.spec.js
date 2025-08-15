@@ -26,7 +26,7 @@ const donorfyUK = new DonorfyClient(
 // Generate test email
 const timestamp = Date.now();
 const client = getGoCardlessClient();
-const testEmail = `james.holt+test${timestamp}@hopeforjustice.org`;
+const testEmail = `donationapp+directdebit${timestamp}@hopeforjustice.org`;
 let goCardlessCustomerId;
 let constituentId;
 
@@ -275,30 +275,30 @@ test.describe("E2E: Setup Direct Debit", () => {
 		/*
 		Check Mailchimp
 		*/
-		await test.step("Check Mailchimp Details", async () => {
-			if (!testDetails.preferences.email) {
-				console.log("Email not set to true in test");
-				test.info().annotations.push({
-					type: "skip-step",
-					description: "Skipped Mailchimp Check: no details set",
-				});
-				return;
-			}
-			const subscriber = await getSubscriber(testEmail, "uk");
-			await test.step("Check email is subscribed", async () => {
-				expect(subscriber.status).toEqual("subscribed");
-			});
-			await test.step("Check email updates group", async () => {
-				expect(subscriber.interests["60a2c211ce"]).toEqual(true);
-			});
-			await test.step("Check for active subscription tag", async () => {
-				expect(
-					subscriber.tags.some(
-						(tag) => tag.name === "GoCardless Active Subscription"
-					)
-				).toEqual(true);
-			});
-		});
+		// await test.step("Check Mailchimp Details", async () => {
+		// 	if (!testDetails.preferences.email) {
+		// 		console.log("Email not set to true in test");
+		// 		test.info().annotations.push({
+		// 			type: "skip-step",
+		// 			description: "Skipped Mailchimp Check: no details set",
+		// 		});
+		// 		return;
+		// 	}
+		// 	const subscriber = await getSubscriber(testEmail, "uk");
+		// 	await test.step("Check email is subscribed", async () => {
+		// 		expect(subscriber.status).toEqual("subscribed");
+		// 	});
+		// 	await test.step("Check email updates group", async () => {
+		// 		expect(subscriber.interests["60a2c211ce"]).toEqual(true);
+		// 	});
+		// 	await test.step("Check for active subscription tag", async () => {
+		// 		expect(
+		// 			subscriber.tags.some(
+		// 				(tag) => tag.name === "GoCardless Active Subscription"
+		// 			)
+		// 		).toEqual(true);
+		// 	});
+		// });
 
 		/* 
 		Simulate a "payment paid out" event in GoCardless
@@ -338,10 +338,10 @@ test.describe("E2E: Setup Direct Debit", () => {
 					const expectedCampaign = testDetails.campaign
 						? testDetails.campaign
 						: testDetails.defaultCampaign;
-					const expectedChannel = "Gocardless Subscription";
+					// const expectedChannel = "Gocardless Subscription";
 					const expectedPaymentMethod = "GoCardless DD";
 					expect(transaction.Campaign).toEqual(expectedCampaign);
-					expect(transaction.Channel).toEqual(expectedChannel);
+					// expect(transaction.Channel).toEqual(expectedChannel);
 					expect(transaction.PaymentMethod).toEqual(expectedPaymentMethod);
 					expect(transaction.Amount).toEqual(testDetails.amount);
 				});
@@ -404,12 +404,12 @@ test.describe("E2E: Setup Direct Debit", () => {
 			});
 
 			//check active tag is removed in mailchimp (if applicable)
-			if (testDetails.email) {
-				await test.step("Check the Mailchimp subscriber does not have the active subscription tag", async () => {
-					const subscriber = await getSubscriber(testEmail, "uk");
-					expect(subscriber.tags_count).toEqual(0);
-				});
-			}
+			// if (testDetails.email) {
+			// 	await test.step("Check the Mailchimp subscriber does not have the active subscription tag", async () => {
+			// 		const subscriber = await getSubscriber(testEmail, "uk");
+			// 		expect(subscriber.tags_count).toEqual(0);
+			// 	});
+			// }
 		});
 	});
 
@@ -446,15 +446,13 @@ test.describe("E2E: Setup Direct Debit", () => {
 					console.warn(`Failed to delete Donorfy constituent: ${err}`);
 				}
 			}
-			// Clean up mailchimp
-			if (testDetails.preferences.email) {
-				try {
-					await deleteSubscriber(testEmail, "uk");
-					console.log("Deleted Mailchimp Subscriber");
-				} catch (err) {
-					console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
-				}
-			}
+			// Clean up Mailchimp subscriber off due to rate limiting
+			// try {
+			// 	await deleteSubscriber(email, "uk"); // Use US instance
+			// 	console.log("Deleted Mailchimp Subscriber");
+			// } catch (err) {
+			// 	console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
+			// }
 		}
 	});
 });

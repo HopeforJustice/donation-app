@@ -50,7 +50,39 @@ export async function POST(req) {
 		sessionMode = "payment";
 	}
 
-	const session = await stripe.checkout.sessions.create({
+	// For test environment, create a test clock for time simulation
+	let testClockId = null;
+	let testCustomer = null;
+	if (test) {
+		try {
+			// Create test clock with current time as frozen_time
+			const testClock = await stripe.testHelpers.testClocks.create({
+				frozen_time: Math.floor(Date.now() / 1000),
+				name: `Donation Test Clock ${new Date().toISOString()}`,
+			});
+			testClockId = testClock.id;
+			console.log(`Created test clock: ${testClockId}`);
+
+			// Create a customer with the test clock
+			// This associates all future operations with this customer to the test clock
+			testCustomer = await stripe.customers.create({
+				test_clock: testClockId,
+				metadata: {
+					...metadata,
+					test_clock_id: testClockId,
+					created_for: sessionMode,
+				},
+			});
+			console.log(`Created test customer with test clock: ${testCustomer.id}`);
+		} catch (error) {
+			console.warn(
+				"Failed to create test clock/customer, proceeding without it:",
+				error.message
+			);
+		}
+	}
+
+	const sessionConfig = {
 		ui_mode: "custom",
 		line_items: [
 			{
@@ -61,23 +93,40 @@ export async function POST(req) {
 		mode: sessionMode,
 		return_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
 		payment_method_types: paymentMethods,
-		metadata,
+		metadata: {
+			...metadata,
+			...(testClockId && { test_clock_id: testClockId }),
+		},
+		...(testCustomer && { customer: testCustomer.id }),
 		...(sessionMode === "payment" && {
 			payment_intent_data: {
-				metadata: metadata,
+				metadata: {
+					...metadata,
+					...(testClockId && { test_clock_id: testClockId }),
+				},
 			},
 		}),
 		...(sessionMode === "subscription" && {
 			subscription_data: {
-				metadata: metadata,
+				metadata: {
+					...metadata,
+					...(testClockId && { test_clock_id: testClockId }),
+				},
 			},
 		}),
-	});
+	};
+
+	const session = await stripe.checkout.sessions.create(sessionConfig);
 
 	// console.log("Checkout session created:", session);
 
 	return NextResponse.json({
 		clientSecret: session.client_secret,
 		publishableKey,
+		...(testClockId && {
+			testClockId,
+			testCustomerId: testCustomer?.id,
+			testClockFrozenTime: Math.floor(Date.now() / 1000),
+		}),
 	});
 }

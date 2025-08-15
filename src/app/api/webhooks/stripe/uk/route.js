@@ -36,26 +36,57 @@ export async function POST(req) {
 			stripe
 		);
 		if (webhookHandlerResponse.eventStatus !== "ignored") {
-			// need to store a different event type here
+			// Extract subscription ID from various event types
+			let subscriptionId = null;
+			if (event.data?.object) {
+				const dataObject = event.data.object;
+				// Direct subscription events
+				if (dataObject.object === "subscription") {
+					subscriptionId = dataObject.id;
+				}
+				// Invoice events - get subscription from invoice
+				else if (dataObject.object === "invoice" && dataObject.subscription) {
+					subscriptionId = dataObject.subscription;
+				}
+				// Subscription from webhook response
+				else if (webhookHandlerResponse.subscriptionId) {
+					subscriptionId = webhookHandlerResponse.subscriptionId;
+				}
+			}
+
 			await storeWebhookEvent(
 				event,
 				webhookHandlerResponse.eventStatus,
 				JSON.stringify(webhookHandlerResponse.results || [], null, 2),
 				webhookHandlerResponse.constituentId,
 				null,
-				webhookHandlerResponse.donorfyTransactionId
+				webhookHandlerResponse.donorfyTransactionId,
+				subscriptionId
 			);
 		}
 	} catch (error) {
 		console.error("Error handling webhook event:", error);
+
+		// Extract subscription ID for error cases too
+		let subscriptionId = null;
+		if (event.data?.object) {
+			const dataObject = event.data.object;
+			if (dataObject.object === "subscription") {
+				subscriptionId = dataObject.id;
+			} else if (dataObject.object === "invoice" && dataObject.subscription) {
+				subscriptionId = dataObject.subscription;
+			}
+		}
+
 		// Store the error in the database
 		await storeWebhookEvent(
 			await stripMetadata(event),
 			"error",
-			JSON.stringify(response.results || [], null, 2),
+			JSON.stringify(error.results || [], null, 2),
 			error.constituentId || null,
 			null,
-			error.donorfyTransactionId || null
+			error.donorfyTransactionId || null,
+			subscriptionId
 		);
 		return new Response(`Webhook Error: ${error.message}`, { status: 500 });
 	}
