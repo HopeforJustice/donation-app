@@ -62,7 +62,7 @@ jobs:
           BASE_URL=\${{ steps.vercel-preview.outputs.url }}
 
           # Postgres 
-          POSTGRES_URL=\${{ secrets.POSTGRES_URL }}
+          POSTGRES_URL=\${{ secrets.NEON_TEST_DATABASE_URL }}
 
           # Stripe UK Test Keys
           STRIPE_UK_SECRET_KEY_TEST=\${{ secrets.STRIPE_UK_SECRET_KEY_TEST }}
@@ -106,16 +106,16 @@ jobs:
         env:
           CI: true
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
+      # - uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: playwright-report
+      #     path: playwright-report/
+      #     retention-days: 30
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: test-results/
-          retention-days: 30
+      # - uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: test-results
+      #     path: test-results/
+      #     retention-days: 30
