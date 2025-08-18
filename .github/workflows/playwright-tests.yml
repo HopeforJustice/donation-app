@@ -19,12 +19,6 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-
       - name: Wait for Vercel Preview Deployment
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
         id: vercel-preview
@@ -32,6 +26,12 @@ jobs:
           token: ${{ secrets.VERCEL_TOKEN }}
           max_timeout: 600
           check_interval: 10
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
 
       - name: Setup Environment Variables
         run: |
