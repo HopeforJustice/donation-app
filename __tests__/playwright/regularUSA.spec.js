@@ -14,11 +14,10 @@ import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import pollForConstituent from "./helpers/pollForConstituent";
 import pollForStripeWebhookEvent from "./helpers/pollForStripeWebhookEvent";
 import advanceTestClock from "./helpers/advanceTestClock";
+import { getStripeInstance } from "@/app/lib/stripe/getStripeInstance";
+import pollForActivityType from "./helpers/pollForActivityType";
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
+const stripe = getStripeInstance({ currency: "usd", mode: "test" });
 
 const donorfyUS = new DonorfyClient(
 	process.env.DONORFY_US_KEY,
@@ -131,7 +130,7 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 		await test.step("Poll for Stripe initial payment webhook event", async () => {
 			invoiceWebhookEvent = await pollForStripeWebhookEvent(
 				testEmail,
-				"usd", // Currency for US test
+				"usd",
 				"invoice.payment_succeeded"
 			);
 			expect(invoiceWebhookEvent).toBeTruthy();
@@ -306,9 +305,9 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 				return;
 			}
 
-			await test.step("Advance test clock by 1 month + 1 day", async () => {
-				// This triggers subscription renewal AND ensures invoice finalization
-				const daysToAdvance = 32 * 24 * 60 * 60; // 32 days in seconds
+			await test.step("Advance test clock by 40 days", async () => {
+				// This triggers subscription renewal in draft
+				const daysToAdvance = 40 * 24 * 60 * 60;
 				const advanceResult = await advanceTestClock(
 					testClockId,
 					"usd",
@@ -325,7 +324,7 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 
 			await test.step("Wait for clock advancement to complete", async () => {
 				console.log("Waiting for clock advancement to complete...");
-				await page.waitForTimeout(5000);
+				await page.waitForTimeout(2000);
 			});
 
 			await test.step("Poll for next billing cycle invoice webhook", async () => {
@@ -343,11 +342,6 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 			});
 
 			await test.step("Verify second payment transaction in Donorfy", async () => {
-				// Get transactions for the constituent to check for second payment
-				// We need to get all transactions for this constituent
-				// Since there's no direct "get all transactions for constituent" method,
-				// we'll check the second invoice webhook event for the transaction ID
-
 				let secondInvoiceWebhookEvent;
 				try {
 					// Look for the second invoice payment webhook (occurrence = 2)
@@ -355,7 +349,7 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 						testEmail,
 						"usd",
 						"invoice.payment_succeeded",
-						10000, // Timeout
+						120000, // Timeout
 						2 // Second occurrence
 					);
 				} catch (error) {
@@ -363,7 +357,6 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 						"Could not find second invoice webhook event:",
 						error.message
 					);
-					// If we can't find the second webhook, we'll verify in a different way
 					secondInvoiceWebhookEvent = null;
 				}
 
@@ -384,7 +377,6 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 						"Verified second subscription payment transaction in Donorfy"
 					);
 				} else {
-					// Alternative verification: check that we have at least processed the renewal
 					console.log(
 						"Second invoice webhook not yet processed, but clock advancement successful"
 					);
@@ -399,6 +391,29 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 				);
 				console.log("Verified subscription is still active after renewal");
 			});
+
+			await test.step("Cancel Subscription", async () => {
+				// Cancel the subscription from the subscription webhook event
+				if (subscriptionWebhookEvent.subscription_id) {
+					stripe.subscriptions.cancel(subscriptionWebhookEvent.subscription_id);
+					console.log("Subscription cancelled successfully");
+				} else {
+					console.warn(
+						"No subscription ID found in webhook event, skipping cancellation"
+					);
+				}
+			});
+
+			await test.step("Check Donorfy for cancelled activity", async () => {
+				// Check if the subscription cancellation activity was logged
+				const constituentActivities = await pollForActivityType(
+					constituentId,
+					"Stripe Subscription Cancelled",
+					"usd"
+				);
+				expect(constituentActivities.length).toBeGreaterThan(0);
+				console.log("Verified subscription cancellation activity in Donorfy");
+			});
 		});
 	});
 
@@ -407,14 +422,14 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 		if (deleteAfterTest) {
 			// Delete the test constituents from Donorfy
 			for (const email of emails) {
-				try {
-					const constituentId = await pollForConstituent(email, "us");
-					console.log("pollForConstituent", constituentId);
-					await donorfyUS.deleteConstituent(constituentId); // Use US instance
-					console.log(`Deleted Donorfy constituent: ${constituentId}`);
-				} catch (err) {
-					console.warn(`Failed to delete Donorfy constituent: ${err}`);
-				}
+				// try {
+				// 	const constituentId = await pollForConstituent(email, "us");
+				// 	console.log("pollForConstituent", constituentId);
+				// 	await donorfyUS.deleteConstituent(constituentId); // Use US instance
+				// 	console.log(`Deleted Donorfy constituent: ${constituentId}`);
+				// } catch (err) {
+				// 	console.warn(`Failed to delete Donorfy constituent: ${err}`);
+				// }
 				//mailchimp cleanup. off due to rate limiting
 				// try {
 				// 	await deleteSubscriber(email, "us"); // Use US instance

@@ -127,8 +127,15 @@ export default async function pollForStripeWebhookEvent(
 
 					// Return the requested occurrence (1st, 2nd, etc.)
 					if (matchingEvents.length >= occurrence) {
+						console.log(
+							`Found ${matchingEvents.length} matching events for ${eventType} with email ${email}, returning occurrence ${occurrence}`
+						);
 						const requestedEvent = matchingEvents[occurrence - 1];
 						return requestedEvent;
+					} else if (matchingEvents.length > 0) {
+						console.log(
+							`Found ${matchingEvents.length} matching events for ${eventType} with email ${email}, but need ${occurrence}. Continuing to poll...`
+						);
 					}
 				}
 			} catch (err) {

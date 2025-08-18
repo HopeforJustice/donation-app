@@ -73,21 +73,12 @@ export async function handleSubscriptionDeleted(event, stripeClient) {
 
 		// Add subscription cancellation activity
 		currentStep = "Add subscription cancellation activity";
-		const cancellationReason =
-			subscription.cancellation_details?.reason || "unknown";
-		const cancellationComment =
-			subscription.cancellation_details?.comment || "";
 
 		const cancellationActivityData = {
 			ExistingConstituentId: constituentId,
-			ActivityType: "Subscription Cancelled",
-			Notes: `Stripe Subscription ID: ${
-				subscription.id
-			}, Cancelled at: ${new Date(
-				subscription.canceled_at * 1000
-			).toISOString()}, Reason: ${cancellationReason}${
-				cancellationComment ? `, Comment: ${cancellationComment}` : ""
-			}`,
+			ActivityType: "Stripe Subscription Cancelled",
+			Notes: `Stripe Subscription ID: ${subscription.id}`,
+			Number1: subscription.amount / 100,
 		};
 		await donorfy.addActivity(cancellationActivityData);
 		results.push({ step: currentStep, success: true });

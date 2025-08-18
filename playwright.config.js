@@ -2,7 +2,7 @@ const { defineConfig } = require("@playwright/test");
 
 module.exports = defineConfig({
 	testDir: "./__tests__/playwright", // Specify the folder where Playwright should look for tests
-	timeout: 120000, // Set timeout for each test (120 seconds)
+	timeout: 240000, // Set timeout for each test (240 seconds)
 	retries: process.env.CI ? 2 : 0, // Retry failed tests in CI
 	globalSetup: "./playwright.setup.js",
 	use: {

@@ -5,12 +5,22 @@ const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_TENANT
 );
 
-export default async function pollForActivityType(constituentId, activityType) {
+const donorfyUS = new DonorfyClient(
+	process.env.DONORFY_US_KEY,
+	process.env.DONORFY_US_TENANT
+);
+
+export default async function pollForActivityType(
+	constituentId,
+	activityType,
+	currency = "gbp"
+) {
+	const donorfy = currency === "usd" ? donorfyUS : donorfyUK;
 	console.log(`polling for ${activityType} on constituent:${constituentId}`);
 	return await poll(
 		async () => {
 			try {
-				const activities = await donorfyUK.getConstituentActivities(
+				const activities = await donorfy.getConstituentActivities(
 					constituentId
 				);
 
