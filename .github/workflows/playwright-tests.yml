@@ -93,8 +93,6 @@ jobs:
               },
               viewport: { width: 1800, height: 1000 },
               screenshot: "only-on-failure",
-              video: "retain-on-failure",
-              trace: "retain-on-failure",
             },
             workers: 2,
             forbidOnly: true,
