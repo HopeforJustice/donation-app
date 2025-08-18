@@ -1,0 +1,119 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [preview]
+  pull_request:
+    branches: [preview]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Wait for Vercel Preview Deployment
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        id: vercel-preview
+        with:
+          token: ${{ secrets.VERCEL_TOKEN }}
+          max_timeout: 600
+          check_interval: 10
+
+      - name: Setup Environment Variables
+        run: |
+          echo "Creating .env.test file..."
+          cat > .env.test << EOF
+          # DB
+          DATABASE_URL=\${{ secrets.NEON_TEST_DATABASE_URL }}
+
+          # Donorfy
+          DONORFY_UK_KEY=\${{ secrets.DONORFY_UK_KEY }}
+          DONORFY_UK_TENANT=\${{ secrets.DONORFY_UK_TENANT }}
+          DONORFY_US_KEY=\${{ secrets.DONORFY_US_KEY }}
+          DONORFY_US_TENANT=\${{ secrets.DONORFY_US_TENANT }}
+
+          # GoCardless
+          GOCARDLESS_ACCESS_TOKEN_SANDBOX=\${{ secrets.GOCARDLESS_ACCESS_TOKEN_SANDBOX }}
+          GOCARDLESS_ENVIRONMENT=sandbox
+
+          # Mailchimp
+          MC_API_KEY=\${{ secrets.MC_API_KEY }}
+          MC_UK_AUDIENCE_ID=\${{ secrets.MC_UK_AUDIENCE_ID }}
+          MC_US_AUDIENCE_I
+
+          # Next.js API Keys
+          NEXT_API_KEY=\${{ secrets.NEXT_API_KEY }}
+          NEXT_PUBLIC_API_URL=\${{ steps.vercel-preview.outputs.url }}
+          BASE_URL=\${{ steps.vercel-preview.outputs.url }}
+
+          # Stripe UK Test Keys
+          STRIPE_UK_SECRET_KEY_TEST=\${{ secrets.STRIPE_UK_TEST_SECRET_KEY }}
+
+          # Stripe US Test Keys (secret key only for test script API calls)
+          STRIPE_US_SECRET_KEY_TEST=\${{ secrets.STRIPE_US_TEST_SECRET_KEY }}
+
+          # Test environment flags
+          NODE_ENV=test
+          VERCEL_ENV=preview
+          EOF
+
+      - name: Update Playwright config for Preview URL
+        run: |
+          cat > playwright.config.temp.js << EOF
+          const { defineConfig } = require("@playwright/test");
+
+          module.exports = defineConfig({
+            testDir: "./__tests__/playwright",
+            timeout: 120000,
+            retries: 2,
+            globalSetup: "./playwright.setup.js",
+            use: {
+              baseURL: "\${{ steps.vercel-preview.outputs.url }}",
+              headless: true,
+              launchOptions: {
+                slowMo: 10,
+              },
+              viewport: { width: 1800, height: 1000 },
+              screenshot: "only-on-failure",
+              video: "retain-on-failure",
+              trace: "retain-on-failure",
+            },
+            workers: 2,
+            forbidOnly: true,
+            reporter: [['github'], ['html', { outputFolder: 'playwright-report' }]],
+          });
+          EOF
+          mv playwright.config.temp.js playwright.config.js
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          CI: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30

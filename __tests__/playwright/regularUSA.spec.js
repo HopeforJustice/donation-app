@@ -78,7 +78,7 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 
 		// Intercept checkout session creation to capture test clock ID
 		await page.route("**/api/createCheckoutSession", async (route) => {
-			console.log("🔍 Intercepted createCheckoutSession API call");
+			console.log("Intercepted createCheckoutSession API call");
 			const response = await route.fetch();
 			const responseData = await response.json();
 
@@ -86,10 +86,10 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 			if (responseData.testClockId) {
 				testClockId = responseData.testClockId;
 				testCustomerId = responseData.testCustomerId;
-				console.log(`✅ Captured test clock ID: ${testClockId}`);
-				console.log(`✅ Captured test customer ID: ${testCustomerId}`);
+				console.log(`Captured test clock ID: ${testClockId}`);
+				console.log(`Captured test customer ID: ${testCustomerId}`);
 			} else {
-				console.log("⚠️ No test clock ID found in response");
+				console.log("No test clock ID found in response");
 			}
 
 			await route.fulfill({ response });

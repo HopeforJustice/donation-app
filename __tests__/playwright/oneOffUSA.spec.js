@@ -182,7 +182,6 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 						expect(transaction.Campaign).toEqual(expectedCampaign);
 						expect(transaction.PaymentMethod).toEqual("Stripe Checkout");
 						expect(transaction.Amount).toEqual(testDetails.amount);
-						console.log("Transaction details:", transaction);
 						expect(transaction.FundList).toEqual(
 							testDetails.fund || "Unrestricted"
 						);

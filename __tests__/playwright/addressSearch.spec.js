@@ -4,7 +4,7 @@ test.describe("Test the Loqate address finder", () => {
 	test("Confirm loqate is working and allows the user to auto fill an address in the UK", async ({
 		page,
 	}) => {
-		await page.goto("http://localhost:3000/");
+		await page.goto("/");
 		await page.getByPlaceholder("0.00").click();
 		await page.getByPlaceholder("0.00").fill("10.00");
 		await page.getByLabel("Title").selectOption("Mr");

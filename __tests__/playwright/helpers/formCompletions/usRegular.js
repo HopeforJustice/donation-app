@@ -5,22 +5,21 @@ Handles filling in details for US monthly subscriptions via Stripe
 
 export default async function fillUSRegular(page, testDetails) {
 	let stripeFrame;
-	const url = new URL("http://localhost:3000/");
-	url.searchParams.set("test", "true");
 
-	if (testDetails.campaign)
-		url.searchParams.set("campaign", testDetails.campaign);
-	if (testDetails.fund) url.searchParams.set("fund", testDetails.fund);
-	if (testDetails.utmSource)
-		url.searchParams.set("utm_source", testDetails.utmSource);
-	if (testDetails.utmMedium)
-		url.searchParams.set("utm_medium", testDetails.utmMedium);
+	// Build URL parameters
+	const params = new URLSearchParams();
+	params.set("test", "true");
+
+	if (testDetails.campaign) params.set("campaign", testDetails.campaign);
+	if (testDetails.fund) params.set("fund", testDetails.fund);
+	if (testDetails.utmSource) params.set("utm_source", testDetails.utmSource);
+	if (testDetails.utmMedium) params.set("utm_medium", testDetails.utmMedium);
 	if (testDetails.utmCampaign)
-		url.searchParams.set("utm_campaign", testDetails.utmCampaign);
+		params.set("utm_campaign", testDetails.utmCampaign);
 
-	await page.goto(url.toString());
+	await page.goto(`/?${params.toString()}`);
 
-	await page.getByLabel("Frequency").selectOption("monthly"); // Key difference from usOnce
+	await page.getByLabel("Frequency").selectOption("monthly");
 	await page.locator('select[name="currency"]').selectOption("usd");
 	await page.getByPlaceholder("0.00").click();
 	await page.getByPlaceholder("0.00").fill(testDetails.amount.toString());

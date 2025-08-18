@@ -15,22 +15,17 @@ Needs to handle filling in details for
 
 export default async function fillUkOnce(page, testDetails) {
 	let stripeFrame;
-	const url = new URL("http://localhost:3000/");
-	url.searchParams.set("test", "true");
+	const params = new URLSearchParams();
+	params.set("test", "true");
 
-	if (testDetails.campaign)
-		url.searchParams.set("campaign", testDetails.campaign);
-	if (testDetails.fund) url.searchParams.set("fund", testDetails.fund);
-	if (testDetails.utmSource)
-		url.searchParams.set("utm_source", testDetails.utmSource);
-	if (testDetails.utmMedium)
-		url.searchParams.set("utm_medium", testDetails.utmMedium);
+	if (testDetails.campaign) params.set("campaign", testDetails.campaign);
+	if (testDetails.fund) params.set("fund", testDetails.fund);
+	if (testDetails.utmSource) params.set("utm_source", testDetails.utmSource);
+	if (testDetails.utmMedium) params.set("utm_medium", testDetails.utmMedium);
 	if (testDetails.utmCampaign)
-		url.searchParams.set("utm_campaign", testDetails.utmCampaign);
+		params.set("utm_campaign", testDetails.utmCampaign);
 
-	await page.goto(url.toString());
-
-	await page.getByLabel("Frequency").selectOption("once");
+	await page.goto(`/?${params.toString()}`);
 	await page.getByPlaceholder("0.00").click();
 	await page.getByPlaceholder("0.00").fill(testDetails.amount.toString());
 	await page.getByLabel("Title").selectOption(testDetails.title);
@@ -40,6 +35,7 @@ export default async function fillUkOnce(page, testDetails) {
 	await page.getByLabel("Last name").fill(testDetails.lastName);
 	await page.getByLabel("Email").click();
 	await page.getByLabel("Email").fill(testDetails.email);
+	await page.getByLabel("Frequency").selectOption("once");
 	await page.getByLabel("Phone number").click();
 	await page.getByLabel("Phone number").fill(testDetails.phoneNumber);
 	await page

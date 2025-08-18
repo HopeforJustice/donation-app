@@ -3,11 +3,17 @@ For progressing the UK regular form up to GoCardless hosted page
 */
 
 export default async function fillUkRegular(page, testDetails) {
-	await page.goto(
-		`http://localhost:3000/${
-			testDetails.campaign ? `campaign=${testDetails.campaign}` : ""
-		}`
-	);
+	const params = new URLSearchParams();
+	params.set("test", "true");
+
+	if (testDetails.campaign) params.set("campaign", testDetails.campaign);
+	if (testDetails.fund) params.set("fund", testDetails.fund);
+	if (testDetails.utmSource) params.set("utm_source", testDetails.utmSource);
+	if (testDetails.utmMedium) params.set("utm_medium", testDetails.utmMedium);
+	if (testDetails.utmCampaign)
+		params.set("utm_campaign", testDetails.utmCampaign);
+
+	await page.goto(`/?${params.toString()}`);
 	await page.getByPlaceholder("0.00").click();
 	await page.getByPlaceholder("0.00").fill(testDetails.amount.toString());
 	await page.getByLabel("Title").selectOption(testDetails.title);

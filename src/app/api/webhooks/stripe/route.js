@@ -34,7 +34,10 @@ function parseWebhookMetadata(rawBody) {
 		const dataObject = eventData.data.object;
 
 		if (!dataObject.currency) {
-			throw new Error("Webhook missing currency information");
+			return {
+				currency: null,
+				isTestMode: null,
+			};
 		}
 
 		if (typeof eventData.livemode !== "boolean") {
@@ -62,6 +65,10 @@ export async function POST(req) {
 		console.log(
 			`Webhook detected: currency=${currency}, testMode=${isTestMode}`
 		);
+
+		if (!currency) {
+			return new Response("Unhandled webhook, no currency", { status: 200 });
+		}
 
 		// Get the appropriate Stripe instance and webhook secret
 		const stripe = getStripeInstance({
