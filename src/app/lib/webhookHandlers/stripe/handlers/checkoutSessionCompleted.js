@@ -21,7 +21,7 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 	let constituentId = null;
 	let alreadyInDonorfy = false;
 	let donorfyInstance;
-	let test = process.env.VERCEL_ENV === "test";
+	let test = process.env.VERCEL_ENV !== "production";
 
 	try {
 		// Extract and validate session data

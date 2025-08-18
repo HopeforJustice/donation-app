@@ -21,7 +21,7 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 	let currentStep = "";
 	let constituentId = null;
 	let donorfyInstance;
-	let test = process.env.VERCEL_ENV === "test";
+	let test = process.env.VERCEL_ENV !== "production";
 
 	try {
 		// Extract and validate subscription data
