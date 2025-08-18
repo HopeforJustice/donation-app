@@ -54,7 +54,7 @@ jobs:
           # Mailchimp
           MC_API_KEY=\${{ secrets.MC_API_KEY }}
           MC_UK_AUDIENCE_ID=\${{ secrets.MC_UK_AUDIENCE_ID }}
-          MC_US_AUDIENCE_I
+          MC_US_AUDIENCE_ID=\${{ secrets.MC_US_AUDIENCE_ID }}
 
           # Next.js API Keys
           NEXT_API_KEY=\${{ secrets.NEXT_API_KEY }}
