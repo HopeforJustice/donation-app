@@ -23,9 +23,10 @@ jobs:
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
         id: vercel-preview
         with:
-          token: ${{ secrets.VERCEL_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
           check_interval: 10
+          environment: preview
 
       - name: Install dependencies
         run: npm ci
