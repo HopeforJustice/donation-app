@@ -406,12 +406,14 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 
 			await test.step("Check Donorfy for cancelled activity", async () => {
 				// Check if the subscription cancellation activity was logged
-				const constituentActivities = await pollForActivityType(
+				const cancelledActivity = await pollForActivityType(
 					constituentId,
 					"Stripe Subscription Cancelled",
 					"usd"
 				);
-				expect(constituentActivities.length).toBeGreaterThan(0);
+				expect(cancelledActivity.ActivityType).toEqual(
+					"Stripe Subscription Cancelled"
+				);
 				console.log("Verified subscription cancellation activity in Donorfy");
 			});
 		});
