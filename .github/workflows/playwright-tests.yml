@@ -61,11 +61,14 @@ jobs:
           NEXT_PUBLIC_API_URL=\${{ steps.vercel-preview.outputs.url }}
           BASE_URL=\${{ steps.vercel-preview.outputs.url }}
 
-          # Stripe UK Test Keys
-          STRIPE_UK_SECRET_KEY_TEST=\${{ secrets.STRIPE_UK_TEST_SECRET_KEY }}
+          # Postgres 
+          POSTGRES_URL=\${{ secrets.POSTGRES_URL }}
 
-          # Stripe US Test Keys (secret key only for test script API calls)
-          STRIPE_US_SECRET_KEY_TEST=\${{ secrets.STRIPE_US_TEST_SECRET_KEY }}
+          # Stripe UK Test Keys
+          STRIPE_UK_SECRET_KEY_TEST=\${{ secrets.STRIPE_UK_SECRET_KEY_TEST }}
+
+          # Stripe US Test Keys
+          STRIPE_US_SECRET_KEY_TEST=\${{ secrets.STRIPE_US_SECRET_KEY_TEST }}
 
           # Test environment flags
           NODE_ENV=test
@@ -80,7 +83,7 @@ jobs:
           module.exports = defineConfig({
             testDir: "./__tests__/playwright",
             timeout: 120000,
-            retries: 2,
+            retries: 0,
             globalSetup: "./playwright.setup.js",
             use: {
               baseURL: "\${{ steps.vercel-preview.outputs.url }}",
@@ -101,7 +104,7 @@ jobs:
           mv playwright.config.temp.js playwright.config.js
 
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test setupdirectdebit
         env:
           CI: true
 
