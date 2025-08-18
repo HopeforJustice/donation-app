@@ -10,17 +10,20 @@ export default async function advanceTestClock(
 	currency,
 	advanceBy
 ) {
-	const response = await fetch("http://localhost:3000/api/advanceTestClock", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			testClockId,
-			currency,
-			advanceBy,
-		}),
-	});
+	const response = await fetch(
+		`${process.env.NEXT_PUBLIC_API_URL}/api/advanceTestClock`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				testClockId,
+				currency,
+				advanceBy,
+			}),
+		}
+	);
 
 	if (!response.ok) {
 		const error = await response.json();
