@@ -7,6 +7,7 @@ export async function POST(req) {
 	const ukTest = process.env.NEXT_PUBLIC_STRIPE_UK_PUBLISHABLE_KEY_TEST;
 	const usLive = process.env.NEXT_PUBLIC_STRIPE_US_PUBLISHABLE_KEY_LIVE;
 	const usTest = process.env.NEXT_PUBLIC_STRIPE_US_PUBLISHABLE_KEY_TEST;
+	const baseurl = process.env.NEXT_PUBLIC_API_URL;
 	let publishableKey;
 	let paymentMethods;
 
@@ -91,7 +92,7 @@ export async function POST(req) {
 			},
 		],
 		mode: sessionMode,
-		return_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
+		return_url: `${baseurl}/success?session_id={CHECKOUT_SESSION_ID}`,
 		payment_method_types: paymentMethods,
 		metadata: {
 			...metadata,
