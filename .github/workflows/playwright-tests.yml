@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
       - name: Update Playwright config for Preview URL
         run: |
           cat > playwright.config.temp.js << EOF
