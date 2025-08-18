@@ -105,6 +105,22 @@ jobs:
         run: npx playwright test setupdirectdebit
         env:
           CI: true
+          # Database
+          DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+          # Donorfy
+          DONORFY_UK_KEY: ${{ secrets.DONORFY_UK_KEY }}
+          DONORFY_UK_TENANT: ${{ secrets.DONORFY_UK_TENANT }}
+          DONORFY_US_KEY: ${{ secrets.DONORFY_US_KEY }}
+          DONORFY_US_TENANT: ${{ secrets.DONORFY_US_TENANT }}
+          # GoCardless
+          GOCARDLESS_ACCESS_TOKEN_SANDBOX: ${{ secrets.GOCARDLESS_ACCESS_TOKEN_SANDBOX }}
+          GOCARDLESS_ENVIRONMENT: sandbox
+          # Stripe
+          STRIPE_UK_SECRET_KEY_TEST: ${{ secrets.STRIPE_UK_SECRET_KEY_TEST }}
+          STRIPE_US_SECRET_KEY_TEST: ${{ secrets.STRIPE_US_SECRET_KEY_TEST }}
+          # Test flags
+          NODE_ENV: test
+          VERCEL_ENV: preview
 
       # - uses: actions/upload-artifact@v4
       #   if: always()
