@@ -423,14 +423,14 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 		if (deleteAfterTest) {
 			// Delete the test constituents from Donorfy
 			for (const email of emails) {
-				// try {
-				// 	const constituentId = await pollForConstituent(email, "us");
-				// 	console.log("pollForConstituent", constituentId);
-				// 	await donorfyUS.deleteConstituent(constituentId); // Use US instance
-				// 	console.log(`Deleted Donorfy constituent: ${constituentId}`);
-				// } catch (err) {
-				// 	console.warn(`Failed to delete Donorfy constituent: ${err}`);
-				// }
+				try {
+					const constituentId = await pollForConstituent(email, "us");
+					console.log("pollForConstituent", constituentId);
+					await donorfyUS.deleteConstituent(constituentId); // Use US instance
+					console.log(`Deleted Donorfy constituent: ${constituentId}`);
+				} catch (err) {
+					console.warn(`Failed to delete Donorfy constituent: ${err}`);
+				}
 				//mailchimp cleanup. off due to rate limiting
 				// try {
 				// 	await deleteSubscriber(email, "us"); // Use US instance
