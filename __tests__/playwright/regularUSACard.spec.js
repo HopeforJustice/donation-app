@@ -34,7 +34,6 @@ const testDetails = {
 	firstName: "James",
 	lastName: "Holt",
 	phoneNumber: "07777777777",
-	directDebitDay: 15,
 	address1: "10 Test Place",
 	address2: "Test Area",
 	townCity: "Test City",

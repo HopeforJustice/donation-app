@@ -12,6 +12,10 @@ export default async function storeWebhookEvent(
 	const test = process.env.VERCEL_ENV === "production" ? false : true;
 	try {
 		const eventId = event.id || event.meta?.webhook_id || "unknown_event_id";
+		const eventToStore = {
+			id: eventId,
+			currency: event.currency || "unknown",
+		};
 		const notes = `${additionalNotes}`;
 		const result = await sql`
 			INSERT INTO processed_events (
@@ -22,7 +26,7 @@ export default async function storeWebhookEvent(
 				${notes},
 				NOW(),
 				${status},
-				${JSON.stringify(eventId)},
+				${eventToStore},
 				${constituentId},
 				${goCardlessCustomerId},
 				${test},

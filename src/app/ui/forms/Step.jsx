@@ -9,6 +9,7 @@ import AmountField from "./fields/AmountField";
 import AddressSearchLoqate from "./fields/AddressSearchLoqate";
 import { useSearchParams } from "next/navigation";
 import StripePaymentStep from "./fields/StripePaymentStep";
+import PayPalPaymentStep from "./fields/PayPalPaymentStep";
 
 const Field = ({
 	field,
@@ -239,6 +240,16 @@ const Field = ({
 			return (
 				<div data-testid="stripe-payment-step">
 					<StripePaymentStep
+						amount={values.amount}
+						givingFrequency={values.givingFrequency}
+						currency={values.currency}
+					/>
+				</div>
+			);
+		case "payPalPaymentStep":
+			return (
+				<div data-testid="paypal-payment-step">
+					<PayPalPaymentStep
 						amount={values.amount}
 						givingFrequency={values.givingFrequency}
 						currency={values.currency}

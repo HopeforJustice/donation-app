@@ -1,17 +1,11 @@
 /* 
 One off US
-Needs to handle filling in details for
-    Card payments [x]
-        successful card [x]
-        failed card [ ]
-        3D secure [ ]
-            Pass [ ]
-            failure [ ]
-    Pay by Bank [ ]
-        Success [ ]
-        Fail [ ]
-    
+Handles filling in details for
+    Card payments
+	PayPal 
 */
+
+import { handlePayPalCheckout } from "../paypalCheckout";
 
 export default async function fillUSOnce(page, testDetails) {
 	let stripeFrame;
@@ -59,14 +53,23 @@ export default async function fillUSOnce(page, testDetails) {
 	await page.getByLabel("Country").selectOption(testDetails.country);
 	await page.getByLabel("State").selectOption(testDetails.state);
 	await page.getByRole("button", { name: "Next Step" }).click();
-	stripeFrame = page.frameLocator('iframe[allow="payment *; clipboard-write"]');
-	await page.getByTestId("stripe-payment-step").locator("iframe").click();
-	await stripeFrame.getByLabel("Open Stripe Developer Tools").click();
-	if (testDetails.stripe.pathway === "successful card") {
-		await stripeFrame
-			.getByRole("button", { name: "Successful card ••••" })
-			.click();
+	if (testDetails.gateway === "paypal") {
+		await page.waitForTimeout(500); // Wait for any potential loading
+		await page.getByTestId("paypal-payment-step").click();
+		// Handle PayPal checkout popup
+		await handlePayPalCheckout(page, testDetails);
+	} else {
+		stripeFrame = page.frameLocator(
+			'iframe[allow="payment *; clipboard-write"]'
+		);
+		await page.getByTestId("stripe-payment-step").locator("iframe").click();
+		await stripeFrame.getByLabel("Open Stripe Developer Tools").click();
+		if (testDetails.stripe.pathway === "successful card") {
+			await stripeFrame
+				.getByRole("button", { name: "Successful card ••••" })
+				.click();
+		}
+		await page.locator("body").click({ position: { x: 0, y: 0 } });
+		await page.getByTestId("donate-button").click();
 	}
-	await page.locator("body").click({ position: { x: 0, y: 0 } });
-	await page.getByTestId("donate-button").click();
 }
