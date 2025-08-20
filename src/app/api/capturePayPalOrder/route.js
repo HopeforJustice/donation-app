@@ -6,6 +6,7 @@ export async function POST(req) {
 		const { orderID, formData, utmParams } = await req.json();
 		const test = process.env.VERCEL_ENV !== "production";
 		const mode = test ? "test" : "live";
+		const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 		// Capture PayPal order
 		const captureResult = await capturePayPalOrder({
@@ -16,25 +17,20 @@ export async function POST(req) {
 		});
 
 		// Process donation to Donorfy asynchronously via API call
-
-		fetch(
-			`${
-				process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-			}/api/processPayPalDonation`,
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					orderID,
-					captureID: captureResult.captureID,
-					amount: captureResult.paymentDetails.amount,
-					formData,
-					mode,
-				}),
-			}
-		).catch((error) => {
+		console.log(apiUrl);
+		fetch(`${apiUrl}/api/processPayPalDonation`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				orderID,
+				captureID: captureResult.captureID,
+				amount: captureResult.paymentDetails.amount,
+				formData,
+				mode,
+			}),
+		}).catch((error) => {
 			// Log error but don't fail the user's payment
 			console.error("Failed to initiate background Donorfy processing:", error);
 		});
