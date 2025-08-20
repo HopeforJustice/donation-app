@@ -1,6 +1,7 @@
 import addTag from "@/app/lib/mailchimp/addTag";
 import DonorfyClient from "../../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../../mailchimp/addUpdateSubscriber";
+import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
 
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
