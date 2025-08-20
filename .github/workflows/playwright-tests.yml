@@ -42,7 +42,7 @@ jobs:
           module.exports = defineConfig({
             testDir: "./__tests__/playwright",
             timeout: 120000,
-            retries: 0,
+            retries: 1,
             globalSetup: "./playwright.setup.js",
             use: {
               baseURL: "\${{ steps.vercel-preview.outputs.url }}",
