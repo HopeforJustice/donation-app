@@ -25,6 +25,7 @@ export async function POST(req) {
 	let alreadyInDonorfy = false;
 	let donorfyInstance;
 	let test = process.env.VERCEL_ENV !== "production";
+	let sparkPostTemplate;
 
 	try {
 		const { orderID, captureID, amount, formData, mode } = await req.json();

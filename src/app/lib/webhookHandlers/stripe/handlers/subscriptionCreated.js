@@ -272,7 +272,7 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 		results.push({ step: currentStep, success: true });
 
 		if (sparkPostTemplate) {
-			const currencySymbol = session.currency === "usd" ? "$" : "£";
+			const currencySymbol = subscription.currency === "usd" ? "$" : "£";
 			const friendlyAmount = (
 				subscription.items.data[0]?.price?.unit_amount / 100
 			).toFixed(2);
