@@ -54,6 +54,7 @@ export default function StripePaymentStep({
 					utmSource: searchParams.get("utm_source") || "",
 					utmMedium: searchParams.get("utm_medium") || "",
 					utmCampaign: searchParams.get("utm_campaign") || "",
+					sparkPostTemplate: formData.sparkPostTemplate || "",
 				},
 			}),
 		})

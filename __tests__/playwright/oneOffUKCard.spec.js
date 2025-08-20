@@ -62,7 +62,7 @@ const emails = [];
 test.describe("E2E: Test one off giving via Stripe", () => {
 	test("Should test a successful card", async ({ page }) => {
 		const timestamp = Date.now();
-		const testEmail = `donationapp+oneoffuk${timestamp}@hopeforjustice.org`;
+		const testEmail = `james.holt+oneoffuk${timestamp}@hopeforjustice.org`;
 		emails.push(testEmail);
 		let constituentId;
 		let webhookEvent;

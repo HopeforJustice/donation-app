@@ -6,8 +6,10 @@ export const labelsAndDescriptions = {
 	lastName: "Last name",
 	email: "Email",
 	phoneNumber: "Phone number",
-	phoneDescription:
-		"Copy about the phone number field and how we use their information",
+	phoneDescription: {
+		GB: "Your phone number will be used only to contact you about your donation, unless you also choose to receive general updates via phone/text later in this form",
+		default: null,
+	},
 	directDebitDay:
 		"On what date each month would you like your payment to be taken?",
 	directDebitStartDateDescription:

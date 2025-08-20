@@ -22,6 +22,14 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 	let constituentId = null;
 	let donorfyInstance;
 	let test = process.env.VERCEL_ENV !== "production";
+	let sparkPostTemplate;
+
+	// default sparkpost templates
+	if (subscription.currency === "usd") {
+		sparkPostTemplate = "usa-monthly-donation";
+	} else if (subscription.currency === "gbp") {
+		sparkPostTemplate = null;
+	}
 
 	try {
 		// Extract and validate subscription data
@@ -35,6 +43,14 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 		const metadata = subscription.metadata || customer?.metadata || {};
 		const source = metadata.source || "unknown";
 		results.push({ step: currentStep, success: true });
+
+		// custom sparkpost template or set to none
+		if (metadata.sparkPostTemplate) {
+			sparkPostTemplate =
+				metadata.sparkPostTemplate === "none"
+					? null
+					: metadata.sparkPostTemplate;
+		}
 
 		// Validate source
 		currentStep = "Validate webhook source";
@@ -254,6 +270,24 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 			"Stripe_Active Stripe Subscription"
 		);
 		results.push({ step: currentStep, success: true });
+
+		if (sparkPostTemplate) {
+			const currencySymbol = session.currency === "usd" ? "$" : "£";
+			const friendlyAmount = (
+				subscription.items.data[0]?.price?.unit_amount / 100
+			).toFixed(2);
+			const thankYouEmailSubstitutionData = {
+				name: metadata.firstName,
+				amount: `${currencySymbol}${friendlyAmount}`,
+			};
+			currentStep = "Send Sparkpost thank you email";
+			await sendEmailByTemplateName(
+				sparkPostTemplate,
+				customer?.email,
+				thankYouEmailSubstitutionData
+			);
+			results.push({ step: currentStep, success: true });
+		}
 
 		console.log(results);
 		return {

@@ -26,7 +26,7 @@ const donorfyUK = new DonorfyClient(
 // Generate test email
 const timestamp = Date.now();
 const client = getGoCardlessClient();
-const testEmail = `donationapp+directdebit${timestamp}@hopeforjustice.org`;
+const testEmail = `james.holt+directdebit${timestamp}@hopeforjustice.org`;
 let goCardlessCustomerId;
 let constituentId;
 

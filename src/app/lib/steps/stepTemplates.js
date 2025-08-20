@@ -14,6 +14,11 @@ export const stepTemplates = [
 				hidden: true,
 			},
 			{
+				id: "sparkPostTemplate",
+				type: "text",
+				hidden: true,
+			},
+			{
 				id: "fund",
 				type: "text",
 				defaultValue: "unrestricted",

@@ -2,7 +2,7 @@ import { handleStripeWebhookEvent } from "@/app/lib/webhookHandlers/stripe/handl
 import { getStripeInstance } from "@/app/lib/stripe/getStripeInstance";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import { stripMetadata } from "@/app/lib/utilities";
-
+import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
 export const dynamic = "force-dynamic";
 export const bodyParser = false;
 
@@ -157,12 +157,26 @@ export async function POST(req) {
 				error.donorfyTransactionId || null,
 				subscriptionId
 			);
+			await sendErrorEmail(error, {
+				name: "Stripe webhook failed to process",
+				event: {
+					results: JSON.stringify(error.results || [], null, 2),
+					error: error.message,
+				},
+			});
 			return new Response(`Webhook Error: ${error.message}`, { status: 500 });
 		}
 
 		return new Response(JSON.stringify({ received: true }), { status: 200 });
 	} catch (error) {
 		console.error("Error processing webhook:", error);
+		await sendErrorEmail(error, {
+			name: "Stripe webhook failed to process",
+			event: {
+				results: JSON.stringify(error.results || [], null, 2),
+				error: error.message,
+			},
+		});
 		return new Response(`Webhook Error: ${error.message}`, { status: 500 });
 	}
 }

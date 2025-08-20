@@ -1,5 +1,6 @@
 import DonorfyClient from "../../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../../mailchimp/addUpdateSubscriber";
+import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
 
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
@@ -22,6 +23,14 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 	let alreadyInDonorfy = false;
 	let donorfyInstance;
 	let test = process.env.VERCEL_ENV !== "production";
+	let sparkPostTemplate;
+
+	// default sparkpost templates
+	if (session.currency === "usd") {
+		sparkPostTemplate = "donation-receipt-2024-usa-stripe";
+	} else if (session.currency === "gbp") {
+		sparkPostTemplate = "donation-receipt-2024-uk-stripe";
+	}
 
 	try {
 		// Extract and validate session data
@@ -37,6 +46,14 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 		const metadata = paymentIntent?.metadata || session.metadata || {};
 		const source = metadata.source || "unknown";
 		results.push({ step: currentStep, success: true });
+
+		// custom sparkpost template or set to none
+		if (metadata.sparkPostTemplate) {
+			sparkPostTemplate =
+				metadata.sparkPostTemplate === "none"
+					? null
+					: metadata.sparkPostTemplate;
+		}
 
 		// Validate source and campaign
 		currentStep = "Validate webhook source and campaign";
@@ -250,7 +267,7 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 				additionalMergeFields.ORG = metadata.organisationName;
 			}
 
-			const addSubscriberData = await addUpdateSubscriber(
+			await addUpdateSubscriber(
 				session.customer_details?.email,
 				metadata.firstName,
 				metadata.lastName,
@@ -261,6 +278,22 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 					: undefined
 			);
 
+			results.push({ step: currentStep, success: true });
+		}
+
+		if (sparkPostTemplate) {
+			const currencySymbol = session.currency === "usd" ? "$" : "£";
+			const friendlyAmount = (session.amount_total / 100).toFixed(2);
+			const thankYouEmailSubstitutionData = {
+				name: metadata.firstName,
+				amount: `${currencySymbol}${friendlyAmount}`,
+			};
+			currentStep = "Send Sparkpost thank you email";
+			await sendEmailByTemplateName(
+				sparkPostTemplate,
+				session.customer_details?.email,
+				thankYouEmailSubstitutionData
+			);
 			results.push({ step: currentStep, success: true });
 		}
 

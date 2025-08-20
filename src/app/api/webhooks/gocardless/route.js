@@ -65,7 +65,11 @@ export async function POST(req) {
 							results: response.results || [],
 						});
 
-						if (response.eventStatus && response.message) {
+						if (
+							response.eventStatus &&
+							response.message &&
+							event.status !== "N/A"
+						) {
 							await storeWebhookEvent(
 								stripMetadata(event),
 								response.eventStatus,

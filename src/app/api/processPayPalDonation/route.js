@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
+import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
+import addUpdateSubscriber from "@/app/lib/mailchimp/addUpdateSubscriber";
+import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
 
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
@@ -25,6 +28,21 @@ export async function POST(req) {
 
 	try {
 		const { orderID, captureID, amount, formData, mode } = await req.json();
+
+		// default sparkpost templates
+		if (formData.currency === "usd") {
+			sparkPostTemplate = "donation-receipt-2024-usa-stripe";
+		} else if (formData.currency === "gbp") {
+			sparkPostTemplate = "donation-receipt-2024-uk-stripe";
+		}
+
+		// possible custom sparkpost template
+		if (formData.sparkPostTemplate) {
+			sparkPostTemplate =
+				formData.sparkPostTemplate === "none"
+					? null
+					: formData.sparkPostTemplate;
+		}
 
 		// Validate required data
 		if (!orderID || !captureID || !amount || !formData) {
@@ -220,7 +238,7 @@ export async function POST(req) {
 			}
 
 			await addUpdateSubscriber(
-				session.customer_details?.email,
+				formData.email,
 				formData.firstName,
 				formData.lastName,
 				"subscribed",
@@ -259,6 +277,13 @@ export async function POST(req) {
 	} catch (error) {
 		console.error("Error in PayPal donation processing API:", error);
 		results.push({ step: currentStep, success: false });
+		await sendErrorEmail(error, {
+			name: "PayPal donation processing failed",
+			event: {
+				results: JSON.stringify(results, null, 2),
+				error: error.message,
+			},
+		});
 
 		// Log the error details
 		console.log("results", results);
