@@ -174,9 +174,9 @@ export async function POST(req) {
 			constituentId,
 			null, // chargeDate - will default to current date
 			formData.fund || "unrestricted",
-			formData.utmSource || "", //form data wont have utm, could add or send it another way
-			formData.utmMedium || "",
-			formData.utmCampaign || ""
+			formData.utmSource || "unknown",
+			formData.utmMedium || "unknown",
+			formData.utmCampaign || "unknown"
 		);
 		const transactionId = transaction.Id;
 		results.push({ step: currentStep, success: true });

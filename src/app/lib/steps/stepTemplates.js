@@ -14,6 +14,21 @@ export const stepTemplates = [
 				hidden: true,
 			},
 			{
+				id: "utmSource",
+				type: "text",
+				hidden: true,
+			},
+			{
+				id: "utmMedium",
+				type: "text",
+				hidden: true,
+			},
+			{
+				id: "utmCampaign",
+				type: "text",
+				hidden: true,
+			},
+			{
 				id: "sparkPostTemplate",
 				type: "text",
 				hidden: true,

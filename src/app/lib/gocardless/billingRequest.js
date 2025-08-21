@@ -7,13 +7,61 @@
  *
  * Imported getGoCardlessClient
  *		Creates and retrieves GoCardless client
- *
- *
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 
 const client = getGoCardlessClient();
+
+/**
+ * Validates and trims additionalDetails to ensure it's under 500 characters
+ * Removes less important parameters in order of priority if needed
+ */
+export function validateAndTrimAdditionalDetails(details) {
+	let currentDetails = { ...details };
+
+	// Check if current details are within limit
+	let detailsString = JSON.stringify(currentDetails);
+	if (detailsString.length <= 500) {
+		return currentDetails;
+	}
+
+	// Priority order for removal
+	const removalSteps = [
+		// UTM parameters
+		() => {
+			delete currentDetails.utmSource;
+			delete currentDetails.utmMedium;
+			delete currentDetails.utmCampaign;
+		},
+		// inspiration details
+		() => {
+			delete currentDetails.inspirationDetails;
+		},
+		// inspiration question
+		() => {
+			delete currentDetails.inspirationQuestion;
+		},
+	];
+
+	// Try removing parameters step by step
+	for (const removalStep of removalSteps) {
+		removalStep();
+		detailsString = JSON.stringify(currentDetails);
+
+		if (detailsString.length <= 500) {
+			console.log(
+				`Additional details trimmed to ${detailsString.length} characters`
+			);
+			return currentDetails;
+		}
+	}
+
+	// If still over limit after all removals, throw error
+	throw new Error(
+		`Additional details still exceed 500 character limit (${detailsString.length} characters) after removing optional parameters. Core donation data is too large.`
+	);
+}
 
 export async function billingRequest(data) {
 	try {
@@ -37,7 +85,14 @@ export async function billingRequest(data) {
 			giftAid: data.giftAid,
 			inspirationQuestion: data.inspirationQuestion,
 			inspirationDetails: data.inspirationDetails,
+			utmSource: data.utmSource || "unknown",
+			utmMedium: data.utmMedium || "unknown",
+			utmCampaign: data.utmCampaign || "unknown",
 		};
+
+		// Validate and trim additional details to fit within 500 character limit
+		const validatedDetails =
+			validateAndTrimAdditionalDetails(additionalDetails);
 
 		console.log("creating billing request...");
 		// Creaate billing request
@@ -47,7 +102,7 @@ export async function billingRequest(data) {
 			},
 			//Store form data metadata
 			metadata: {
-				additionalDetails: JSON.stringify(additionalDetails),
+				additionalDetails: JSON.stringify(validatedDetails),
 			},
 		});
 		if (!billingRequest) {

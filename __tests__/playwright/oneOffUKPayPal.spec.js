@@ -46,6 +46,9 @@ const testDetails = {
 		email: "sb-aj6gu45381865@personal.example.com",
 		password: "!/r?zUd1",
 	},
+	utmSource: "test_source",
+	utmMedium: "test_medium",
+	utmCampaign: "test_campaign",
 };
 
 //store constituents for deletion

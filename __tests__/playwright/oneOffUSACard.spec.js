@@ -185,6 +185,15 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 						expect(transaction.FundList).toEqual(
 							testDetails.fund || "Unrestricted"
 						);
+						expect(transaction.UtmSource).toEqual(
+							testDetails.utmSource || "unknown"
+						);
+						expect(transaction.UtmMedium).toEqual(
+							testDetails.utmMedium || "unknown"
+						);
+						expect(transaction.UtmCampaign).toEqual(
+							testDetails.utmCampaign || "unknown"
+						);
 					});
 				}
 			});

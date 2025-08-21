@@ -85,7 +85,10 @@ export async function handlePaymentPaidOut(event) {
 				paymentMethod,
 				constituentId,
 				chargeDate,
-				fund
+				fund,
+				additionalDetails.utmSource || "unknown",
+				additionalDetails.utmMedium || "unknown",
+				additionalDetails.utmCampaign || "unknown"
 			);
 			if (createTransactionResult.Id) {
 				results.push({ step: currentStep, success: true });

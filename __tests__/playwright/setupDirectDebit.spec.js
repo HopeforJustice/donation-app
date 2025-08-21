@@ -61,6 +61,9 @@ const testDetails = {
 		branchCode: "20 - 00 - 00",
 		accountNumber: "55779911",
 	},
+	utmSource: "test_source",
+	utmMedium: "test_medium",
+	utmCampaign: "test_campaign",
 };
 
 test.describe("E2E: Setup Direct Debit", () => {
@@ -117,7 +120,11 @@ test.describe("E2E: Setup Direct Debit", () => {
 					? testDetails.campaign
 					: testDetails.defaultCampaign;
 				expect(goCardlessCustomer.metadata.additionalDetails).toEqual(
-					expect.stringContaining(expectedCampaign)
+					expect.stringContaining(expectedCampaign),
+					expect.stringContaining(testDetails.utmSource),
+					expect.stringContaining(testDetails.utmMedium),
+					expect.stringContaining(testDetails.utmCampaign),
+					expect.stringContaining(testDetails.directDebitDay.toString())
 				);
 			});
 			await test.step("Find and check the Subscription using the customer id", async () => {
@@ -344,6 +351,18 @@ test.describe("E2E: Setup Direct Debit", () => {
 					// expect(transaction.Channel).toEqual(expectedChannel);
 					expect(transaction.PaymentMethod).toEqual(expectedPaymentMethod);
 					expect(transaction.Amount).toEqual(testDetails.amount);
+					expect(transaction.FundList).toEqual(
+						testDetails.fund || "Unrestricted"
+					);
+					expect(transaction.UtmSource).toEqual(
+						testDetails.utmSource || "unknown"
+					);
+					expect(transaction.UtmMedium).toEqual(
+						testDetails.utmMedium || "unknown"
+					);
+					expect(transaction.UtmCampaign).toEqual(
+						testDetails.utmCampaign || "unknown"
+					);
 				});
 			});
 		});

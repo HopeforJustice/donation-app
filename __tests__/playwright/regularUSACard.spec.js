@@ -242,6 +242,15 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 						expect(transaction.FundList).toEqual(
 							testDetails.fund || "Unrestricted"
 						);
+						expect(transaction.UtmSource).toEqual(
+							testDetails.utmSource || "unknown"
+						);
+						expect(transaction.UtmMedium).toEqual(
+							testDetails.utmMedium || "unknown"
+						);
+						expect(transaction.UtmCampaign).toEqual(
+							testDetails.utmCampaign || "unknown"
+						);
 					});
 				}
 			});

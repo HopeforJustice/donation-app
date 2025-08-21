@@ -203,9 +203,9 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			constituentId,
 			null, // chargeDate - will default to current date
 			metadata.fund || "unrestricted",
-			metadata.utmSource || "",
-			metadata.utmMedium || "",
-			metadata.utmCampaign || ""
+			metadata.utmSource || "unknown",
+			metadata.utmMedium || "unknown",
+			metadata.utmCampaign || "unknown"
 		);
 		const transactionId = transaction.Id;
 		results.push({ step: currentStep, success: true });

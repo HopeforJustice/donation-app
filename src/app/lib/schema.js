@@ -16,8 +16,18 @@ export const formSchema = z.object({
 			message: "Please enter an amount of 2 or higher.",
 		}),
 	title: z.string().min(1, { message: "Please select a title" }),
-	firstName: z.string().min(1, { message: "Please enter your first name" }),
-	lastName: z.string().min(1, { message: "Please enter your last name" }),
+	firstName: z
+		.string()
+		.min(1, { message: "Please enter your first name" })
+		.max(15, {
+			message: "Max 15 characters",
+		}),
+	lastName: z
+		.string()
+		.min(1, { message: "Please enter your last name" })
+		.max(15, {
+			message: "Max 15 characters",
+		}),
 	email: z.string().email({ message: "Please enter a valid email" }),
 	phone: z
 		.string()
