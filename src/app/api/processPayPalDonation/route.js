@@ -174,9 +174,9 @@ export async function POST(req) {
 			constituentId,
 			null, // chargeDate - will default to current date
 			formData.fund || "unrestricted",
-			formData.utmSource || "unknown",
-			formData.utmMedium || "unknown",
-			formData.utmCampaign || "unknown"
+			formData.utm_source || "unknown",
+			formData.utm_medium || "unknown",
+			formData.utm_campaign || "unknown"
 		);
 		const transactionId = transaction.Id;
 		results.push({ step: currentStep, success: true });

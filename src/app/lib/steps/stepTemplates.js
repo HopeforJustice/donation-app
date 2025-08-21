@@ -14,17 +14,17 @@ export const stepTemplates = [
 				hidden: true,
 			},
 			{
-				id: "utmSource",
+				id: "utm_source",
 				type: "text",
 				hidden: true,
 			},
 			{
-				id: "utmMedium",
+				id: "utm_medium",
 				type: "text",
 				hidden: true,
 			},
 			{
-				id: "utmCampaign",
+				id: "utm_campaign",
 				type: "text",
 				hidden: true,
 			},

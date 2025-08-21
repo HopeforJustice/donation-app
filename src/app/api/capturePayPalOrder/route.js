@@ -3,7 +3,7 @@ import { capturePayPalOrder } from "@/app/lib/paypal/capturePayPalOrder";
 
 export async function POST(req) {
 	try {
-		const { orderID, formData, utmParams } = await req.json();
+		const { orderID, formData } = await req.json();
 		const test = process.env.VERCEL_ENV !== "production";
 		const mode = test ? "test" : "live";
 		const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -13,7 +13,6 @@ export async function POST(req) {
 			orderID,
 			mode,
 			formData,
-			utmParams,
 		});
 
 		// Process donation to Donorfy asynchronously via API call

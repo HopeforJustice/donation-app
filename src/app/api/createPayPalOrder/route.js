@@ -3,7 +3,7 @@ import { createPayPalOrder } from "@/app/lib/paypal/createPayPalOrder";
 
 export async function POST(req) {
 	try {
-		const { amount, currency, formData, utmParams } = await req.json();
+		const { amount, currency, formData } = await req.json();
 		const test = process.env.VERCEL_ENV !== "production";
 		const mode = test ? "test" : "live";
 
@@ -13,7 +13,6 @@ export async function POST(req) {
 			currency,
 			mode,
 			formData,
-			utmParams,
 		});
 
 		return NextResponse.json({
