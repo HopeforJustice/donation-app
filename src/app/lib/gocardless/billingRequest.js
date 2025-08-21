@@ -85,9 +85,9 @@ export async function billingRequest(data) {
 			giftAid: data.giftAid,
 			inspirationQuestion: data.inspirationQuestion,
 			inspirationDetails: data.inspirationDetails,
-			utmSource: data.utmSource || "unknown",
-			utmMedium: data.utmMedium || "unknown",
-			utmCampaign: data.utmCampaign || "unknown",
+			utmSource: data.utm_source || "unknown",
+			utmMedium: data.utm_medium || "unknown",
+			utmCampaign: data.utm_campaign || "unknown",
 		};
 
 		// Validate and trim additional details to fit within 500 character limit
