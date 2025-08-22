@@ -295,7 +295,7 @@ export async function POST(req) {
 		await storeWebhookEvent(
 			event,
 			"processed",
-			results,
+			JSON.stringify(results, null, 2),
 			constituentId,
 			null,
 			transactionId,

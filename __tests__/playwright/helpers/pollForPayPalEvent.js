@@ -15,18 +15,24 @@ const donorfyUS = new DonorfyClient(
 export default async function pollForPayPalEvent(testEmail) {
 	return await poll(
 		async () => {
-			const event = await getProcessedEvent(null, "paypal_donation");
-			if (!event.id) return null;
-			const donorfy = event.event.currency === "usd" ? donorfyUS : donorfyUK;
-			try {
-				const constituent = await donorfy.getConstituent(event.constituent_id);
-				if (constituent.EmailAddress === testEmail) {
-					return event;
+			const events = await getProcessedEvent(null, "paypal_donation", 5);
+			if (events.length === 0) return null;
+
+			for (const event of events) {
+				if (!event.id) return null;
+				const donorfy = event.event.currency === "usd" ? donorfyUS : donorfyUK;
+				try {
+					const constituent = await donorfy.getConstituent(
+						event.constituent_id
+					);
+					if (constituent.EmailAddress === testEmail) {
+						return event;
+					}
+				} catch (err) {
+					return null;
 				}
-			} catch (err) {
 				return null;
 			}
-			return null;
 		},
 		{ interval: 500, timeout: 60000 }
 	);

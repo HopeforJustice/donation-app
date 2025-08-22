@@ -16,7 +16,6 @@ export async function POST(req) {
 		});
 
 		// Process donation to Donorfy asynchronously via API call
-		console.log("expanded?:", formData);
 		fetch(`${apiUrl}/api/processPayPalDonation`, {
 			method: "POST",
 			headers: {
