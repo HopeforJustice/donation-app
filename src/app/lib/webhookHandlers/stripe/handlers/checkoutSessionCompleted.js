@@ -1,3 +1,4 @@
+import processCampaign from "@/app/lib/campaigns/processCampaign";
 import DonorfyClient from "../../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../../mailchimp/addUpdateSubscriber";
 import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
@@ -202,7 +203,7 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			metadata.paymentMethod || "Stripe Checkout",
 			constituentId,
 			null, // chargeDate - will default to current date
-			metadata.fund || "unrestricted",
+			metadata.projectId || metadata.fund || "unrestricted",
 			metadata.utmSource || "unknown",
 			metadata.utmMedium || "unknown",
 			metadata.utmCampaign || "unknown"
@@ -281,7 +282,7 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			results.push({ step: currentStep, success: true });
 		}
 
-		if (sparkPostTemplate) {
+		if (sparkPostTemplate && metadata.campaign !== "FreedomFoundation") {
 			const currencySymbol = session.currency === "usd" ? "$" : "£";
 			const friendlyAmount = (session.amount_total / 100).toFixed(2);
 			const thankYouEmailSubstitutionData = {
@@ -296,6 +297,17 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			);
 			results.push({ step: currentStep, success: true });
 		}
+
+		currentStep = "process campaign logic";
+		await processCampaign(
+			metadata.campaign,
+			null,
+			metadata,
+			constituentId,
+			session.currency,
+			(session.amount_total / 100).toFixed(2)
+		);
+		results.push({ step: currentStep, success: true });
 
 		console.log(results);
 		return {

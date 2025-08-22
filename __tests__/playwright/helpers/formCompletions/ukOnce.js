@@ -18,6 +18,11 @@ export default async function fillUkOnce(page, testDetails) {
 	if (testDetails.utmMedium) params.set("utm_medium", testDetails.utmMedium);
 	if (testDetails.utmCampaign)
 		params.set("utm_campaign", testDetails.utmCampaign);
+	if (testDetails.projectId) params.set("projectId", testDetails.projectId);
+	if (testDetails.organisationName)
+		params.set("organisationName", testDetails.organisationName);
+	if (testDetails.givingTo) params.set("givingTo", testDetails.givingTo);
+	if (testDetails.donorType) params.set("donorType", testDetails.donorType);
 
 	await page.goto(`/?${params.toString()}`);
 	await page.getByPlaceholder("0.00").click();

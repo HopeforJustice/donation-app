@@ -31,7 +31,8 @@ export default function StripePaymentStep({
 					lastName: formData.lastName || "",
 					email: formData.email || "",
 					phone: formData.phone || "",
-					fund: formData.fund || "unrestricted",
+					fund:
+						formData.fund || searchParams.get("projectId") || "unrestricted",
 					inspiration: formData.inspirationQuestion || "",
 					address1: formData.address1 || "",
 					address2: formData.address2 || "",
@@ -55,6 +56,10 @@ export default function StripePaymentStep({
 					utmMedium: formData.utm_medium || "unknown",
 					utmCampaign: formData.utm_campaign || "unknown",
 					sparkPostTemplate: formData.sparkPostTemplate || "",
+					donorType: searchParams.get("donorType") || "",
+					organisationName: searchParams.get("organisationName") || "",
+					givingTo: searchParams.get("givingTo") || "",
+					projectId: searchParams.get("projectId") || "",
 				},
 			}),
 		})

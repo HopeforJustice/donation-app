@@ -4,6 +4,7 @@ import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
 import addUpdateSubscriber from "@/app/lib/mailchimp/addUpdateSubscriber";
 import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
+import processCampaign from "@/app/lib/campaigns/processCampaign";
 
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
@@ -28,7 +29,7 @@ export async function POST(req) {
 	let sparkPostTemplate;
 
 	try {
-		const { orderID, captureID, amount, formData, mode } = await req.json();
+		const { orderID, captureID, amount, formData } = await req.json();
 
 		// default sparkpost templates
 		if (formData.currency === "usd") {
@@ -173,7 +174,7 @@ export async function POST(req) {
 			formData.paymentMethod || "PayPal", //need a paypal payment method
 			constituentId,
 			null, // chargeDate - will default to current date
-			formData.fund || "unrestricted",
+			formData.projectId || formData.fund || "unrestricted",
 			formData.utm_source || "unknown",
 			formData.utm_medium || "unknown",
 			formData.utm_campaign || "unknown"
@@ -251,6 +252,35 @@ export async function POST(req) {
 
 			results.push({ step: currentStep, success: true });
 		}
+
+		//send sparkpost email receipt
+		//dont send detault template if Freedom Foundation campaign
+		if (sparkPostTemplate && formData.campaign !== "FreedomFoundation") {
+			const currencySymbol = formData.currency === "usd" ? "$" : "£";
+			const friendlyAmount = formData.amount;
+			const thankYouEmailSubstitutionData = {
+				name: formData.firstName,
+				amount: `${currencySymbol}${friendlyAmount}`,
+			};
+			currentStep = "Send Sparkpost thank you email";
+			await sendEmailByTemplateName(
+				sparkPostTemplate,
+				formData.email,
+				thankYouEmailSubstitutionData
+			);
+			results.push({ step: currentStep, success: true });
+		}
+
+		currentStep = "process campaign logic";
+		await processCampaign(
+			formData.campaign,
+			formData,
+			null,
+			constituentId,
+			formData.currency,
+			formData.amount
+		);
+		results.push({ step: currentStep, success: true });
 
 		console.log(results);
 

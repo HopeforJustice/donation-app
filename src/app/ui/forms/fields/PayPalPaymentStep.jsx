@@ -55,13 +55,25 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 	const createOrder = async () => {
 		try {
 			const formData = getValues();
+			const projectId = searchParams.get("projectId") || "";
+			const givingTo = searchParams.get("givingTo") || "";
+			const donorType = searchParams.get("donorType") || "";
+			const organisationName = searchParams.get("organisationName") || "";
+			const expandedFormData = {
+				...formData,
+				projectId,
+				givingTo,
+				donorType,
+				organisationName,
+			};
+
 			const response = await fetch("/api/createPayPalOrder", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					amount,
 					currency,
-					formData,
+					expandedFormData,
 				}),
 			});
 
@@ -88,15 +100,26 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 			);
 
 			const formData = getValues();
+			const projectId = searchParams.get("projectId") || "";
+			const givingTo = searchParams.get("givingTo") || "";
+			const donorType = searchParams.get("donorType") || "";
+			const organisationName = searchParams.get("organisationName") || "";
+			const expandedFormData = {
+				...formData,
+				projectId,
+				givingTo,
+				donorType,
+				organisationName,
+			};
+
 			const response = await fetch("/api/capturePayPalOrder", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					orderID: data.orderID,
-					formData,
+					formData: expandedFormData,
 				}),
 			});
-
 			const result = await response.json();
 			if (!response.ok) {
 				throw new Error(result.error || "Payment capture failed");
