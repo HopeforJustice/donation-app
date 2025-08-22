@@ -159,7 +159,6 @@ const Field = ({
 					hidden={field.hidden}
 				/>
 			);
-
 		case "toggle":
 			return (
 				<ToggleField

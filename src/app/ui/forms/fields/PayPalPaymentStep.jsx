@@ -187,7 +187,11 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 					}
 				>
 					<div className="flex items-center">
-						<div className="w-[31.5px] mr-[10.5px]">
+						<div
+							className={`w-[31.5px] ${
+								currency === "gbp" ? "mr-[10.5px]" : ""
+							}`}
+						>
 							<svg
 								id="Group_7496"
 								data-name="Group 7496"
@@ -226,16 +230,91 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 								/>
 							</svg>
 						</div>
+						{currency === "usd" && (
+							<div className="w-[31.5px] mr-[10.5px]">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									xmlnsXlink="http://www.w3.org/1999/xlink"
+									width="21"
+									height="21"
+									viewBox="0 0 21 21"
+								>
+									<defs>
+										<clipPath id="clip-path">
+											<rect
+												id="Rectangle_3693"
+												data-name="Rectangle 3693"
+												width="21"
+												height="21"
+												rx="4"
+												fill="none"
+											/>
+										</clipPath>
+										<clipPath id="clip-path-2">
+											<rect
+												id="Rectangle_3694"
+												data-name="Rectangle 3694"
+												width="21"
+												height="21"
+												fill="none"
+											/>
+										</clipPath>
+									</defs>
+									<g
+										id="Group_7695"
+										data-name="Group 7695"
+										transform="translate(0 0.168)"
+									>
+										<g
+											id="Group_7692"
+											data-name="Group 7692"
+											transform="translate(0 -0.168)"
+										>
+											<g
+												id="Group_7691"
+												data-name="Group 7691"
+												clipPath="url(#clip-path)"
+											>
+												<path
+													id="Path_17240"
+													data-name="Path 17240"
+													d="M20.014,21.073H1.059A1.059,1.059,0,0,1,0,20.014V1.059A1.059,1.059,0,0,1,1.059,0H20.014a1.059,1.059,0,0,1,1.059,1.059V20.014a1.059,1.059,0,0,1-1.059,1.059"
+													transform="translate(0 -0.073)"
+													fill="#008cff"
+												/>
+											</g>
+										</g>
+										<g
+											id="Group_7694"
+											data-name="Group 7694"
+											transform="translate(0 -0.168)"
+										>
+											<g
+												id="Group_7693"
+												data-name="Group 7693"
+												clipPath="url(#clip-path-2)"
+											>
+												<path
+													id="Path_17241"
+													data-name="Path 17241"
+													d="M271.145,230.756A4.1,4.1,0,0,1,271.74,233c0,2.8-2.4,6.433-4.343,8.986h-4.444l-1.782-10.619,3.891-.368.942,7.556c.88-1.429,1.967-3.675,1.967-5.207a4.179,4.179,0,0,0-.369-1.879Z"
+													transform="translate(-255.667 -225.766)"
+													fill="#fff"
+												/>
+											</g>
+										</g>
+									</g>
+								</svg>
+							</div>
+						)}
 
 						<p className='text-[#6d6e78] font-[-apple-system,"system-ui",sans-serif] font-semibold text-sm'>
-							PayPal
+							PayPal {currency === "usd" ? "/Venmo" : ""}
 						</p>
 					</div>
 					{selected && (
 						<div className="">
-							<p className="opacity-80 mb-2 mt-4">
-								To donate via paypal click the button below:
-							</p>
+							<div className="mb-2 mt-4"></div>
 							<PayPalButtons
 								style={{
 									layout: "horizontal",
@@ -252,6 +331,12 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 									console.log("PayPal payment cancelled");
 								}}
 							/>
+							{currency === "usd" && (
+								<p className="opacity-80 mb-2 mt-2 text-sm">
+									If no Venmo option is present for you, no Venmo app has been
+									detected on your device
+								</p>
+							)}
 						</div>
 					)}
 				</div>

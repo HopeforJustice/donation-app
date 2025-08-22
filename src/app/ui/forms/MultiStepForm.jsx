@@ -92,13 +92,26 @@ const MultiStepForm = ({
 				currency: watchedCurrency,
 				frequency: watchedFrequency,
 			});
-			// If the structure is the same, keep the previous steps to preserve any updates
+
+			// Check if the visible fields have actually changed
+			const prevFieldIds = prevSteps.flatMap((step) =>
+				step.fields.map((field) => field.id)
+			);
+			const newFieldIds = newSteps.flatMap((step) =>
+				step.fields.map((field) => field.id)
+			);
+
+			// If the structure and visible fields are the same, keep the previous steps
 			if (
 				prevSteps.length === newSteps.length &&
-				prevSteps.every((step, index) => step.id === newSteps[index].id)
+				prevSteps.every((step, index) => step.id === newSteps[index].id) &&
+				prevFieldIds.length === newFieldIds.length &&
+				prevFieldIds.every((id, index) => id === newFieldIds[index])
 			) {
+				console.log("no change in step structure or fields");
 				return prevSteps;
 			}
+			console.log("step structure or fields changed");
 			return newSteps;
 		});
 
