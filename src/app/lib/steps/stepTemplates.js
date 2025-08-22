@@ -1,5 +1,9 @@
 import { onlyNumbers } from "@/app/lib/utilities";
 import { handlePhoneInput } from "@/app/lib/utilities";
+import EmailDrawer from "@/app/ui/icons/EmailDrawer";
+import Mail from "@/app/ui/icons/Mail";
+import Mobile from "@/app/ui/icons/Mobile";
+import Phone from "@/app/ui/icons/Phone";
 
 export const stepTemplates = [
 	{
@@ -197,27 +201,39 @@ export const stepTemplates = [
 				fields: [
 					{
 						id: "emailPreference",
-						labelToken: "Email",
+						labelToken: "Email impact stories",
 						type: "toggle",
-						defaultValue: "true",
+						defaultValue: true,
+						icon: <EmailDrawer />,
+						description:
+							"Monthly stories and organisation-wide wins. Our most popular way to stay connected",
 					},
 					{
 						id: "postPreference",
-						labelToken: "Post",
-						type: "select",
-						optionsToken: "yesNoOptions",
+						labelToken: "Premium mailings",
+						type: "toggle",
+						defaultValue: true,
+						icon: <Mail />,
+						description:
+							"Christmas appeal & urgent campaigns 2-3 times per year",
 					},
 					{
 						id: "smsPreference",
-						labelToken: "SMS",
-						type: "select",
-						optionsToken: "yesNoOptions",
+						labelToken: "Text alerts",
+						type: "toggle",
+						defaultValue: true,
+						icon: <Mobile />,
+						description:
+							"Breaking news when someone gains freedom Rare but powerful moments",
 					},
 					{
 						id: "phonePreference",
-						labelToken: "Phone",
-						type: "select",
-						optionsToken: "yesNoOptions",
+						labelToken: "Phone calls",
+						type: "toggle",
+						defaultValue: true,
+						icon: <Phone />,
+						description:
+							"Any urgent or pressing issues you need to know about. Our quickest way to contact you",
 					},
 				],
 			},

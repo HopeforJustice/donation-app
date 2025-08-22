@@ -21,7 +21,7 @@ const donorfyUK = new DonorfyClient(
 
 // Default campaign: Donation App General Campaign
 
-const deleteAfterTest = true;
+const deleteAfterTest = false;
 const testDetails = {
 	fund: null,
 	frequency: "once",
@@ -40,9 +40,9 @@ const testDetails = {
 	preferences: {
 		//email:true to test mailchimp
 		email: true,
-		post: true,
+		post: false,
 		sms: true,
-		phone: true,
+		phone: false,
 	},
 	inspiration: "Inspiration_Faith",
 	inspirationNotes: "Test notes",

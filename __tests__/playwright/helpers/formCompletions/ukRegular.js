@@ -52,17 +52,18 @@ export default async function fillUkRegular(page, testDetails) {
 		.getByLabel("Do you want to Gift Aid your")
 		.selectOption(testDetails.giftAid ? "true" : "false");
 	await page.getByRole("button", { name: "Next Step" }).click();
-	await page
-		.getByLabel("Email")
-		.selectOption(testDetails.preferences.email ? "true" : "false");
-	await page
-		.getByLabel("Post")
-		.selectOption(testDetails.preferences.post ? "true" : "false");
-	await page
-		.getByLabel("SMS")
-		.selectOption(testDetails.preferences.sms ? "true" : "false");
-	await page
-		.getByLabel("Phone")
-		.selectOption(testDetails.preferences.phone ? "true" : "false");
+	//preference toggles, on by default
+	if (!testDetails.preferences.email) {
+		await page.locator('label[for="emailPreference"]').click();
+	}
+	if (!testDetails.preferences.post) {
+		await page.locator('label[for="postPreference"]').click();
+	}
+	if (!testDetails.preferences.sms) {
+		await page.locator('label[for="smsPreference"]').click();
+	}
+	if (!testDetails.preferences.phone) {
+		await page.locator('label[for="phonePreference"]').click();
+	}
 	await page.getByTestId("donate-button").click();
 }

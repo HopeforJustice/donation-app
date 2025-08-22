@@ -173,6 +173,7 @@ const Field = ({
 					onChange={field.onChange}
 					defaultValue={field.defaultValue}
 					hidden={field.hidden}
+					icon={field.icon}
 				/>
 			);
 		case "fieldGroup":

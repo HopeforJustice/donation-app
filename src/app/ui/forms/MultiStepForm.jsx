@@ -143,6 +143,7 @@ const MultiStepForm = ({
 				if (prefsRes?.preferences) {
 					const extracted = await extractPreferences(prefsRes);
 					if (extracted) {
+						console.log("Extracted preferences:", extracted);
 						const preferenceFields = [
 							"emailPreference",
 							"postPreference",
@@ -151,7 +152,7 @@ const MultiStepForm = ({
 						];
 						for (const field of preferenceFields) {
 							const value = extracted[field];
-							if (value !== undefined) setValue(field, String(value));
+							if (value !== undefined) setValue(field, value);
 						}
 						updateStepDescription(
 							"preferences",

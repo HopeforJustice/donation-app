@@ -64,7 +64,7 @@ const emails = [];
 test.describe("E2E: Test one off giving via PayPal", () => {
 	test("Should test a successful PayPal Transaction", async ({ page }) => {
 		const timestamp = Date.now();
-		const testEmail = `james.holt+oneoffukpaypal${timestamp}@hopeforjustice.org`;
+		const testEmail = `james.holt+oneoffukpaypalff${timestamp}@hopeforjustice.org`;
 		let constituentId;
 		let webhookEvent;
 		emails.push(testEmail);

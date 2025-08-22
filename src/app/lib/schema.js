@@ -63,48 +63,36 @@ export const formSchema = z.object({
 		.transform((value) => value === "true"),
 
 	emailPreference: z
-		.string()
+		.boolean()
 		.optional()
-		.refine(
-			(value) => value === undefined || value === "true" || value === "false",
-			{
-				message: "This field is required",
-			}
-		)
-		.transform((value) => value === "true"),
+		.transform((value) => {
+			if (value === undefined) return undefined;
+			return value ? "true" : "false";
+		}),
 
 	postPreference: z
-		.string()
+		.boolean()
 		.optional()
-		.refine(
-			(value) => value === undefined || value === "true" || value === "false",
-			{
-				message: "This field is required",
-			}
-		)
-		.transform((value) => value === "true"),
+		.transform((value) => {
+			if (value === undefined) return undefined;
+			return value ? "true" : "false";
+		}),
 
 	smsPreference: z
-		.string()
+		.boolean()
 		.optional()
-		.refine(
-			(value) => value === undefined || value === "true" || value === "false",
-			{
-				message: "This field is required",
-			}
-		)
-		.transform((value) => value === "true"),
+		.transform((value) => {
+			if (value === undefined) return undefined;
+			return value ? "true" : "false";
+		}),
 
 	phonePreference: z
-		.string()
+		.boolean()
 		.optional()
-		.refine(
-			(value) => value === undefined || value === "true" || value === "false",
-			{
-				message: "This field is required",
-			}
-		)
-		.transform((value) => value === "true"),
+		.transform((value) => {
+			if (value === undefined) return undefined;
+			return value ? "true" : "false";
+		}),
 
 	inspirationQuestion: z.string().optional(),
 	inspirationDetails: z

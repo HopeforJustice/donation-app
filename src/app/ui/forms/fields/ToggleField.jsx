@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useFormContext } from "react-hook-form";
 
 const ToggleField = ({
 	id,
@@ -12,41 +13,53 @@ const ToggleField = ({
 	onChange,
 	hidden,
 	defaultValue,
+	icon,
 }) => {
+	const { watch } = useFormContext();
+	const fieldValue = watch(id);
 	const hiddenClasses = hidden ? "hidden" : "";
 	return (
 		<div className={`mb-4 ${extraClasses} ${hiddenClasses} w-full`}>
-			<div className="flex justify-between">
+			<label htmlFor={id} className="flex justify-between cursor-pointer mb-4">
 				<div>
-					{/* icon here */}
-					<label
-						htmlFor={id}
-						className="block text-sm font-medium leading-4 text-hfj-black"
-					>
-						{label}
-					</label>
+					<div className="flex items-center gap-2">
+						<div className="">{icon && icon}</div>
+						<span className="block font-medium leading-4 text-hfj-black">
+							{label}
+						</span>
+					</div>
 					{description && (
 						<p
 							id={`${id}-description`}
-							className="mt-4 text-sm text-hfj-black-tint1"
+							className="mt-4 text-balance text-hfj-black-tint1"
 						>
 							{description}
 						</p>
 					)}
+					{id === "emailPreference" && !fieldValue && (
+						<p className="mt-3 text-sm text-hfj-black-tint1">
+							By choosing ‘No’ to email, you will receive no further emails from
+							Hope for Justice about the impact of your gift or the fight
+							against modern slavery and human trafficking. We will still send
+							you emails when necessary for administrative reasons, including a
+							receipt confirming your donation.
+						</p>
+					)}
 				</div>
-				<div className="group relative inline-flex w-11 shrink-0 rounded-full bg-gray-200 p-0.5 inset-ring inset-ring-gray-900/5 outline-offset-2 outline-indigo-600 transition-colors duration-200 ease-in-out has-checked:bg-indigo-600 has-focus-visible:outline-2">
-					<span className="size-5 rounded-full bg-white shadow-xs ring-1 ring-gray-900/5 transition-transform duration-200 ease-in-out group-has-checked:translate-x-5" />
+				<div className="self-start group relative inline-flex w-11 shrink-0 rounded-full bg-gray-200 p-0.5 outline-offset-2 outline-hfj-green ring-1 ring-inset ring-gray-900/5 transition-colors duration-200 ease-in-out has-[:checked]:bg-hfj-green has-[:focus-visible]:outline has-[:focus-visible]:outline-2">
+					<span className="size-5 rounded-full bg-white shadow-sm ring-1 ring-gray-900/5 transition-transform duration-200 ease-in-out group-has-[:checked]:translate-x-5" />
 					<input
-						name="setting"
+						id={id}
+						name={id}
 						type="checkbox"
 						aria-label="Use setting"
-						className="absolute inset-0 appearance-none focus:outline-hidden"
+						className="absolute inset-0 appearance-none hidden focus:outline-none"
 						aria-describedby={`${id}-description`}
 						{...register(id)}
 						{...(onChange ? { onChange: (e) => onChange(e) } : {})} // Conditional inclusion of onChange function
 					/>
 				</div>
-			</div>
+			</label>
 			{/* <select
 				id={id}
 				name={id}
