@@ -185,19 +185,21 @@ export const stepTemplates = [
 	{
 		id: "preferences",
 		status: "upcoming",
-		title: "Hear about your impact",
+		title: "Choose your impact updates",
+		subtitle: "Join 44,000+ supporters staying connected",
 		descriptionToken: "preferencesDescription",
 		fields: [
 			{
 				type: "fieldGroup",
 				id: "contactPreferences",
 				descriptionToken: "contactPreferencesDescription",
+				columns: 1,
 				fields: [
 					{
 						id: "emailPreference",
 						labelToken: "Email",
-						type: "select",
-						optionsToken: "yesNoOptions",
+						type: "toggle",
+						defaultValue: "true",
 					},
 					{
 						id: "postPreference",

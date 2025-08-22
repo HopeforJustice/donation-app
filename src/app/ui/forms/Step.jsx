@@ -10,6 +10,7 @@ import AddressSearchLoqate from "./fields/AddressSearchLoqate";
 import { useSearchParams } from "next/navigation";
 import StripePaymentStep from "./fields/StripePaymentStep";
 import PayPalPaymentStep from "./fields/PayPalPaymentStep";
+import ToggleField from "./fields/ToggleField";
 
 const Field = ({
 	field,
@@ -158,13 +159,33 @@ const Field = ({
 					hidden={field.hidden}
 				/>
 			);
+
+		case "toggle":
+			return (
+				<ToggleField
+					id={field.id}
+					label={field.label}
+					register={register}
+					options={field.options}
+					optional={field.optional}
+					errors={errors}
+					description={field.description}
+					onChange={field.onChange}
+					defaultValue={field.defaultValue}
+					hidden={field.hidden}
+				/>
+			);
 		case "fieldGroup":
 			if (field.id === "givingDetails" && !showGivingDetails) {
 				return null;
 			}
 			return (
 				<div className="">
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+					<div
+						className={`grid grid-cols-1 gap-x-6 ${
+							field.columns === 1 ? "" : "sm:grid-cols-2"
+						}`}
+					>
 						{field.fields.map((subField) => (
 							<Field
 								key={subField.id}
@@ -181,13 +202,13 @@ const Field = ({
 								field.description.map((paragraph, index) => (
 									<div
 										key={index}
-										className="mb-4 text-sm text-gray-500"
+										className="mb-4 text-sm text-hfj-black-tint1"
 										dangerouslySetInnerHTML={{ __html: paragraph }}
 									></div>
 								))
 							) : (
 								<div
-									className="mb-4 text-sm text-gray-500"
+									className="mb-4 text-sm text-hfj-black-tint1"
 									dangerouslySetInnerHTML={{ __html: field.description }}
 								></div>
 							)}
@@ -272,8 +293,22 @@ const Step = ({
 }) => {
 	return (
 		<div className="">
-			<h2 className="text-2xl font-bold mb-4">{stepData.title}</h2>
-			{stepData.description && <p className="mb-8">{stepData.description}</p>}
+			<h2
+				className={`text-2xl font-bold ${stepData.subtitle ? "mb-1" : "mb-4"}`}
+			>
+				{stepData.title}
+			</h2>
+			{stepData.subtitle && (
+				<h3 className="text-xl mb-4  text-hfj-black-tint1">
+					{stepData.subtitle}
+				</h3>
+			)}
+			{stepData.description && (
+				<div
+					className="mb-8 text-hfj-black-tint1"
+					dangerouslySetInnerHTML={{ __html: stepData.description }}
+				></div>
+			)}
 			{stepData.fields.map((field) => (
 				<Field
 					key={field.id || field.fields[0].id}

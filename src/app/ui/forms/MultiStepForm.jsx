@@ -75,6 +75,7 @@ const MultiStepForm = ({
 	);
 
 	function updateStepDescription(stepId, newDescription) {
+		console.log("updating steps", stepId, newDescription);
 		setSteps((prevSteps) =>
 			prevSteps.map((step) =>
 				step.id === stepId ? { ...step, description: newDescription } : step
@@ -85,15 +86,21 @@ const MultiStepForm = ({
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
 
 	useEffect(() => {
-		setSteps(
-			generateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
-		);
-
-		if (step === steps.length - 1) {
-			setLastStep(true);
-		} else {
-			setLastStep(false);
-		}
+		// Only regenerate steps if currency or frequency changed
+		setSteps((prevSteps) => {
+			const newSteps = generateSteps({
+				currency: watchedCurrency,
+				frequency: watchedFrequency,
+			});
+			// If the structure is the same, keep the previous steps to preserve any updates
+			if (
+				prevSteps.length === newSteps.length &&
+				prevSteps.every((step, index) => step.id === newSteps[index].id)
+			) {
+				return prevSteps;
+			}
+			return newSteps;
+		});
 
 		setCurrency(watchedCurrency);
 		setGivingFrequency(watchedFrequency);
@@ -108,11 +115,16 @@ const MultiStepForm = ({
 		setGivingFrequency,
 		setAmount,
 		setGiftAid,
-		setLastStep,
-		lastStep,
-		step,
-		steps.length,
 	]);
+
+	// Separate effect for handling last step state
+	useEffect(() => {
+		if (step === steps.length - 1) {
+			setLastStep(true);
+		} else {
+			setLastStep(false);
+		}
+	}, [step, steps.length, setLastStep]);
 
 	const nextStep = async () => {
 		setIsLoading(true);
@@ -143,7 +155,7 @@ const MultiStepForm = ({
 						}
 						updateStepDescription(
 							"preferences",
-							`These are the preferences we hold for ${formVals.email} for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
+							`These are the preferences we hold for <strong>${formVals.email}</strong> for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
 						);
 					}
 				}
