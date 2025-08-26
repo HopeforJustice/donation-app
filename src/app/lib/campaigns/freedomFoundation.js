@@ -103,62 +103,50 @@ export default async function freedomFoundation(
 		);
 		results.push({ step: currentStep, success: true });
 
+		// Add Freedom Foundation activity in Donorfy
+		currentStep = "Add Freedom Foundation activity";
+		const ffActivityData = {
+			ConstituentId: constituentId,
+			ActivityType: "FreedomFoundation Donation",
+			Campaign: "FreedomFoundation",
+			Notes: `Freedom Foundation Donation created.
+				donorType: ${donorType}, organisationName: ${organisationName}, projectId: ${projectId}, givingTo: ${givingTo}`,
+		};
+		const addActivityData = await donorfy.addActivity(ffActivityData);
+		if (addActivityData) {
+			results.push({ step: currentStep, success: true });
+		} else {
+			results.push({ step: currentStep, success: false });
+		}
+
 		// Mailchimp tags
 		if (emailPreference === "true" && !test) {
 			// // Add tags to the subscriber
 			if (donorType === "organisation") {
 				currentStep = "Add donor type tag in Mailchimp";
-				const addDonorTypeTagData = await addTag(
+				await addTag(
 					constituent.EmailAddress,
 					`FreedomFoundation Type Organisation`,
 					donorfyInstance
 				);
-				if (addDonorTypeTagData.success) {
-					results.push({ step: currentStep, success: true });
-				} else {
-					results.push({ step: currentStep, success: false });
-				}
+				results.push({ step: currentStep, success: true });
 			}
 
 			currentStep = "Add dont send welcome email tag in Mailchimp";
-			const addDontSendWelcomeEmailTagData = await addTag(
+			await addTag(
 				session.customer_details?.email,
 				`Dont send welcome email`,
 				donorfyInstance
 			);
-			if (addDontSendWelcomeEmailTagData.success) {
-				results.push({ step: currentStep, success: true });
-			} else {
-				results.push({ step: currentStep, success: false });
-			}
+			results.push({ step: currentStep, success: true });
 
 			currentStep = "Add project tag in Mailchimp";
-			const addProjectTagData = await addTag(
+			await addTag(
 				session.customer_details?.email,
 				`FreedomFoundation Fund ${metadata.projectId}`,
 				donorfyInstance
 			);
-
-			if (addProjectTagData.success) {
-				results.push({ step: currentStep, success: true });
-			} else {
-				results.push({ step: currentStep, success: false });
-			}
-
-			currentStep = "Add Freedom Foundation activity";
-			const ffActivityData = {
-				ConstituentId: constituentId,
-				ActivityType: "FreedomFoundation Donation",
-				Campaign: "FreedomFoundation",
-				Notes: `Freedom Foundation Donation created.
-				donorType: ${donorType}, organisationName: ${organisationName}, projectId: ${projectId}, givingTo: ${givingTo}`,
-			};
-			const addActivityData = await donorfy.addActivity(ffActivityData);
-			if (addActivityData) {
-				results.push({ step: currentStep, success: true });
-			} else {
-				results.push({ step: currentStep, success: false });
-			}
+			results.push({ step: currentStep, success: true });
 		}
 		console.log(results);
 	} catch (error) {
