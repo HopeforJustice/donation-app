@@ -15,8 +15,8 @@ export function getPayPalCredentials(currency, mode = "test") {
 		clientId = process.env.NEXT_PUBLIC_PAYPAL_US_SANDBOX_CLIENT_ID;
 		clientSecret = process.env.PAYPAL_US_SANDBOX_SECRET;
 	} else if (region === "US" && environment === "LIVE") {
-		clientId = process.env.PAYPAL_US_LIVE_CLIENT_ID;
-		clientSecret = process.env.NEXT_PUBLIC_PAYPAL_US_LIVE_SECRET;
+		clientId = process.env.NEXT_PUBLIC_PAYPAL_US_LIVE_CLIENT_ID;
+		clientSecret = process.env.PAYPAL_US_LIVE_SECRET;
 	} else if (region === "UK" && environment === "SANDBOX") {
 		clientId = process.env.NEXT_PUBLIC_PAYPAL_UK_SANDBOX_CLIENT_ID;
 		clientSecret = process.env.PAYPAL_UK_SANDBOX_SECRET;
