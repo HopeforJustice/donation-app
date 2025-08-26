@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { capturePayPalOrder } from "@/app/lib/paypal/capturePayPalOrder";
 
 export async function POST(req) {
@@ -16,7 +17,7 @@ export async function POST(req) {
 		});
 
 		// Process donation to Donorfy asynchronously via API call
-		fetch(`${apiUrl}/api/processPayPalDonation`, {
+		const backgroundTask = fetch(`${apiUrl}/api/processPayPalDonation`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -32,6 +33,9 @@ export async function POST(req) {
 			// Log error but don't fail the user's payment
 			console.error("Failed to initiate background Donorfy processing:", error);
 		});
+
+		// Use waitUntil to ensure the background task completes
+		waitUntil(backgroundTask);
 
 		return NextResponse.json(captureResult);
 	} catch (error) {
