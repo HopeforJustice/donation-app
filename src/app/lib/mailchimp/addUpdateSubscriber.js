@@ -36,8 +36,6 @@ export default async function addUpdateSubscriber(
 			interests,
 		};
 
-		console.log("Member data to send:", JSON.stringify(memberData, null, 2));
-
 		const result = await mailchimp.lists.setListMember(
 			list.id,
 			subscriberHash,
