@@ -24,7 +24,7 @@ export async function POST(req) {
 		paymentMethods = ["card", "pay_by_bank"];
 	} else if (currency === "usd") {
 		publishableKey = test ? usTest : usLive;
-		paymentMethods = ["card", "cashapp"];
+		paymentMethods = ["card"];
 	} else {
 		return NextResponse.json(
 			{ error: "Unsupported currency" },
