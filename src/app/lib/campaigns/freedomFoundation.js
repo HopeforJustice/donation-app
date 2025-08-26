@@ -106,7 +106,7 @@ export default async function freedomFoundation(
 		// Add Freedom Foundation activity in Donorfy
 		currentStep = "Add Freedom Foundation activity";
 		const ffActivityData = {
-			ConstituentId: constituentId,
+			ExistingConstituentId: constituentId,
 			ActivityType: "FreedomFoundation Donation",
 			Campaign: "FreedomFoundation",
 			Notes: `Freedom Foundation Donation created.
