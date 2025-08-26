@@ -134,7 +134,7 @@ export default async function freedomFoundation(
 
 			currentStep = "Add dont send welcome email tag in Mailchimp";
 			await addTag(
-				session.customer_details?.email,
+				constituent.EmailAddress,
 				`Dont send welcome email`,
 				donorfyInstance
 			);
@@ -142,7 +142,7 @@ export default async function freedomFoundation(
 
 			currentStep = "Add project tag in Mailchimp";
 			await addTag(
-				session.customer_details?.email,
+				constituent.EmailAddress,
 				`FreedomFoundation Fund ${metadata.projectId}`,
 				donorfyInstance
 			);
