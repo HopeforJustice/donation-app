@@ -64,6 +64,7 @@ const SelectField = ({
 				aria-describedby={`${id}-optional`}
 				{...register(id)}
 				{...(onChange ? { onChange: (e) => onChange(e) } : {})} // Conditional inclusion of onChange function
+				defaultValue={defaultValue}
 			>
 				{!defaultValue && (
 					<option value="">Select {optional && "(Optional)"}</option>

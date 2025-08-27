@@ -115,6 +115,26 @@ const MultiStepForm = ({
 			return newSteps;
 		});
 
+		// Update country field value based on currency change
+		const currentCountry = getValues("country");
+		let shouldUpdateCountry = false;
+		let newCountryValue = "";
+
+		if (watchedCurrency === "gbp" && currentCountry !== "United Kingdom") {
+			shouldUpdateCountry = true;
+			newCountryValue = "United Kingdom";
+		} else if (
+			watchedCurrency === "usd" &&
+			currentCountry !== "United States"
+		) {
+			shouldUpdateCountry = true;
+			newCountryValue = "United States";
+		}
+
+		if (shouldUpdateCountry) {
+			setValue("country", newCountryValue);
+		}
+
 		setCurrency(watchedCurrency);
 		setGivingFrequency(watchedFrequency);
 		setAmount(watchedAmount);
@@ -128,6 +148,8 @@ const MultiStepForm = ({
 		setGivingFrequency,
 		setAmount,
 		setGiftAid,
+		getValues,
+		setValue,
 	]);
 
 	// handling last step state
@@ -271,6 +293,40 @@ const MultiStepForm = ({
 
 	return (
 		<div className="">
+			{formData.amount > 5000 && formData.currency === "gbp" && (
+				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
+					<p className="text-hfj-black">
+						For donations over £5,000 please contact our Supporter Care team on{" "}
+						<a className="underline" href="tel:03000088000">
+							0300 008 8000
+						</a>{" "}
+						or email{" "}
+						<a
+							className="underline"
+							href="mailto:supporters@hopeforjustice.org"
+						>
+							supporters@hopeforjustice.org
+						</a>
+					</p>
+				</div>
+			)}
+			{formData.amount > 10000 && formData.currency === "usd" && (
+				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
+					<p className="text-hfj-black">
+						For donations over $10,000 please contact our Supporter Care team on{" "}
+						<a className="underline" href="tel:+16153560946">
+							(+1) 615-356-0946
+						</a>{" "}
+						or email{" "}
+						<a
+							className="underline"
+							href="mailto:donorsupport.us@hopeforjustice.org"
+						>
+							donorsupport.us@hopeforjustice.org
+						</a>
+					</p>
+				</div>
+			)}
 			<ProgressIndicator steps={steps} currentStep={step} />
 			<FormProvider {...methods}>
 				{/* prevent default submit; we use global events instead */}

@@ -76,7 +76,7 @@ export function generateSteps({ currency, frequency }) {
 		}
 
 		// Normal field
-		return {
+		const filledField = {
 			...field,
 			label: resolveText(field.labelToken, context) || field.label,
 			options: field.optionsToken
@@ -85,6 +85,17 @@ export function generateSteps({ currency, frequency }) {
 			description:
 				resolveText(field.descriptionToken, context) || field.description,
 		};
+
+		// Set default country value based on currency
+		if (field.id === "country") {
+			if (currency === "gbp") {
+				filledField.defaultValue = "United Kingdom";
+			} else if (currency === "usd") {
+				filledField.defaultValue = "United States";
+			}
+		}
+
+		return filledField;
 	}
 
 	return stepTemplates

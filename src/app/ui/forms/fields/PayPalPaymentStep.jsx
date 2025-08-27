@@ -309,7 +309,7 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 						)}
 
 						<p className='text-[#6d6e78] font-[-apple-system,"system-ui",sans-serif] font-semibold text-sm'>
-							PayPal {currency === "usd" ? "/Venmo" : ""}
+							PayPal{currency === "usd" ? "/Venmo" : ""}
 						</p>
 					</div>
 					{selected && (
