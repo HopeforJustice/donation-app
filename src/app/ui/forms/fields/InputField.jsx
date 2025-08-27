@@ -17,6 +17,7 @@ const InputField = ({
 	optional = false,
 	hidden,
 	onInput,
+	descriptionAbove = false,
 }) => {
 	const hiddenClasses = hidden ? "hidden" : "";
 	return (
@@ -37,6 +38,24 @@ const InputField = ({
 					</span>
 				)}
 			</div>
+			{descriptionAbove && (
+				<div id={`${id}-description`}>
+					{Array.isArray(description) ? (
+						description.map((paragraph, index) => (
+							<p key={index} className="mt-2 text-sm text-hfj-black-tint1">
+								{paragraph}
+							</p>
+						))
+					) : (
+						<p
+							id={`${id}-description`}
+							className="mt-2 text-sm text-hfj-black-tint1"
+						>
+							{description}
+						</p>
+					)}
+				</div>
+			)}
 			<div className="mt-2 relative rounded-md shadow-sm">
 				<input
 					id={id}
@@ -61,7 +80,7 @@ const InputField = ({
 				</p>
 			)}
 
-			{description && (
+			{description && !descriptionAbove && (
 				<div id={`${id}-description`}>
 					{Array.isArray(description) ? (
 						description.map((paragraph, index) => (

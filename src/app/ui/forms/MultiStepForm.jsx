@@ -130,7 +130,7 @@ const MultiStepForm = ({
 		setGiftAid,
 	]);
 
-	// Separate effect for handling last step state
+	// handling last step state
 	useEffect(() => {
 		if (step === steps.length - 1) {
 			setLastStep(true);
@@ -139,6 +139,7 @@ const MultiStepForm = ({
 		}
 	}, [step, steps.length, setLastStep]);
 
+	// next step
 	const nextStep = async () => {
 		setIsLoading(true);
 		if (validate === "false") {

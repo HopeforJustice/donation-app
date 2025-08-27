@@ -13,6 +13,7 @@ const SelectField = ({
 	onChange,
 	hidden,
 	defaultValue,
+	descriptionAbove = false,
 }) => {
 	const hiddenClasses = hidden ? "hidden" : "";
 	return (
@@ -33,6 +34,24 @@ const SelectField = ({
 					</span>
 				)}
 			</div>
+			{descriptionAbove && (
+				<div id={`${id}-description`}>
+					{Array.isArray(description) ? (
+						description.map((paragraph, index) => (
+							<p key={index} className="mt-2 text-sm text-hfj-black-tint1">
+								{paragraph}
+							</p>
+						))
+					) : (
+						<p
+							id={`${id}-description`}
+							className="mt-2 text-sm text-hfj-black-tint1"
+						>
+							{description}
+						</p>
+					)}
+				</div>
+			)}
 			<select
 				id={id}
 				name={id}
@@ -66,7 +85,7 @@ const SelectField = ({
 				</p>
 			)}
 
-			{description && (
+			{description && !descriptionAbove && (
 				<div id={`${id}-description`}>
 					{Array.isArray(description) ? (
 						description.map((paragraph, index) => (

@@ -101,6 +101,7 @@ export const stepTemplates = [
 				type: "text",
 				onInput: handlePhoneInput,
 				descriptionToken: "phoneDescription",
+				descriptionAbove: true,
 			},
 			{
 				id: "directDebitStartDate",
@@ -108,6 +109,7 @@ export const stepTemplates = [
 				type: "select",
 				optionsToken: "directDebitDayOptions",
 				descriptionToken: "directDebitStartDateDescription",
+				descriptionAbove: true,
 				visibilityConditions: {
 					currency: "gbp",
 					frequency: "monthly",

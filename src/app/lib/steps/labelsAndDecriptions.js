@@ -40,7 +40,7 @@ export const labelsAndDescriptions = {
 	preferencesDescription:
 		"We would love for you to hear about the life-changing difference that your donation will make and more ways you can support this work. Can we contact you via:",
 	contactPreferencesDescription: [
-		"We’ll use your details to keep you informed of our ongoing activities, news, campaigns and appeals; and to invite you to events we think might interest you. You can change preferences anytime at <a class='underline' target='_blank' href='https://hopeforjustice.org/manage-your-preferences'>hopeforjustice.org/manage-your-preferences</a> or by replying to any communication. We never share your data.<br><br><a target='_blank' href='https://hopeforjustice.org/privacy-policy/' class='underline'>Privacy Policy</a>",
+		"We’ll use your details to keep you informed of our ongoing activities, news, campaigns and appeals; and to invite you to events we think might interest you. You can change preferences anytime at <a class='underline' target='_blank' href='https://hopeforjustice.org/manage-your-preferences'>hopeforjustice.org/manage-your-preferences</a> or by replying to any communication. We never sell your data.<br><br><a target='_blank' href='https://hopeforjustice.org/privacy-policy/' class='underline'>Privacy Policy</a>",
 	],
 	givingDetailsDescription: {
 		GB: { monthly: "test monthly", once: "test once" },

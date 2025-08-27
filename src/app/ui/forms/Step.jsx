@@ -88,6 +88,7 @@ const Field = ({
 					description={field.description}
 					optional={field.optional}
 					hidden={field.hidden}
+					descriptionAbove={field.descriptionAbove}
 				/>
 			);
 		case "addressSearch":
@@ -157,6 +158,7 @@ const Field = ({
 					extraInputClasses={extraInputClasses}
 					defaultValue={field.defaultValue}
 					hidden={field.hidden}
+					descriptionAbove={field.descriptionAbove}
 				/>
 			);
 		case "toggle":
