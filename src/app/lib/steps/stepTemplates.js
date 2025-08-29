@@ -203,12 +203,12 @@ export const stepTemplates = [
 				fields: [
 					{
 						id: "emailPreference",
-						labelToken: "Email impact stories",
+						labelToken: "Email",
 						type: "toggle",
 						defaultValue: true,
 						icon: <EmailDrawer />,
 						description:
-							"Monthly stories and organisation-wide wins. Our most popular way to stay connected",
+							"Monthly updates and stories of hope, the most popular way to stay connected and see your impact",
 					},
 					{
 						id: "postPreference",
@@ -217,7 +217,7 @@ export const stepTemplates = [
 						defaultValue: true,
 						icon: <Mail />,
 						description:
-							"Christmas appeal & urgent campaigns 2-3 times per year",
+							"Get printed reports and campaigns in the post, 2-3 times per year",
 					},
 					{
 						id: "smsPreference",
@@ -225,8 +225,7 @@ export const stepTemplates = [
 						type: "toggle",
 						defaultValue: true,
 						icon: <Mobile />,
-						description:
-							"Breaking news when someone gains freedom Rare but powerful moments",
+						description: "Hear about the wins and big news via SMS",
 					},
 					{
 						id: "phonePreference",
@@ -234,8 +233,7 @@ export const stepTemplates = [
 						type: "toggle",
 						defaultValue: true,
 						icon: <Phone />,
-						description:
-							"Any urgent or pressing issues you need to know about. Our quickest way to contact you",
+						description: "The occasional call to keep you updated",
 					},
 				],
 			},
