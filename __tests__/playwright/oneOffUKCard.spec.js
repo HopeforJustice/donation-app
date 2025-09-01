@@ -21,7 +21,7 @@ const donorfyUK = new DonorfyClient(
 
 // Default campaign: Donation App General Campaign
 
-const deleteAfterTest = false;
+const deleteAfterTest = true;
 const testDetails = {
 	fund: null,
 	frequency: "once",
