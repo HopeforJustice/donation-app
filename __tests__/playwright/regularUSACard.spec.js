@@ -400,15 +400,99 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 				console.log("Verified subscription is still active after renewal");
 			});
 
-			await test.step("Cancel Subscription", async () => {
-				// Cancel the subscription from the subscription webhook event
-				if (subscriptionWebhookEvent.subscription_id) {
-					stripe.subscriptions.cancel(subscriptionWebhookEvent.subscription_id);
-					console.log("Subscription cancelled successfully");
-				} else {
+			await test.step("Simulate payment failure for third billing cycle", async () => {
+				// Update the customer's card to a failing one before the next billing cycle
+				if (!testCustomerId) {
 					console.warn(
-						"No subscription ID found in webhook event, skipping cancellation"
+						"No test customer ID available, skipping payment failure test"
 					);
+					return;
+				}
+
+				await test.step("Remove payment method to trigger payment failure", async () => {
+					// Get current payment methods
+					const paymentMethods = await stripe.paymentMethods.list({
+						customer: testCustomerId,
+						type: "card",
+					});
+
+					// Detach current payment method - this will cause the next billing cycle to fail
+					if (paymentMethods.data.length > 0) {
+						await stripe.paymentMethods.detach(paymentMethods.data[0].id);
+						console.log("Detached payment method - next billing will fail");
+					} else {
+						console.log("No payment method found to detach");
+					}
+				});
+
+				await test.step("Advance test clock to trigger third billing cycle", async () => {
+					// Advance another 40 days to trigger the third billing cycle
+					const additionalDays = 40 * 24 * 60 * 60;
+					const advanceResult = await advanceTestClock(
+						testClockId,
+						"usd",
+						additionalDays
+					);
+
+					expect(advanceResult.success).toBe(true);
+					console.log("Advanced test clock to trigger third billing cycle");
+				});
+
+				await test.step("Poll for failed payment webhook", async () => {
+					const failedPaymentWebhook = await pollForStripeWebhookEvent(
+						testEmail,
+						"usd",
+						"invoice.payment_failed",
+						30000 // Increased timeout for test clock operations
+					);
+
+					expect(failedPaymentWebhook).toBeTruthy();
+					expect(failedPaymentWebhook.status).toBe("processed");
+					console.log("Successfully captured failed payment webhook");
+				});
+
+				await test.step("Verify failed payment activity in Donorfy", async () => {
+					// Check for failed payment activity
+					const failedPaymentActivity = await pollForActivityType(
+						constituentId,
+						"Stripe Payment Failed",
+						"usd",
+						30000 // timeout
+					);
+
+					expect(failedPaymentActivity.ActivityType).toEqual(
+						"Stripe Payment Failed"
+					);
+					expect(failedPaymentActivity.Notes).toContain("payment failed");
+					console.log("Verified failed payment activity in Donorfy");
+				});
+
+				await test.step("Check subscription status after failed payment", async () => {
+					// Check if subscription is now marked as past_due
+					const tags = await donorfyUS.getConstituentTags(constituentId);
+					console.log("Tags after failed payment:", tags);
+
+					// The subscription should now be marked as past due
+					expect(tags).toEqual(
+						expect.stringContaining("Stripe_Past Due Subscription")
+					);
+				});
+			});
+
+			await test.step("Manual cleanup - Cancel subscription if still active", async () => {
+				// Ensure subscription is cancelled for cleanup
+				if (subscriptionWebhookEvent.subscription_id) {
+					try {
+						await stripe.subscriptions.cancel(
+							subscriptionWebhookEvent.subscription_id
+						);
+						console.log("Subscription manually cancelled for cleanup");
+					} catch (error) {
+						console.log(
+							"Subscription may already be cancelled:",
+							error.message
+						);
+					}
 				}
 			});
 

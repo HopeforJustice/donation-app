@@ -87,7 +87,7 @@ export async function handleInvoicePaymentFailed(event, stripeClient) {
 		currentStep = "Add failed payment activity";
 		const failedPaymentActivityData = {
 			ExistingConstituentId: constituentId,
-			ActivityType: "Payment Failed",
+			ActivityType: "Stripe Subscription Payment Failed",
 			Notes: `Stripe Invoice ID: ${invoice.id}, Amount: ${(
 				invoice.amount_due / 100
 			).toFixed(2)} ${invoice.currency.toUpperCase()}, Failure: ${

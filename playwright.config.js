@@ -7,9 +7,9 @@ module.exports = defineConfig({
 	globalSetup: "./playwright.setup.js",
 	use: {
 		baseURL: "http://localhost:3000", // Your app's base URL
-		headless: true, // Run tests in headless mode
+		headless: false, // Run tests in headless mode
 		launchOptions: {
-			slowMo: process.env.CI ? 0 : 10, // No delay in CI for faster execution
+			slowMo: process.env.CI ? 0 : 100, // No delay in CI for faster execution
 		},
 		viewport: { width: 1800, height: 1000 }, // Set the default browser viewport
 		screenshot: "only-on-failure", // Take screenshots on failure
