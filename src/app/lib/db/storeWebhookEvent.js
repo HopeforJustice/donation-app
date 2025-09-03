@@ -14,7 +14,7 @@ export default async function storeWebhookEvent(
 		const eventId = event.id || event.meta?.webhook_id || "unknown_event_id";
 		const eventToStore = {
 			id: eventId,
-			currency: event.currency || event.data.object.currency || "unknown",
+			currency: event.currency || event.data?.object?.currency || "unknown",
 		};
 		const notes = `${additionalNotes}`;
 		const result = await sql`
