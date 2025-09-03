@@ -14,7 +14,7 @@ export default async function storeWebhookEvent(
 		const eventId = event.id || event.meta?.webhook_id || "unknown_event_id";
 		const eventToStore = {
 			id: eventId,
-			currency: event.currency || "unknown",
+			currency: event.currency || event.data.object.currency || "unknown",
 		};
 		const notes = `${additionalNotes}`;
 		const result = await sql`
@@ -39,9 +39,9 @@ export default async function storeWebhookEvent(
 		console.log(
 			`Stored webhook event: ${eventId} (row id ${result.rows[0].id})`
 		);
-		return result.rows[0].id; // Return the inserted row id
+		return result.rows[0].id;
 	} catch (error) {
 		console.error("Error storing webhook event:", error);
-		return null; // You can throw error or return null based on your use case
+		return null;
 	}
 }

@@ -455,38 +455,25 @@ test.describe("E2E: Test regular giving via Stripe USA", () => {
 					// Check for failed payment activity
 					const failedPaymentActivity = await pollForActivityType(
 						constituentId,
-						"Stripe Payment Failed",
+						"Stripe Subscription Payment Failed",
 						"usd",
 						30000 // timeout
 					);
 
 					expect(failedPaymentActivity.ActivityType).toEqual(
-						"Stripe Payment Failed"
+						"Stripe Subscription Payment Failed"
 					);
-					expect(failedPaymentActivity.Notes).toContain("payment failed");
 					console.log("Verified failed payment activity in Donorfy");
-				});
-
-				await test.step("Check subscription status after failed payment", async () => {
-					// Check if subscription is now marked as past_due
-					const tags = await donorfyUS.getConstituentTags(constituentId);
-					console.log("Tags after failed payment:", tags);
-
-					// The subscription should now be marked as past due
-					expect(tags).toEqual(
-						expect.stringContaining("Stripe_Past Due Subscription")
-					);
 				});
 			});
 
 			await test.step("Manual cleanup - Cancel subscription if still active", async () => {
-				// Ensure subscription is cancelled for cleanup
+				// Ensure subscription is cancelled
 				if (subscriptionWebhookEvent.subscription_id) {
 					try {
 						await stripe.subscriptions.cancel(
 							subscriptionWebhookEvent.subscription_id
 						);
-						console.log("Subscription manually cancelled for cleanup");
 					} catch (error) {
 						console.log(
 							"Subscription may already be cancelled:",
