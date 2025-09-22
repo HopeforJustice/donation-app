@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,

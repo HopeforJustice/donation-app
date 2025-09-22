@@ -16,7 +16,7 @@ export async function POST(req) {
 			formData,
 		});
 
-		// Process donation to Donorfy asynchronously via API call
+		// Process donation to Donorfy asynchronously
 		const backgroundTask = fetch(`${apiUrl}/api/processPayPalDonation`, {
 			method: "POST",
 			headers: {
@@ -34,7 +34,7 @@ export async function POST(req) {
 			console.error("Failed to initiate background Donorfy processing:", error);
 		});
 
-		// Use waitUntil to ensure the background task completes
+		// waitUntil to ensure the background task completes
 		waitUntil(backgroundTask);
 
 		return NextResponse.json(captureResult);

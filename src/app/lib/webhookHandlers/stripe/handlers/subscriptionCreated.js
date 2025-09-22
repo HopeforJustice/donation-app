@@ -99,7 +99,6 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 				PostalCode: metadata.postcode || "",
 				EmailAddress: customer?.email || "",
 				Phone1: metadata.phone || "",
-				RecruitmentCampaign: metadata.campaign || "",
 				County: donorfyInstance === "us" ? metadata.stateCounty : "",
 			};
 			await donorfy.updateConstituent(

@@ -140,7 +140,6 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 				PostalCode: metadata.postcode || "",
 				EmailAddress: session.customer_details?.email || "",
 				Phone1: metadata.phone || "",
-				RecruitmentCampaign: metadata.campaign || "",
 				County:
 					donorfyInstance === "us"
 						? metadata.state || ""

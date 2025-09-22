@@ -10,9 +10,6 @@ const createJestConfig = nextJest({
 const config = {
 	coverageProvider: "v8",
 	testEnvironment: "jsdom",
-	globals: {
-		fetch: global.fetch,
-	},
 	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/src/$1",
 	},
@@ -26,6 +23,12 @@ const config = {
 		"/node_modules/", // Always ignore node_modules
 		"__tests__/integration/", // Explicitly ignore the integration tests
 	],
+	// Ensure clean test environment
+	clearMocks: true,
+	resetMocks: false,
+	restoreMocks: true,
+	// Add setup file for fetch polyfill
+	setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 	// Add more setup options before each test is run
 	// setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };

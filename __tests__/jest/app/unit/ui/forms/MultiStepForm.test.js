@@ -52,8 +52,26 @@ describe("MultiStepForm component without mocking form behavior", () => {
 	// });
 
 	it("renders the initial step and navigation buttons", () => {
-		render(<MultiStepForm />);
-		expect(screen.getByText("Next Step")).toBeInTheDocument();
+		const mockProps = {
+			currency: "gbp",
+			frequency: "monthly",
+			setCurrency: jest.fn(),
+			setAmount: jest.fn(),
+			setGivingFrequency: jest.fn(),
+			setGiftAid: jest.fn(),
+			setLastStep: jest.fn(),
+			lastStep: 1,
+			desktopSize: true,
+		};
+
+		render(<MultiStepForm {...mockProps} />);
+		// Check if the form renders (step content should be present)
+		// Use getByRole to target the specific heading element instead of generic text
+		expect(
+			screen.getByRole("heading", { name: "Your Details:" })
+		).toBeInTheDocument();
+		// The form element doesn't seem to have the role="form", so check for the form element directly
+		expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
 	});
 
 	// it("navigates to the next step when 'Next Step' is clicked", async () => {

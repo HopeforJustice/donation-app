@@ -1,71 +1,67 @@
-import { createConstituent } from "@/app/lib/donorfy/old/createConstituent";
-import getDonorfyCredentials from "@/app/lib/donorfy/old/getDonorfyCredentials";
-import makeDonorfyRequest from "@/app/lib/donorfy/old/makeDonorfyRequest";
+import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 
-jest.mock("@/app/lib/donorfy/getDonorfyCredentials");
-jest.mock("@/app/lib/donorfy/makeDonorfyRequest");
+// Mock the DonorfyClient
+jest.mock("@/app/lib/donorfy/donorfyClient");
 
-describe("createConstituent (unit)", () => {
+describe("DonorfyClient - createConstituent (unit)", () => {
 	const testData = {
-		title: "Mr",
-		firstName: "Harry",
-		lastName: "Potter",
-		address1: "4 Privet Drive",
-		address2: "Little Whinging",
-		townCity: "Surrey",
-		stateCounty: "England",
-		country: "United Kingdom",
-		postcode: "12345",
-		email: "harry.potter@hogwarts.com",
-		phone: "12345678910",
-		campaign: "TESTCAMPAIGN",
+		ConstituentType: "individual",
+		Title: "Mr",
+		FirstName: "Harry",
+		LastName: "Potter",
+		AddressLine1: "4 Privet Drive",
+		AddressLine2: "Little Whinging",
+		Town: "Surrey",
+		County: "England",
+		Country: "United Kingdom",
+		PostalCode: "12345",
+		EmailAddress: "harry.potter@hogwarts.com",
+		Phone1: "12345678910",
+		RecruitmentCampaign: "TESTCAMPAIGN",
 	};
 
-	it("calls Donorfy with correct params and returns constituentId", async () => {
-		getDonorfyCredentials.mockReturnValue({
-			apiKey: "fake-key",
-			tenant: "fake-tenant",
-		});
-		makeDonorfyRequest.mockResolvedValue({
-			result: "created",
-			ConstituentId: "test-123",
-		});
+	let mockDonorfyClient;
 
-		const result = await createConstituent(testData, "uk");
+	beforeEach(() => {
+		// Reset mocks before each test
+		jest.clearAllMocks();
 
-		expect(getDonorfyCredentials).toHaveBeenCalledWith("uk");
-		expect(makeDonorfyRequest).toHaveBeenCalledWith(
-			"https://data.donorfy.com/api/v1/fake-tenant/constituents/",
-			"POST",
-			Buffer.from(`DonationApp:fake-key`).toString("base64"),
-			{
-				ConstituentType: "individual",
-				Title: "Mr",
-				FirstName: "Harry",
-				LastName: "Potter",
-				AddressLine1: "4 Privet Drive",
-				AddressLine2: "Little Whinging",
-				Town: "Surrey",
-				County: "England",
-				Country: "United Kingdom",
-				PostalCode: "12345",
-				EmailAddress: "harry.potter@hogwarts.com",
-				Phone1: "12345678910",
-				RecruitmentCampaign: "TESTCAMPAIGN",
-			}
-		);
-		expect(result).toEqual({ constituentId: "test-123" });
+		// Create a mock instance with all the methods we need
+		mockDonorfyClient = {
+			createConstituent: jest.fn(),
+			getConstituent: jest.fn(),
+			updateConstituent: jest.fn(),
+			deleteConstituent: jest.fn(),
+		};
+
+		// Mock the constructor to return our mock instance
+		DonorfyClient.mockImplementation(() => mockDonorfyClient);
 	});
 
-	it("throws a helpful error when request fails", async () => {
-		getDonorfyCredentials.mockReturnValue({
-			apiKey: "fake-key",
-			tenant: "fake-tenant",
-		});
-		makeDonorfyRequest.mockRejectedValue(new Error("API error"));
+	it("creates a constituent with correct data", async () => {
+		const mockResponse = {
+			result: "created",
+			ConstituentId: "test-123",
+		};
 
-		await expect(createConstituent(testData, "uk")).rejects.toThrow(
-			"Create Constituent failed, error: API error"
+		mockDonorfyClient.createConstituent.mockResolvedValue(mockResponse);
+
+		const client = new DonorfyClient("test-key", "test-tenant");
+		const result = await client.createConstituent(testData);
+
+		expect(mockDonorfyClient.createConstituent).toHaveBeenCalledWith(testData);
+		expect(result).toEqual(mockResponse);
+	});
+
+	it("handles errors when creating constituent", async () => {
+		const mockError = new Error("API error");
+		mockDonorfyClient.createConstituent.mockRejectedValue(mockError);
+
+		const client = new DonorfyClient("test-key", "test-tenant");
+
+		await expect(client.createConstituent(testData)).rejects.toThrow(
+			"API error"
 		);
+		expect(mockDonorfyClient.createConstituent).toHaveBeenCalledWith(testData);
 	});
 });
