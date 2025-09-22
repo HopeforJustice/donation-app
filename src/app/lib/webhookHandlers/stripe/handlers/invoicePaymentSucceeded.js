@@ -1,24 +1,31 @@
-import DonorfyClient from "../../../donorfy/donorfyClient";
+/**
+ * Handles the Stripe `invoice.payment_succeeded` webhook event.
+ *
+ * Steps performed:
+ * 1. Extracts invoice data and retrieves the associated customer and subscription from Stripe.
+ * 2. Extracts metadata from the subscription, customer, or invoice.
+ * 3. Validates the webhook source to ensure it originated from the donation app.
+ * 4. Ensures the invoice is related to a subscription.
+ * 5. Determines if the payment is the initial subscription payment or a recurring payment.
+ * 6. Initializes the Donorfy client based on the invoice currency.
+ * 7. Finds the constituent in Donorfy by email or uses the provided constituentId from metadata.
+ * 8. Creates a transaction in Donorfy for the payment.
+ * 9. Returns a summary of the processing result or throws an error if any step fails.
+ *
+ * @param {object} event - The Stripe webhook event object.
+ * @param {object} stripeClient - The initialized Stripe client instance.
+ * @returns {Promise<object>} Result object containing processing status, details, and Donorfy transaction info.
+ * @throws {Error} If any step fails during processing, an error is thrown with additional context.
+ */
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import { getDonorfyClient } from "@/app/lib/utils";
 
 export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 	const invoice = event.data.object;
 	const results = [];
 	let currentStep = "";
 	let constituentId = null;
-	let donorfyInstance;
+	const donorfyInstance = invoice.currency === "usd" ? "us" : "uk";
 
 	try {
 		currentStep = "Extract invoice data and retrieve customer/subscription";
@@ -73,7 +80,6 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 			: "Recurring Payment";
 
 		currentStep = "Initialize Donorfy client";
-		donorfyInstance = invoice.currency === "usd" ? "us" : "uk";
 		const donorfy = getDonorfyClient(donorfyInstance);
 		results.push({ step: currentStep, success: true });
 
@@ -100,9 +106,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 		currentStep = `Create ${paymentType.toLowerCase()} transaction in Donorfy`;
 		const transaction = await donorfy.createTransaction(
 			invoice.amount_paid / 100,
-			metadata.campaign ||
-				(isFirstPayment ? "Subscription Donation" : "Recurring Donation"),
-			"Stripe Subscription",
+			metadata.campaign || "Donation App General Campaign",
 			constituentId,
 			new Date(invoice.created * 1000), // Use invoice creation date
 			metadata.fund || "unrestricted",
@@ -122,7 +126,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 			constituentId,
 			eventId: event.id,
 			donorfyTransactionId: transactionId,
-			subscriptionId: invoice.subscription, // Add subscription ID from invoice
+			subscriptionId: invoice.subscription,
 		};
 	} catch (error) {
 		results.push({ step: currentStep, success: false });
@@ -130,7 +134,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 		error.results = results;
 		error.constituentId = constituentId || null;
 		error.eventId = event.id;
-		error.subscriptionId = invoice.subscription; // Add subscription ID to error response
+		error.subscriptionId = invoice.subscription;
 		throw error;
 	}
 }

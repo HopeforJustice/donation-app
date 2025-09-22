@@ -8,14 +8,14 @@
  * Priority: metadata → existing data → empty string
  * @param {Object} metadata - Form submission data
  * @param {Object} existingData - Current constituent data from Donorfy
- * @param {string} sessionEmail - Email from Stripe session
+ * @param {string} email - Email used to populate Donorfy EmailAddress
  * @param {string} donorfyInstance - "us" or "uk" to handle regional differences
  * @returns {Object} Formatted update data for Donorfy API
  */
 export function buildConstituentUpdateData(
 	metadata,
 	existingData,
-	sessionEmail,
+	email,
 	donorfyInstance
 ) {
 	// Helper function to create fallback chain: new → existing → default
@@ -36,9 +36,12 @@ export function buildConstituentUpdateData(
 		LastName: withFallback(metadata.lastName, existingData.LastName),
 		AddressLine1: withFallback(metadata.address1, existingData.AddressLine1),
 		AddressLine2: withFallback(metadata.address2, existingData.AddressLine2),
-		Town: withFallback(metadata.townCity, existingData.Town),
-		PostalCode: withFallback(metadata.postcode, existingData.PostalCode),
-		EmailAddress: withFallback(sessionEmail, existingData.EmailAddress),
+		Town: withFallback(metadata.city || metadata.townCity, existingData.Town),
+		PostalCode: withFallback(
+			metadata.postalCode || metadata.postcode,
+			existingData.PostalCode
+		),
+		EmailAddress: withFallback(email, existingData.EmailAddress),
 		Phone1: withFallback(metadata.phone, existingData.Phone1),
 		County: getCountyValue(),
 	};
@@ -47,14 +50,14 @@ export function buildConstituentUpdateData(
 /**
  * Builds constituent creation data for new donors
  * @param {Object} metadata - Form submission data
- * @param {string} sessionEmail - Email from Stripe session
+ * @param {string} email - Email used to populate Donorfy EmailAddress
  * @param {string} donorfyInstance - "us" or "uk" to handle regional differences
- * @param {string} campaign - Campaign identifier
+ * @param {string} [campaign] - Campaign name for recruitment tracking
  * @returns {Object} Formatted creation data for Donorfy API
  */
 export function buildConstituentCreateData(
 	metadata,
-	sessionEmail,
+	email,
 	donorfyInstance,
 	campaign
 ) {
@@ -65,14 +68,66 @@ export function buildConstituentCreateData(
 		LastName: metadata.lastName || "",
 		AddressLine1: metadata.address1 || "",
 		AddressLine2: metadata.address2 || "",
-		Town: metadata.townCity || "",
-		PostalCode: metadata.postcode || "",
-		EmailAddress: sessionEmail || "",
+		Town: metadata.city || metadata.townCity || "",
+		PostalCode: metadata.postalCode || metadata.postcode || "",
+		EmailAddress: email || "",
 		Phone1: metadata.phone || "",
-		RecruitmentCampaign: campaign || "",
+		RecruitmentCampaign: campaign || "Donation App General Campaign",
 		County:
 			donorfyInstance === "us"
 				? metadata.state || ""
 				: metadata.stateCounty || "",
+	};
+}
+
+/**
+ * Builds constituent preferences data for Donorfy
+ * Handles regional differences where US defaults all preferences to true
+ * @param {Object} metadata - Form submission data containing preference values (may be undefined/null)
+ * @param {string} donorfyInstance - "us" or "uk" to handle regional differences
+ * @returns {Object} Formatted preferences data for Donorfy API
+ */
+export function buildConstituentPreferencesData(metadata, donorfyInstance) {
+	// Ensure metadata exists, default to empty object if not
+	const safeMetadata = metadata || {};
+
+	// US instance: All preferences default to true
+	// UK instance: Use metadata values with fallback to false if field doesn't exist
+	const getPreferenceValue = (metadataField) => {
+		if (donorfyInstance === "us") {
+			return true;
+		}
+		// For UK: use the metadata value if it exists, otherwise default to false
+		return metadataField !== undefined ? metadataField : false;
+	};
+
+	return {
+		PreferencesList: [
+			{
+				PreferenceType: "Channel",
+				PreferenceName: "Email",
+				PreferenceAllowed: getPreferenceValue(safeMetadata.emailPreference),
+			},
+			{
+				PreferenceType: "Channel",
+				PreferenceName: "Mail",
+				PreferenceAllowed: getPreferenceValue(safeMetadata.postPreference),
+			},
+			{
+				PreferenceType: "Channel",
+				PreferenceName: "Phone",
+				PreferenceAllowed: getPreferenceValue(safeMetadata.phonePreference),
+			},
+			{
+				PreferenceType: "Channel",
+				PreferenceName: "SMS",
+				PreferenceAllowed: getPreferenceValue(safeMetadata.smsPreference),
+			},
+			{
+				PreferenceType: "Purpose",
+				PreferenceName: "Email Updates",
+				PreferenceAllowed: getPreferenceValue(safeMetadata.emailPreference),
+			},
+		],
 	};
 }

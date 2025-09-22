@@ -1,24 +1,29 @@
-import DonorfyClient from "../../../donorfy/donorfyClient";
+/**
+ * Handles the Stripe 'invoice.payment_failed' webhook event.
+ *
+ * Steps involved:
+ * 1. Extract invoice data and retrieve the associated Stripe customer.
+ * 2. Validate the webhook source using metadata (must be from 'donation-app').
+ * 3. Ensure the invoice is related to a subscription.
+ * 4. Initialize the Donorfy client based on the invoice currency.
+ * 5. Find the corresponding constituent in Donorfy using the customer's email.
+ * 6. Add a failed payment activity to the constituent's record in Donorfy.
+ * 7. Return a summary of the processing result, or handle errors appropriately.
+ *
+ * @param {object} event - The Stripe webhook event object.
+ * @param {object} stripeClient - The initialized Stripe client instance.
+ * @returns {Promise<object>} Result object containing status, message, and processing details.
+ * @throws {Error} If any step fails, throws an error with details and processing steps.
+ */
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import { getDonorfyClient } from "@/app/lib/utils";
 
 export async function handleInvoicePaymentFailed(event, stripeClient) {
 	const invoice = event.data.object;
 	const results = [];
 	let currentStep = "";
 	let constituentId = null;
-	let donorfyInstance;
+	const donorfyInstance = invoice.currency === "usd" ? "us" : "uk";
 
 	try {
 		currentStep = "Extract invoice data and retrieve customer";
@@ -64,7 +69,6 @@ export async function handleInvoicePaymentFailed(event, stripeClient) {
 		console.log(`Processing Stripe Invoice Payment Failed`);
 
 		currentStep = "Initialize Donorfy client";
-		donorfyInstance = invoice.currency === "usd" ? "us" : "uk";
 		const donorfy = getDonorfyClient(donorfyInstance);
 		results.push({ step: currentStep, success: true });
 

@@ -7,14 +7,11 @@
  *
  */
 import { getGoCardlessClient } from "../../gocardless/gocardlessclient";
+import { getDonorfyClient } from "@/app/lib/utils";
 import deleteTag from "../../mailchimp/deleteTag";
-const client = getGoCardlessClient();
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import getSubscriber from "../../mailchimp/getSubscriber";
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
+
+const client = getGoCardlessClient();
 
 export async function handleSubscriptionCancelled(event) {
 	const results = [];
@@ -23,6 +20,9 @@ export async function handleSubscriptionCancelled(event) {
 	let constituentId = null;
 
 	try {
+		// Initialize Donorfy client (GoCardless is UK-only)
+		const donorfy = getDonorfyClient("uk");
+
 		currentStep = "Retrieve customer details from GoCardless";
 		const subscriptionId = event.links.subscription;
 		const subscription = await client.subscriptions.find(subscriptionId);
@@ -38,7 +38,7 @@ export async function handleSubscriptionCancelled(event) {
 
 		// Delete tag in mailchimp
 		currentStep = "Delete active tag in mailchimp";
-		const constituent = await donorfyUK.getConstituent(constituentId);
+		const constituent = await donorfy.getConstituent(constituentId);
 		let subscriber;
 		try {
 			subscriber = await getSubscriber(constituent.EmailAddress);
@@ -52,12 +52,12 @@ export async function handleSubscriptionCancelled(event) {
 
 		// Delete tag in donorfy
 		currentStep = "Delete active tag in Donorfy";
-		await donorfyUK.removeTag(constituentId, "Gocardless_Active Subscription");
+		await donorfy.removeTag(constituentId, "Gocardless_Active Subscription");
 		results.push({ step: currentStep, success: true });
 
 		//add activity in donorfy
 		currentStep = "Add Activity to Donorfy";
-		await donorfyUK.addActivity({
+		await donorfy.addActivity({
 			ActivityType: "Gocardless Subscription Cancelled",
 			Notes: `Amount: ${additionalDetails.amount}`,
 			Number1: additionalDetails.amount,

@@ -32,6 +32,9 @@ export {
 	extractPreferences,
 	getPreferences,
 	poll,
+	getDonorfyClient,
+	getSparkPostTemplate,
+	sendThankYouEmail,
 } from "./apiUtils";
 
 // Data utilities - Security and data processing
@@ -41,4 +44,5 @@ export { stripMetadata, sanitiseForLogging } from "./dataUtils";
 export {
 	buildConstituentUpdateData,
 	buildConstituentCreateData,
+	buildConstituentPreferencesData,
 } from "./constituentUtils";

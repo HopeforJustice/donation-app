@@ -1,38 +1,52 @@
+/**
+ * Handles Stripe Checkout Session Completed webhook events for one-off payments.
+ *
+ * This function processes a completed Stripe Checkout session by:
+ * 1. Extracting and validating session data and payment intent.
+ * 2. Validating the webhook source and campaign.
+ * 3. Skipping processing if the session is for a subscription (handled in subscription created handler).
+ * 4. Initializing the Donorfy client based on the session currency.
+ * 5. Checking for a duplicate constituent in Donorfy by email.
+ * 6. Creating a new constituent in Donorfy if no duplicate is found.
+ * 7. Updating existing constituent details if already present.
+ * 8. Updating constituent preferences (all true for US instance).
+ * 9. Creating a transaction in Donorfy with campaign and fund details.
+ * 10. Adding an "inspiration" activity if provided in metadata.
+ * 11. Adding an "inspiration" tag if provided in metadata.
+ * 12. Creating a Gift Aid declaration if applicable (UK only).
+ * 13. Adding or updating a Mailchimp subscriber if email preference is true or US instance (skipped in test environments).
+ * 14. Sending a thank you email via SparkPost unless suppressed or for specific campaigns.
+ * 15. Processing additional campaign logic via `processCampaign`.
+ *
+ * @async
+ * @function handleCheckoutSessionCompleted
+ * @param {object} event - The Stripe webhook event object.
+ * @param {object} stripeClient - The initialized Stripe client instance.
+ * @returns {Promise<object>} Result object containing processing status, results, constituentId, eventId, and Donorfy transaction ID.
+ * @throws {Error} Throws error with processing step and context if any step fails.
+ */
+
 import processCampaign from "@/app/lib/campaigns/processCampaign";
-import DonorfyClient from "../../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../../mailchimp/addUpdateSubscriber";
 import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
-import { buildConstituentUpdateData } from "@/app/lib/utils/constituentUtils";
-
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import {
+	buildConstituentUpdateData,
+	buildConstituentPreferencesData,
+	buildConstituentCreateData,
+	getDonorfyClient,
+	getSparkPostTemplate,
+	sendThankYouEmail,
+} from "@/app/lib/utils";
 
 export async function handleCheckoutSessionCompleted(event, stripeClient) {
 	const session = event.data.object;
-	const results = [];
+	const donorfyInstance = session.currency === "usd" ? "us" : "uk";
+	const results = []; // Builds results object for logging and db storage
 	let currentStep = "";
 	let constituentId = null;
 	let alreadyInDonorfy = false;
-	let donorfyInstance;
 	let test = process.env.VERCEL_ENV !== "production";
 	let sparkPostTemplate;
-
-	// default sparkpost templates
-	if (session.currency === "usd") {
-		sparkPostTemplate = "donation-receipt-2024-usa-stripe";
-	} else if (session.currency === "gbp") {
-		sparkPostTemplate = "donation-receipt-2024-uk-stripe";
-	}
 
 	try {
 		// Extract and validate session data
@@ -49,13 +63,8 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 		const source = metadata.source || "unknown";
 		results.push({ step: currentStep, success: true });
 
-		// custom sparkpost template or set to none
-		if (metadata.sparkPostTemplate) {
-			sparkPostTemplate =
-				metadata.sparkPostTemplate === "none"
-					? null
-					: metadata.sparkPostTemplate;
-		}
+		// Get SparkPost template based on currency and metadata
+		sparkPostTemplate = getSparkPostTemplate(session.currency, metadata);
 
 		// Validate source and campaign
 		currentStep = "Validate webhook source and campaign";
@@ -87,8 +96,6 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 		console.log(`Processing Stripe Checkout Completed (One-off payment)`);
 
 		currentStep = "Initialize Donorfy client";
-		//donorfy determined by currency
-		donorfyInstance = session.currency === "usd" ? "us" : "uk";
 		const donorfy = getDonorfyClient(donorfyInstance);
 		results.push({ step: currentStep, success: true });
 
@@ -107,20 +114,11 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			results.push({ step: currentStep, success: true });
 		} else {
 			currentStep = "Create new constituent in Donorfy";
-			const createConstituentInputData = {
-				ConstituentType: "individual",
-				Title: metadata.title || "",
-				FirstName: metadata.firstName || "",
-				LastName: metadata.lastName || "",
-				AddressLine1: metadata.address1 || "",
-				AddressLine2: metadata.address2 || "",
-				Town: metadata.townCity || "",
-				PostalCode: metadata.postcode || "",
-				EmailAddress: session.customer_details?.email || "",
-				Phone1: metadata.phone || "",
-				RecruitmentCampaign: metadata.campaign || "",
-				County: donorfyInstance === "us" ? metadata.stateCounty : "",
-			};
+			const createConstituentInputData = buildConstituentCreateData(
+				metadata,
+				session.customer_details?.email,
+				donorfyInstance
+			);
 			const createConstituentData = await donorfy.createConstituent(
 				createConstituentInputData
 			);
@@ -146,40 +144,10 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 
 		//update preferences | set all to true if US instance
 		currentStep = "Update constituent preferences";
-		const updatePreferencesData = {
-			PreferencesList: [
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Email",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.emailPreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Mail",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.postPreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Phone",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.phonePreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "SMS",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.smsPreference,
-				},
-				{
-					PreferenceType: "Purpose",
-					PreferenceName: "Email Updates",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.emailPreference,
-				},
-			],
-		};
+		const updatePreferencesData = buildConstituentPreferencesData(
+			metadata,
+			donorfyInstance
+		);
 		await donorfy.updateConstituentPreferences(
 			constituentId,
 			updatePreferencesData
@@ -273,19 +241,19 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			results.push({ step: currentStep, success: true });
 		}
 
-		if (sparkPostTemplate && metadata.campaign !== "FreedomFoundation") {
-			const currencySymbol = session.currency === "usd" ? "$" : "£";
-			const friendlyAmount = (session.amount_total / 100).toFixed(2);
-			const thankYouEmailSubstitutionData = {
-				name: metadata.firstName,
-				amount: `${currencySymbol}${friendlyAmount}`,
-			};
-			currentStep = "Send Sparkpost thank you email";
-			await sendEmailByTemplateName(
-				sparkPostTemplate,
-				session.customer_details?.email,
-				thankYouEmailSubstitutionData
-			);
+		//send thank you email unless suppressed or FreedomFoundation campaign
+		//FreedomFoundation sends it's own sparkpost emails
+		currentStep = "Send Sparkpost thank you email";
+		const emailSent = await sendThankYouEmail(
+			sparkPostTemplate,
+			metadata.campaign,
+			session.customer_details?.email,
+			metadata.firstName,
+			session.amount_total / 100,
+			session.currency,
+			sendEmailByTemplateName
+		);
+		if (emailSent) {
 			results.push({ step: currentStep, success: true });
 		}
 

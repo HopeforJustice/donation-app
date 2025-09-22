@@ -9,12 +9,9 @@
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
+import { getDonorfyClient } from "@/app/lib/utils";
+
 const client = getGoCardlessClient();
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
 
 export async function handlePaymentFailed(event) {
 	const results = [];
@@ -23,6 +20,9 @@ export async function handlePaymentFailed(event) {
 	console.log("attempting to process payment failed");
 
 	try {
+		// Initialize Donorfy client (GoCardless is UK-only)
+		const donorfy = getDonorfyClient("uk");
+
 		const paymentId = event.links.payment;
 
 		currentStep = "Retrieve payment details from GoCardless";
@@ -48,7 +48,7 @@ export async function handlePaymentFailed(event) {
 		if (subscription || test) {
 			currentStep = "Add GoCardless Payment Failed Activity in Donorfy";
 
-			await donorfyUK.addActivity({
+			await donorfy.addActivity({
 				ActivityType: "Gocardless Payment Failed",
 				Notes: `Amount: ${friendlyAmount}`,
 				Number1: friendlyAmount,

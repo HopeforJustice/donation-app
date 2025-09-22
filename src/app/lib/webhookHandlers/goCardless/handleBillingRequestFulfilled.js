@@ -1,28 +1,42 @@
-/*
- * handleBillingRequestFulfilled.js
- * Function for handling GoCardless webhook event for billing request fulfilled
+/**
+ * Handles the "billing_request.fulfilled" webhook event from GoCardless.
  *
- * Webhook event sent from Gocardless to api/webhooks/gocardless
+ * This function performs the following steps:
+ * 1. Retrieves billing request and customer details from GoCardless, extracting relevant metadata.
+ * 2. If the frequency is monthly, creates a subscription in GoCardless.
+ * 3. If the user has opted into email communications and not in test mode, adds/updates the subscriber in Mailchimp and tags them.
+ * 4. Sends a direct debit confirmation email to the customer.
+ * 5. Checks for duplicate constituents in Donorfy using the customer's email.
+ * 6. Finds or creates a constituent in Donorfy, updating GoCardless customer metadata with the constituent ID.
+ * 7. If the constituent already exists, updates their details in Donorfy.
+ * 8. Updates constituent communication preferences in Donorfy.
+ * 9. If Gift Aid is enabled, creates a Gift Aid declaration in Donorfy.
+ * 10. Adds active subscription and inspiration tags in Donorfy.
+ * 11. Adds subscription and (optionally) inspiration activities in Donorfy.
  *
- * Exctract "additionalDetails" from billing request metadata
- * Create supscription in GoCardless (using additional details if frequency is monthly)
- * Update Customer metadata in GoCardless so "additionalDetails" is attached to customer instead of billing request
- * Add/Update subscriber in Mailchimp (if selected preference is yes to email)
- * Send sparkpost email (regardless of consent as this is transactional)
- * Update Donorfy (donorfy/newGoCardlessSubscriber.js)
- *
+ * @async
+ * @function handleBillingRequestFulfilled
+ * @param {Object} event - The webhook event object from GoCardless.
+ * @param {Object} event.links - Contains IDs for billing request, customer, and mandate.
+ * @param {string} event.links.billing_request - The GoCardless billing request ID.
+ * @param {string} event.links.customer - The GoCardless customer ID.
+ * @param {string} event.links.mandate_request_mandate - The GoCardless mandate ID.
+ * @returns {Promise<Object>} Result object containing status, message, eventStatus, results, customerId, and constituentId.
+ * @throws {Error} Throws an error if any step fails, with additional context in the error object.
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 import addUpdateSubscriber from "../../mailchimp/addUpdateSubscriber";
 import addTag from "../../mailchimp/addTag";
 import sendDirectDebitConfirmationEmail from "../../sparkpost/sendDirectDebitConfirmationEmail";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
+import {
+	getDonorfyClient,
+	buildConstituentCreateData,
+	buildConstituentUpdateData,
+	buildConstituentPreferencesData,
+} from "@/app/lib/utils";
+
 const client = getGoCardlessClient();
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
 const test = process.env.VERCEL_ENV !== "production";
 export const runtime = "nodejs";
 
@@ -39,6 +53,9 @@ export async function handleBillingRequestFulfilled(event) {
 	let alreadyInDonorfy = false;
 
 	try {
+		// Initialize Donorfy client (GoCardless is UK-only)
+		const donorfy = getDonorfyClient("uk");
+
 		// Extract all details needed from GoCardless
 		currentStep = "Retrieve billing request details and extract metadata";
 		const billingRequest = await client.billingRequests.find(billingRequestId);
@@ -48,28 +65,44 @@ export async function handleBillingRequestFulfilled(event) {
 		);
 
 		const extractedData = {
-			additionalDetails: additionalDetails,
+			// Customer data from GoCardless
 			email: goCardlessCustomer.email,
+			address1: goCardlessCustomer.address_line1,
+			address2: goCardlessCustomer.address_line2,
+			city: goCardlessCustomer.city,
+			postalCode: goCardlessCustomer.postal_code,
+
+			// Flattened additional details
 			title: additionalDetails.title,
 			firstName: additionalDetails.firstName,
 			lastName: additionalDetails.lastName,
-			address1: goCardlessCustomer.address_line1,
-			address2: goCardlessCustomer.address_line2,
+			phone: additionalDetails.phone,
 			stateCounty: additionalDetails.stateCounty,
-			city: goCardlessCustomer.city,
-			postalCode: goCardlessCustomer.postal_code,
+			campaign: additionalDetails.campaign,
+			amount: additionalDetails.amount,
+			frequency: additionalDetails.frequency,
+			directDebitDay: additionalDetails.directDebitDay,
+			giftAid: additionalDetails.giftAid,
+			inspirationQuestion: additionalDetails.inspirationQuestion,
+			inspirationDetails: additionalDetails.inspirationDetails,
+
+			// Flattened preferences (convert strings to booleans)
+			emailPreference: additionalDetails.preferences?.email === "true",
+			smsPreference: additionalDetails.preferences?.sms === "true",
+			phonePreference: additionalDetails.preferences?.phone === "true",
+			postPreference: additionalDetails.preferences?.post === "true",
 		};
 		results.push({ step: currentStep, success: true });
 
 		// Create a subscription if frequency is monthly
-		if (extractedData.additionalDetails.frequency === "monthly") {
+		if (extractedData.frequency === "monthly") {
 			currentStep = "Create subscription";
 			const subscription = await client.subscriptions.create({
-				amount: extractedData.additionalDetails.amount * 100,
+				amount: extractedData.amount * 100,
 				currency: "GBP",
 				name: "Monthly Guardian",
-				interval_unit: extractedData.additionalDetails.frequency,
-				day_of_month: extractedData.additionalDetails.directDebitDay,
+				interval_unit: extractedData.frequency,
+				day_of_month: extractedData.directDebitDay,
 				links: { mandate: mandateId },
 			});
 
@@ -85,7 +118,7 @@ export async function handleBillingRequestFulfilled(event) {
 		 * If the constituent has said yes to email comms
 		 * Add them to Mailchimp with an "GoCardless Active Subscription" tag
 		 */
-		if (extractedData.additionalDetails.preferences.email === "true" && !test) {
+		if (extractedData.emailPreference && !test) {
 			currentStep = "Add/Update subscriber in Mailchimp";
 			await addUpdateSubscriber(
 				extractedData.email,
@@ -107,7 +140,7 @@ export async function handleBillingRequestFulfilled(event) {
 			await sendDirectDebitConfirmationEmail(
 				extractedData.email,
 				extractedData.firstName,
-				extractedData.additionalDetails.amount
+				extractedData.amount
 			);
 
 		if (sendConfirmationEmailResponse) {
@@ -117,7 +150,7 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		currentStep = "Donorfy duplicate check";
-		const duplicateCheckData = await donorfyUK.duplicateCheck({
+		const duplicateCheckData = await donorfy.duplicateCheck({
 			EmailAddress: extractedData.email,
 		});
 		results.push({ step: currentStep, success: true });
@@ -130,21 +163,13 @@ export async function handleBillingRequestFulfilled(event) {
 			results.push({ step: currentStep, success: true });
 		} else {
 			currentStep = "Create Constituent";
-			const createConstituentInputData = {
-				ConstituentType: "individual",
-				Title: extractedData.additionalDetails.title || "",
-				FirstName: extractedData.firstName || "",
-				LastName: extractedData.lastName || "",
-				AddressLine1: extractedData.address1 || "",
-				AddressLine2: extractedData.address2 || "",
-				Town: extractedData.city || "",
-				County: extractedData.stateCounty || "",
-				PostalCode: extractedData.postalCode || "",
-				EmailAddress: extractedData.email || "",
-				Phone1: extractedData.additionalDetails.phone || "",
-				RecruitmentCampaign: extractedData.additionalDetails.campaign || "",
-			};
-			const createConstituentData = await donorfyUK.createConstituent(
+			const createConstituentInputData = buildConstituentCreateData(
+				extractedData,
+				extractedData.email,
+				"uk",
+				extractedData.campaign
+			);
+			const createConstituentData = await donorfy.createConstituent(
 				createConstituentInputData
 			);
 			constituentId = createConstituentData.ConstituentId;
@@ -164,18 +189,13 @@ export async function handleBillingRequestFulfilled(event) {
 		//Possibly update constituent
 		if (alreadyInDonorfy) {
 			currentStep = "Update Constituent details in Donorfy";
-			const updateConstituentInputData = {
-				Title: extractedData.additionalDetails.title || "Mr",
-				FirstName: extractedData.firstName || "",
-				LastName: extractedData.lastName || "",
-				AddressLine1: extractedData.address1 || "",
-				AddressLine2: extractedData.address2 || "",
-				Town: extractedData.city || "",
-				County: extractedData.stateCounty || "",
-				PostalCode: extractedData.postalCode || "",
-				Phone1: extractedData.additionalDetails.phone || "",
-			};
-			await donorfyUK.updateConstituent(
+			const updateConstituentInputData = buildConstituentUpdateData(
+				extractedData,
+				duplicateCheckData[0],
+				extractedData.email,
+				"uk"
+			);
+			await donorfy.updateConstituent(
 				constituentId,
 				updateConstituentInputData
 			);
@@ -183,46 +203,21 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		currentStep = "Update Constituent preferences in Donorfy";
-		const updatePreferencesData = {
-			PreferencesList: [
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Email",
-					PreferenceAllowed: extractedData.additionalDetails.preferences.email,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Mail",
-					PreferenceAllowed: extractedData.additionalDetails.preferences.post,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Phone",
-					PreferenceAllowed: extractedData.additionalDetails.preferences.phone,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "SMS",
-					PreferenceAllowed: extractedData.additionalDetails.preferences.sms,
-				},
-				{
-					PreferenceType: "Purpose",
-					PreferenceName: "Email Updates",
-					PreferenceAllowed: extractedData.additionalDetails.preferences.email,
-				},
-			],
-		};
-		await donorfyUK.updateConstituentPreferences(
+		const preferencesInputData = buildConstituentPreferencesData(
+			extractedData,
+			"uk"
+		);
+		await donorfy.updateConstituentPreferences(
 			constituentId,
-			updatePreferencesData
+			preferencesInputData
 		);
 		results.push({ step: currentStep, success: true });
 
 		// Possibly add GiftAid declaration
-		if (extractedData.additionalDetails.giftAid === "true") {
+		if (extractedData.giftAid === "true") {
 			currentStep = "Create Gift Aid declaration in Donorfy";
-			await donorfyUK.createGiftAidDeclaration(constituentId, {
-				TaxPayerTitle: extractedData.additionalDetails.title,
+			await donorfy.createGiftAidDeclaration(constituentId, {
+				TaxPayerTitle: extractedData.title,
 				TaxPayerFirstName: extractedData.firstName,
 				TaxPayerLastName: extractedData.lastName,
 			});
@@ -231,17 +226,17 @@ export async function handleBillingRequestFulfilled(event) {
 
 		// Add donorfy tags
 		currentStep = "Add active subscription tag in Donorfy";
-		await donorfyUK.addActiveTags(
+		await donorfy.addActiveTags(
 			constituentId,
 			"Gocardless_Active Subscription"
 		);
 		results.push({ step: currentStep, success: true });
 
-		if (extractedData.additionalDetails.inspirationQuestion) {
+		if (extractedData.inspirationQuestion) {
 			currentStep = "Add inspiration tag in Donorfy";
-			await donorfyUK.addActiveTags(
+			await donorfy.addActiveTags(
 				constituentId,
-				extractedData.additionalDetails.inspirationQuestion
+				extractedData.inspirationQuestion
 			);
 		}
 		results.push({ step: currentStep, success: true });
@@ -249,23 +244,23 @@ export async function handleBillingRequestFulfilled(event) {
 		//Add donorfy Activities
 		currentStep = "Add Subscription Activity in Donorfy";
 		const activityData = {
-			Notes: `Gocardless Subscription created. Amount: ${extractedData.additionalDetails.amount}`,
+			Notes: `Gocardless Subscription created. Amount: ${extractedData.amount}`,
 			ActivityType: "Gocardless Subscription",
-			Number1: extractedData.additionalDetails.amount,
+			Number1: extractedData.amount,
 		};
-		await donorfyUK.addActivity({
+		await donorfy.addActivity({
 			...activityData,
 			ExistingConstituentId: constituentId,
 		});
 		results.push({ step: currentStep, success: true });
 
-		if (extractedData.additionalDetails.inspirationDetails) {
+		if (extractedData.inspirationDetails) {
 			currentStep = "Add Inspiration Activity in Donorfy";
 			const inspirationActivityData = {
-				Notes: extractedData.additionalDetails.inspirationDetails,
+				Notes: extractedData.inspirationDetails,
 				ActivityType: "Donation inspiration",
 			};
-			await donorfyUK.addActivity({
+			await donorfy.addActivity({
 				...inspirationActivityData,
 				ExistingConstituentId: constituentId,
 			});

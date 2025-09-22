@@ -1,36 +1,48 @@
+/**
+ * Handles Stripe Subscription Created webhook events.
+ *
+ * This function processes a newly created Stripe subscription by:
+ * 1. Extracting and validating subscription data and retrieving customer details.
+ * 2. Validating the webhook source.
+ * 3. Initializing the Donorfy client based on subscription currency.
+ * 4. Checking for existing constituent in Donorfy by email.
+ * 5. Creating a new constituent or updating existing constituent details.
+ * 6. Adding constituent ID to subscription and customer metadata in Stripe.
+ * 7. Updating constituent preferences (all true for US instance).
+ * 8. Creating a Gift Aid declaration if applicable (UK only).
+ * 9. Adding or updating Mailchimp subscriber and adding subscription tag (skipped in test environments).
+ * 10. Adding subscription activity to track the new subscription.
+ * 11. Adding inspiration activity and tag if provided in metadata.
+ * 12. Adding Donorfy tag for active subscription tracking.
+ * 13. Sending subscription thank you email via SparkPost if template is configured.
+ *
+ * @async
+ * @function handleSubscriptionCreated
+ * @param {object} event - The Stripe webhook event object.
+ * @param {object} stripeClient - The initialized Stripe client instance.
+ * @returns {Promise<object>} Result object containing processing status, results, constituentId, eventId, and subscriptionId.
+ * @throws {Error} Throws error with processing step and context if any step fails.
+ */
+
 import addTag from "@/app/lib/mailchimp/addTag";
-import DonorfyClient from "../../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../../mailchimp/addUpdateSubscriber";
 import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
-
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import {
+	getDonorfyClient,
+	buildConstituentCreateData,
+	buildConstituentUpdateData,
+	buildConstituentPreferencesData,
+	getSparkPostTemplate,
+} from "@/app/lib/utils";
 
 export async function handleSubscriptionCreated(event, stripeClient) {
 	const subscription = event.data.object;
+	const donorfyInstance = subscription.currency === "usd" ? "us" : "uk";
 	const results = [];
 	let currentStep = "";
 	let constituentId = null;
-	let donorfyInstance;
 	let test = process.env.VERCEL_ENV !== "production";
 	let sparkPostTemplate;
-
-	// default sparkpost templates
-	if (subscription.currency === "usd") {
-		sparkPostTemplate = "usa-monthly-donation";
-	} else if (subscription.currency === "gbp") {
-		sparkPostTemplate = null;
-	}
 
 	try {
 		// Extract and validate subscription data
@@ -45,13 +57,12 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 		const source = metadata.source || "unknown";
 		results.push({ step: currentStep, success: true });
 
-		// custom sparkpost template or set to none
-		if (metadata.sparkPostTemplate) {
-			sparkPostTemplate =
-				metadata.sparkPostTemplate === "none"
-					? null
-					: metadata.sparkPostTemplate;
-		}
+		// Get SparkPost template for subscriptions
+		sparkPostTemplate = getSparkPostTemplate(
+			subscription.currency,
+			metadata,
+			"subscription"
+		);
 
 		// Validate source
 		currentStep = "Validate webhook source";
@@ -69,8 +80,6 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 		console.log(`Processing Stripe Subscription Created metadata:`, metadata);
 
 		currentStep = "Initialize Donorfy client";
-		//donorfy determined by currency
-		donorfyInstance = subscription.currency === "usd" ? "us" : "uk";
 		const donorfy = getDonorfyClient(donorfyInstance);
 		results.push({ step: currentStep, success: true });
 
@@ -89,18 +98,12 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 
 			// Update existing constituent with latest info
 			currentStep = "Update existing constituent details";
-			const updateConstituentInputData = {
-				Title: metadata.title || "",
-				FirstName: metadata.firstName || "",
-				LastName: metadata.lastName || "",
-				AddressLine1: metadata.address1 || "",
-				AddressLine2: metadata.address2 || "",
-				Town: metadata.townCity || "",
-				PostalCode: metadata.postcode || "",
-				EmailAddress: customer?.email || "",
-				Phone1: metadata.phone || "",
-				County: donorfyInstance === "us" ? metadata.stateCounty : "",
-			};
+			const updateConstituentInputData = buildConstituentUpdateData(
+				metadata,
+				duplicateCheckData[0],
+				customer?.email,
+				donorfyInstance
+			);
 			await donorfy.updateConstituent(
 				constituentId,
 				updateConstituentInputData
@@ -108,20 +111,12 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 			results.push({ step: currentStep, success: true });
 		} else {
 			currentStep = "Create new constituent in Donorfy";
-			const createConstituentInputData = {
-				ConstituentType: "individual",
-				Title: metadata.title || "",
-				FirstName: metadata.firstName || "",
-				LastName: metadata.lastName || "",
-				AddressLine1: metadata.address1 || "",
-				AddressLine2: metadata.address2 || "",
-				Town: metadata.townCity || "",
-				PostalCode: metadata.postcode || "",
-				EmailAddress: customer?.email || "",
-				Phone1: metadata.phone || "",
-				RecruitmentCampaign: metadata.campaign || "",
-				County: donorfyInstance === "us" ? metadata.stateCounty : "",
-			};
+			const createConstituentInputData = buildConstituentCreateData(
+				metadata,
+				customer?.email,
+				donorfyInstance,
+				metadata.campaign
+			);
 			const createConstituentData = await donorfy.createConstituent(
 				createConstituentInputData
 			);
@@ -147,40 +142,10 @@ export async function handleSubscriptionCreated(event, stripeClient) {
 
 		//update preferences | set all to true if US instance
 		currentStep = "Update constituent preferences";
-		const updatePreferencesData = {
-			PreferencesList: [
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Email",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.emailPreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Mail",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.postPreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Phone",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.phonePreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "SMS",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.smsPreference,
-				},
-				{
-					PreferenceType: "Purpose",
-					PreferenceName: "Email Updates",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : metadata.emailPreference,
-				},
-			],
-		};
+		const updatePreferencesData = buildConstituentPreferencesData(
+			metadata,
+			donorfyInstance
+		);
 		await donorfy.updateConstituentPreferences(
 			constituentId,
 			updatePreferencesData

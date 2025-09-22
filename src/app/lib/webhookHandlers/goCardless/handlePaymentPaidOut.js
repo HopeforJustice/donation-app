@@ -9,11 +9,7 @@
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
+import { getDonorfyClient } from "@/app/lib/utils";
 
 export async function handlePaymentPaidOut(event) {
 	const client = getGoCardlessClient();
@@ -23,7 +19,11 @@ export async function handlePaymentPaidOut(event) {
 	let constituentId = null;
 	const test = process.env.VERCEL_ENV === "production" ? false : true;
 	console.log("attempting to process payment paid out");
+
 	try {
+		// Initialize Donorfy client (GoCardless is UK-only)
+		const donorfy = getDonorfyClient("uk");
+
 		currentStep = "Retrieve payment details from GoCardless";
 		const paymentId = event.links.payment;
 		const payment = await client.payments.find(paymentId);
@@ -79,7 +79,7 @@ export async function handlePaymentPaidOut(event) {
 			const paymentMethod = "GoCardless DD";
 			const chargeDate = payment.charge_date;
 
-			const createTransactionResult = await donorfyUK.createTransaction(
+			const createTransactionResult = await donorfy.createTransaction(
 				friendlyAmount,
 				campaign,
 				paymentMethod,

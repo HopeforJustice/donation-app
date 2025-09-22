@@ -1,17 +1,24 @@
-import DonorfyClient from "../../../donorfy/donorfyClient";
+/**
+ * Handles the Stripe subscription updated webhook event.
+ *
+ * Steps:
+ * 1. Extracts and validates subscription data from the event.
+ * 2. Retrieves the Stripe customer associated with the subscription.
+ * 3. Extracts metadata from the subscription or customer to determine the source.
+ * 4. Validates the webhook source; ignores if not from "donation-app".
+ * 5. Initializes the Donorfy client based on the subscription currency.
+ * 6. Finds the constituent in Donorfy by email using duplicate check.
+ * 7. Adds a "Stripe Subscription Updated" activity to the constituent in Donorfy.
+ * 8. Returns a summary of the processing result, or throws an error if any step fails.
+ *
+ * @async
+ * @param {object} event - The Stripe webhook event object.
+ * @param {object} stripeClient - The initialized Stripe client instance.
+ * @returns {Promise<object>} Result object containing status, message, eventStatus, results, constituentId, and eventId.
+ * @throws {Error} Throws an error if any step fails, including the current step, results, constituentId, and eventId.
+ */
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import { getDonorfyClient } from "@/app/lib/utils";
 
 export async function handleSubscriptionUpdated(event, stripeClient) {
 	const subscription = event.data.object;
@@ -75,7 +82,7 @@ export async function handleSubscriptionUpdated(event, stripeClient) {
 		currentStep = "Add subscription update activity";
 		const updateActivityData = {
 			ExistingConstituentId: constituentId,
-			ActivityType: "Subscription Updated",
+			ActivityType: "Stripe Subscription Updated",
 			Notes: `Stripe Subscription ID: ${subscription.id}, Status: ${
 				subscription.status
 			}, Current amount: ${

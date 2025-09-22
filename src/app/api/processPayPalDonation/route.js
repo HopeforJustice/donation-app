@@ -1,23 +1,36 @@
+/**
+ * Handles the processing of a PayPal donation.
+ *
+ * Steps performed:
+ * 1. Parses and validates the incoming donation data from the request body.
+ * 2. Determines the appropriate Donorfy instance (US/UK) based on currency.
+ * 3. Checks for an existing constituent in Donorfy by email.
+ * 4. Creates a new constituent in Donorfy if not found, or updates details if found.
+ * 5. Updates constituent communication preferences.
+ * 6. Creates a donation transaction in Donorfy.
+ * 7. Optionally adds an inspiration activity and tag if provided.
+ * 8. Creates a Gift Aid declaration for UK donors if applicable.
+ * 9. Adds or updates the donor as a Mailchimp subscriber if eligible.
+ * 10. Sends a thank you email using SparkPost.
+ * 11. Processes any additional campaign logic.
+ * 12. Stores the event and processing results for auditing.
+ * 13. Handles and reports errors, sending an error email if needed.
+ *
+ * @param {Request} req - The Next.js API request object containing PayPal donation data.
+ * @returns {Promise<NextResponse>} A JSON response indicating success or failure.
+ */
+
 import { NextResponse } from "next/server";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
 import addUpdateSubscriber from "@/app/lib/mailchimp/addUpdateSubscriber";
 import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
 import processCampaign from "@/app/lib/campaigns/processCampaign";
-
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import {
+	getDonorfyClient,
+	getSparkPostTemplate,
+	sendThankYouEmail,
+} from "@/app/lib/utils";
 
 export async function POST(req) {
 	const results = [];
@@ -31,20 +44,8 @@ export async function POST(req) {
 	try {
 		const { orderID, captureID, amount, formData } = await req.json();
 
-		// default sparkpost templates
-		if (formData.currency === "usd") {
-			sparkPostTemplate = "donation-receipt-2024-usa-stripe";
-		} else if (formData.currency === "gbp") {
-			sparkPostTemplate = "donation-receipt-2024-uk-stripe";
-		}
-
-		// possible custom sparkpost template
-		if (formData.sparkPostTemplate) {
-			sparkPostTemplate =
-				formData.sparkPostTemplate === "none"
-					? null
-					: formData.sparkPostTemplate;
-		}
+		// Get SparkPost template based on currency and form data
+		sparkPostTemplate = getSparkPostTemplate(formData.currency, formData);
 
 		// Validate required data
 		if (!orderID || !captureID || !amount || !formData) {
@@ -255,19 +256,17 @@ export async function POST(req) {
 
 		//send sparkpost email receipt
 		//dont send detault template if Freedom Foundation campaign
-		if (sparkPostTemplate && formData.campaign !== "FreedomFoundation") {
-			const currencySymbol = formData.currency === "usd" ? "$" : "£";
-			const friendlyAmount = formData.amount;
-			const thankYouEmailSubstitutionData = {
-				name: formData.firstName,
-				amount: `${currencySymbol}${friendlyAmount}`,
-			};
-			currentStep = "Send Sparkpost thank you email";
-			await sendEmailByTemplateName(
-				sparkPostTemplate,
-				formData.email,
-				thankYouEmailSubstitutionData
-			);
+		currentStep = "Send Sparkpost thank you email";
+		const emailSent = await sendThankYouEmail(
+			sparkPostTemplate,
+			formData.campaign,
+			formData.email,
+			formData.firstName,
+			formData.amount,
+			formData.currency,
+			sendEmailByTemplateName
+		);
+		if (emailSent) {
 			results.push({ step: currentStep, success: true });
 		}
 

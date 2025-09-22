@@ -1,17 +1,4 @@
-import DonorfyClient from "../../../donorfy/donorfyClient";
-
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
-
-function getDonorfyClient(instance) {
-	return instance === "us" ? donorfyUS : donorfyUK;
-}
+import { getDonorfyClient } from "@/app/lib/utils";
 
 export async function handleSubscriptionDeleted(event, stripeClient) {
 	const subscription = event.data.object;
