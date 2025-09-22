@@ -2,6 +2,7 @@ import processCampaign from "@/app/lib/campaigns/processCampaign";
 import DonorfyClient from "../../../donorfy/donorfyClient";
 import addUpdateSubscriber from "../../../mailchimp/addUpdateSubscriber";
 import sendEmailByTemplateName from "@/app/lib/sparkpost/sendEmailByTemplateName";
+import { buildConstituentUpdateData } from "@/app/lib/utils/constituentUtils";
 
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
@@ -130,21 +131,12 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 		//possibly update the constituent if found
 		if (alreadyInDonorfy) {
 			currentStep = "Update existing constituent details";
-			const updateConstituentInputData = {
-				Title: metadata.title || "",
-				FirstName: metadata.firstName || "",
-				LastName: metadata.lastName || "",
-				AddressLine1: metadata.address1 || "",
-				AddressLine2: metadata.address2 || "",
-				Town: metadata.townCity || "",
-				PostalCode: metadata.postcode || "",
-				EmailAddress: session.customer_details?.email || "",
-				Phone1: metadata.phone || "",
-				County:
-					donorfyInstance === "us"
-						? metadata.state || ""
-						: metadata.stateCounty || "",
-			};
+			const updateConstituentInputData = buildConstituentUpdateData(
+				metadata,
+				duplicateCheckData[0],
+				session.customer_details?.email,
+				donorfyInstance
+			);
 			await donorfy.updateConstituent(
 				constituentId,
 				updateConstituentInputData
