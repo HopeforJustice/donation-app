@@ -36,6 +36,7 @@ export function buildConstituentUpdateData(
 		EmailAddress: withFallback(email, existingData.EmailAddress),
 		Phone1: withFallback(metadata.phone, existingData.Phone1),
 		County: withFallback(metadata.stateCounty, existingData.County),
+		Country: withFallback(metadata.Country, existingData.Country),
 	};
 }
 
@@ -67,6 +68,7 @@ export function buildConstituentCreateData(
 		RecruitmentCampaign: campaign || "Donation App General Campaign",
 		County:
 			donorfyInstance === "us" ? metadata.stateCounty : metadata.state || "",
+		Country: metadata.Country || "",
 	};
 }
 
