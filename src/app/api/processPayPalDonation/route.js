@@ -42,7 +42,8 @@ export async function POST(req) {
 	let sparkPostTemplate;
 
 	try {
-		const { orderID, captureID, amount, formData } = await req.json();
+		const { orderID, captureID, amount, formData, paymentDetails } =
+			await req.json();
 
 		// Get SparkPost template based on currency and form data
 		sparkPostTemplate = getSparkPostTemplate(formData.currency, formData);
@@ -55,7 +56,13 @@ export async function POST(req) {
 			);
 		}
 
-		console.log(`Processing PayPal donation Order: ${orderID}`);
+		// Determine payment method from PayPal response (Venmo vs PayPal)
+		const paymentMethod =
+			paymentDetails?.paymentMethod || formData.paymentMethod || "PayPal";
+
+		console.log(
+			`Processing PayPal donation Order: ${orderID}, Payment Method: ${paymentMethod}`
+		);
 
 		currentStep = "Initialize Donorfy client";
 		//donorfy determined by currency
@@ -172,7 +179,7 @@ export async function POST(req) {
 		const transaction = await donorfy.createTransaction(
 			formData.amount,
 			formData.campaign,
-			formData.paymentMethod || "PayPal", //need a paypal payment method
+			paymentMethod, // Use detected payment method (Venmo or PayPal)
 			constituentId,
 			null, // chargeDate - will default to current date
 			formData.projectId || formData.fund || "unrestricted",

@@ -37,6 +37,14 @@ export async function capturePayPalOrder({ orderID, mode = "test", formData }) {
 
 		// Extract payment details
 		const capture = captureData.purchase_units[0].payments.captures[0];
+
+		// Extract funding source information (including Venmo detection)
+		const paymentSource = captureData.payment_source || {};
+		const fundingSource =
+			paymentSource.paypal?.funding_source || paymentSource.venmo
+				? "venmo"
+				: "paypal";
+
 		const paymentDetails = {
 			paypalOrderId: orderID,
 			paypalCaptureId: capture.id,
@@ -45,6 +53,8 @@ export async function capturePayPalOrder({ orderID, mode = "test", formData }) {
 			status: capture.status,
 			createTime: capture.create_time,
 			updateTime: capture.update_time,
+			fundingSource: fundingSource, // 'venmo' or 'paypal'
+			paymentMethod: fundingSource === "venmo" ? "Venmo" : "PayPal",
 		};
 
 		console.log("PayPal payment captured successfully:", {
@@ -52,6 +62,8 @@ export async function capturePayPalOrder({ orderID, mode = "test", formData }) {
 			captureId: capture.id,
 			amount: capture.amount.value,
 			currency: capture.amount.currency_code,
+			fundingSource: fundingSource,
+			paymentMethod: paymentDetails.paymentMethod,
 		});
 
 		return {

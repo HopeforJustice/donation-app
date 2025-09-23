@@ -28,6 +28,7 @@ export async function POST(req) {
 				amount: captureResult.paymentDetails.amount,
 				formData,
 				mode,
+				paymentDetails: captureResult.paymentDetails, // Include payment details for Venmo detection
 			}),
 		}).catch((error) => {
 			// Log error but don't fail the user's payment
