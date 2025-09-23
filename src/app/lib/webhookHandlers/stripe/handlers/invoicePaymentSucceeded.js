@@ -108,7 +108,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 		const transaction = await donorfy.createTransaction(
 			invoice.amount_paid / 100,
 			metadata.campaign || "Donation App General Campaign",
-			"Stripe Checkout",
+			"Stripe Subscription",
 			constituentId,
 			null, // Donorfy will use system date
 			metadata.fund || "unrestricted",
