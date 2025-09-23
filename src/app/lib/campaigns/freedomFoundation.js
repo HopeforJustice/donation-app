@@ -1,18 +1,12 @@
 /* 
 FreedomFoundation Campaign specific workflows
 */
-import DonorfyClient from "../donorfy/donorfyClient";
 import addTag from "../mailchimp/addTag";
 import sendEmailByTemplateName from "../sparkpost/sendEmailByTemplateName";
+import { getDonorfyClient } from "../utils/apiUtils";
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
+const donorfyUK = getDonorfyClient("uk");
+const donorfyUS = getDonorfyClient("us");
 
 const results = [];
 let currentStep;
