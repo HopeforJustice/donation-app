@@ -1,13 +1,8 @@
 import { poll } from "@/app/lib/utilities";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
+
+const donorfyUK = getDonorfyClient("uk");
+const donorfyUS = getDonorfyClient("us");
 
 export default async function pollForConstituent(email, donorfyInstance) {
 	const donorfy = donorfyInstance === "us" ? donorfyUS : donorfyUK;

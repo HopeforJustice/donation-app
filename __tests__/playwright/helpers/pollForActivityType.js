@@ -1,14 +1,8 @@
 import { poll } from "@/app/lib/utilities";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
+const donorfyUK = getDonorfyClient("uk");
+const donorfyUS = getDonorfyClient("us");
 
 export default async function pollForActivityType(
 	constituentId,

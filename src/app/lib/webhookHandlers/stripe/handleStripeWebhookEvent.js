@@ -1,5 +1,8 @@
-//handles stripe webhook events
-//currently configured to only process if source is set to donation app
+// This file contains the main handler for Stripe webhook events in the donation app.
+// It imports specific event handlers for different Stripe event types (e.g. checkout session completed, subscription, invoice).
+// The handler checks for duplicate events using a processed_events table to ensure idempotency.
+// Only events relevant to the donation app are processed; others are ignored or logged as unhandled.
+// Each supported event type is routed to its corresponding handler function.
 
 import { sql } from "@vercel/postgres";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted";

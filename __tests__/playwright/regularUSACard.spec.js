@@ -10,19 +10,16 @@ import { test, expect } from "@playwright/test";
 import fillUSRegular from "./helpers/formCompletions/usRegular";
 import getSubscriber from "@/app/lib/mailchimp/getSubscriber";
 import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import pollForConstituent from "./helpers/pollForConstituent";
 import pollForStripeWebhookEvent from "./helpers/pollForStripeWebhookEvent";
 import advanceTestClock from "./helpers/advanceTestClock";
 import { getStripeInstance } from "@/app/lib/stripe/getStripeInstance";
 import pollForActivityType from "./helpers/pollForActivityType";
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
 const stripe = getStripeInstance({ currency: "usd", mode: "test" });
 
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
+const donorfyUS = getDonorfyClient("us");
 
 // Default campaign: Donation App General Campaign
 

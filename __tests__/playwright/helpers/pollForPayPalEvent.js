@@ -1,16 +1,9 @@
 import { poll } from "@/app/lib/utilities";
 import getProcessedEvent from "@/app/lib/db/getProcessedEvent";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
-
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
+const donorfyUK = getDonorfyClient("uk");
+const donorfyUS = getDonorfyClient("us");
 
 export default async function pollForPayPalEvent(testEmail) {
 	return await poll(

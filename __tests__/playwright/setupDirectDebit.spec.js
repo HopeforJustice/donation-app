@@ -10,18 +10,15 @@
 import { test, expect } from "@playwright/test";
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";
 import pollForBillingRequest from "./helpers/pollForBillingRequest";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import fillGoCardlessForm from "./helpers/formCompletions/fillGoCardlessForm";
 import fillUkRegular from "./helpers/formCompletions/ukRegular";
 import getSubscriber from "@/app/lib/mailchimp/getSubscriber";
 import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
 import pollForPaymentPaidOut from "./helpers/pollForPaymentPaidOut";
 import pollForActivityType from "./helpers/pollForActivityType";
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
+const donorfyUK = getDonorfyClient("uk");
 
 // Generate test email
 const timestamp = Date.now();
@@ -457,14 +454,14 @@ test.describe("E2E: Setup Direct Debit", () => {
 			}
 
 			// Clean up Donorfy constituent
-			if (constituentId) {
-				try {
-					await donorfyUK.deleteConstituent(constituentId);
-					console.log(`Deleted Donorfy constituent: ${constituentId}`);
-				} catch (err) {
-					console.warn(`Failed to delete Donorfy constituent: ${err}`);
-				}
-			}
+			// if (constituentId) {
+			// 	try {
+			// 		await donorfyUK.deleteConstituent(constituentId);
+			// 		console.log(`Deleted Donorfy constituent: ${constituentId}`);
+			// 	} catch (err) {
+			// 		console.warn(`Failed to delete Donorfy constituent: ${err}`);
+			// 	}
+			// }
 			// Clean up Mailchimp subscriber off due to rate limiting
 			// try {
 			// 	await deleteSubscriber(email, "uk"); // Use US instance

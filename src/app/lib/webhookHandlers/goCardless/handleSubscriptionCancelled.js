@@ -1,10 +1,19 @@
-/*
+/**
  * handleSubscriptionCancelled.js
- * Gocardless event for subscription cancelled
- * Get customer details from GoCardless
- * Delete active tag in Donorfy
- * Delete active tag in mailchimp
  *
+ * Handles the GoCardless "subscription cancelled" webhook event.
+ *
+ * Steps performed:
+ * 1. Retrieve customer details from GoCardless using the subscription and mandate IDs.
+ * 2. Parse additional details and Donorfy constituent ID from GoCardless customer metadata.
+ * 3. Delete the "Gocardless Active Subscription" tag in Mailchimp for the customer, if a subscriber exists.
+ * 4. Remove the "Gocardless_Active Subscription" tag in Donorfy for the constituent.
+ * 5. Add an activity record in Donorfy to log the subscription cancellation, including the cancelled amount.
+ * 6. Collect step-by-step results for auditing and error handling.
+ *
+ * @param {Object} event - The GoCardless webhook event object.
+ * @returns {Promise<Object>} Result object with status, message, and step results.
+ * @throws {Error} If any step fails, throws an error with step results and relevant IDs.
  */
 import { getGoCardlessClient } from "../../gocardless/gocardlessclient";
 import { getDonorfyClient } from "@/app/lib/utils";

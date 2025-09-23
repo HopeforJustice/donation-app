@@ -1,11 +1,19 @@
-/*
+/**
  * handlePaymentPaidOut.js
- * Gocardless event for payments with paid out status
+ * Handles GoCardless webhook events for payments with "paid out" status.
  *
- * Check if the payment relates to a subscription
- * Get customer details with metadata from gocardless
- * Send payment details to donorfy
+ * Steps performed:
+ * 1. Retrieve payment details from GoCardless using the payment ID from the event.
+ * 2. Check if the payment is part of a subscription (or process in test mode).
+ * 3. Retrieve mandate details associated with the payment.
+ * 4. Retrieve customer details from GoCardless, including metadata.
+ * 5. Parse additional details from customer metadata (e.g., campaign, UTM parameters).
+ * 6. Create a transaction in Donorfy using the payment and customer details.
+ * 7. Return a summary of the processing result, including Donorfy transaction ID.
  *
+ * @param {Object} event - The GoCardless webhook event object.
+ * @returns {Promise<Object>} Result of the processing, including status and transaction info.
+ * @throws {Error} If any step fails, throws an error with details and partial results.
  */
 
 import { getGoCardlessClient } from "@/app/lib/gocardless/gocardlessclient";

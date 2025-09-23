@@ -1,14 +1,10 @@
 import { test, expect } from "@playwright/test";
 import fillUsOnce from "./helpers/formCompletions/usOnce";
-
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import pollForConstituent from "./helpers/pollForConstituent";
 import pollForPayPalEvent from "./helpers/pollForPayPalEvent";
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUS = new DonorfyClient(
-	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
-);
+const donorfyUS = getDonorfyClient("us");
 
 // Default campaign: Donation App General Campaign
 

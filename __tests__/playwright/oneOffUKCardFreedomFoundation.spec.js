@@ -10,14 +10,11 @@ import { test, expect } from "@playwright/test";
 import fillUkOnce from "./helpers/formCompletions/ukOnce";
 import getSubscriber from "@/app/lib/mailchimp/getSubscriber";
 import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import pollForConstituent from "./helpers/pollForConstituent";
 import pollForStripeWebhookEvent from "./helpers/pollForStripeWebhookEvent";
+import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
-);
+const donorfyUK = getDonorfyClient("uk");
 
 // Default campaign: Donation App General Campaign
 

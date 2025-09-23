@@ -1,3 +1,24 @@
+/**
+ * Handles the Stripe subscription.deleted webhook event.
+ *
+ * Steps performed:
+ * 1. Extracts and validates subscription data from the event.
+ * 2. Retrieves the associated Stripe customer.
+ * 3. Extracts metadata to determine the source of the webhook.
+ * 4. Validates that the webhook originated from the expected source ("donation-app").
+ * 5. Initializes the Donorfy client based on the subscription currency.
+ * 6. Attempts to find the corresponding constituent in Donorfy using the customer's email.
+ * 7. If a matching constituent is found, records a "Stripe Subscription Cancelled" activity in Donorfy.
+ * 8. Returns a summary of the processing steps and results.
+ * 9. Handles and logs errors, attaching step results and relevant IDs for debugging.
+ *
+ * @async
+ * @param {object} event - The Stripe webhook event object.
+ * @param {object} stripeClient - The initialized Stripe client instance.
+ * @returns {Promise<object>} An object containing the processing message, status, event status, results, constituentId, and eventId.
+ * @throws {Error} If any step fails, throws an error with additional context and step results.
+ */
+
 import { getDonorfyClient } from "@/app/lib/utils";
 
 export async function handleSubscriptionDeleted(event, stripeClient) {
