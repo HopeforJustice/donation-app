@@ -64,6 +64,12 @@ export async function handleBillingRequestFulfilled(event) {
 			billingRequest.metadata.additionalDetails || "{}"
 		);
 
+		console.log("GoCardless additionalDetails:", additionalDetails);
+		console.log(
+			"GoCardless preferences from additionalDetails:",
+			additionalDetails.preferences
+		);
+
 		const extractedData = {
 			// Customer data from GoCardless
 			email: goCardlessCustomer.email,
@@ -85,12 +91,10 @@ export async function handleBillingRequestFulfilled(event) {
 			giftAid: additionalDetails.giftAid,
 			inspirationQuestion: additionalDetails.inspirationQuestion,
 			inspirationDetails: additionalDetails.inspirationDetails,
-
-			// Flattened preferences (convert strings to booleans)
-			emailPreference: additionalDetails.preferences?.email === "true",
-			smsPreference: additionalDetails.preferences?.sms === "true",
-			phonePreference: additionalDetails.preferences?.phone === "true",
-			postPreference: additionalDetails.preferences?.post === "true",
+			emailPreference: additionalDetails.preferences?.email,
+			smsPreference: additionalDetails.preferences?.sms,
+			phonePreference: additionalDetails.preferences?.phone,
+			postPreference: additionalDetails.preferences?.post,
 		};
 		results.push({ step: currentStep, success: true });
 
@@ -203,10 +207,17 @@ export async function handleBillingRequestFulfilled(event) {
 		}
 
 		currentStep = "Update Constituent preferences in Donorfy";
+		console.log("GoCardless extractedData preferences:", {
+			emailPreference: extractedData.emailPreference,
+			smsPreference: extractedData.smsPreference,
+			phonePreference: extractedData.phonePreference,
+			postPreference: extractedData.postPreference,
+		});
 		const preferencesInputData = buildConstituentPreferencesData(
 			extractedData,
 			"uk"
 		);
+		console.log("Built preferences input data:", preferencesInputData);
 		await donorfy.updateConstituentPreferences(
 			constituentId,
 			preferencesInputData

@@ -84,6 +84,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 		results.push({ step: currentStep, success: true });
 
 		// Find constituent by email
+		// need this to look for constituent by email if the constituent doesn't exist
 		if (!metadata.constituentId) {
 			currentStep = "Find constituent in Donorfy";
 			const duplicateCheckData = await donorfy.duplicateCheck({
@@ -102,13 +103,14 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 			constituentId = metadata.constituentId;
 		}
 
-		// Create transaction for the payment (both first and recurring)
-		currentStep = `Create ${paymentType.toLowerCase()} transaction in Donorfy`;
+		// Create transaction
+		currentStep = `Create transaction in Donorfy`;
 		const transaction = await donorfy.createTransaction(
 			invoice.amount_paid / 100,
 			metadata.campaign || "Donation App General Campaign",
+			"Stripe Checkout",
 			constituentId,
-			new Date(invoice.created * 1000), // Use invoice creation date
+			null, // Donorfy will use system date
 			metadata.fund || "unrestricted",
 			metadata.utmSource || "unknown",
 			metadata.utmMedium || "unknown",

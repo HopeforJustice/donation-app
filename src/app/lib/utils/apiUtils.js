@@ -14,14 +14,21 @@ const donorfyUS = new DonorfyClient(
 	process.env.DONORFY_US_KEY,
 	process.env.DONORFY_US_TENANT
 );
+// const donorfySandbox = new DonorfyClient(
+// 	process.env.DONORFY_SANDBOX_KEY,
+// 	process.env.DONORFY_SANDBOX_TENANT
+// );
 
 /**
  * Gets the appropriate Donorfy client based on instance/region
  * @param {string} instance - "us" or "uk" to determine which client to return
- * @returns {DonorfyClient} The appropriate Donorfy client instance
+ * @returns {DonorfyClient} The appropriate Donorfy client instance (returns sandbox if not production)
  * @throws {Error} If invalid instance provided
  */
 export function getDonorfyClient(instance) {
+	// if (process.env.NODE_ENV !== "production") {
+	// 	return donorfySandbox;
+	// }
 	if (instance === "us") {
 		return donorfyUS;
 	} else if (instance === "uk") {

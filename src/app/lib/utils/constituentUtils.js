@@ -22,14 +22,6 @@ export function buildConstituentUpdateData(
 	const withFallback = (metadataField, existingField, defaultValue = "") =>
 		metadataField || existingField || defaultValue;
 
-	// Handle regional differences for County field
-	const getCountyValue = () => {
-		if (donorfyInstance === "us") {
-			return withFallback(metadata.state, existingData.County);
-		}
-		return withFallback(metadata.stateCounty, existingData.County);
-	};
-
 	return {
 		Title: withFallback(metadata.title, existingData.Title),
 		FirstName: withFallback(metadata.firstName, existingData.FirstName),
@@ -43,7 +35,7 @@ export function buildConstituentUpdateData(
 		),
 		EmailAddress: withFallback(email, existingData.EmailAddress),
 		Phone1: withFallback(metadata.phone, existingData.Phone1),
-		County: getCountyValue(),
+		County: withFallback(metadata.stateCounty, existingData.County),
 	};
 }
 
@@ -74,9 +66,7 @@ export function buildConstituentCreateData(
 		Phone1: metadata.phone || "",
 		RecruitmentCampaign: campaign || "Donation App General Campaign",
 		County:
-			donorfyInstance === "us"
-				? metadata.state || ""
-				: metadata.stateCounty || "",
+			donorfyInstance === "us" ? metadata.stateCounty : metadata.state || "",
 	};
 }
 
@@ -97,7 +87,7 @@ export function buildConstituentPreferencesData(metadata, donorfyInstance) {
 		if (donorfyInstance === "us") {
 			return true;
 		}
-		// For UK: use the metadata value if it exists, otherwise default to false
+		// For non US: use the metadata value if it exists, otherwise default to false
 		return metadataField !== undefined ? metadataField : false;
 	};
 
