@@ -68,7 +68,7 @@ export function buildConstituentCreateData(
 		RecruitmentCampaign: campaign || "Donation App General Campaign",
 		County:
 			donorfyInstance === "us" ? metadata.stateCounty : metadata.state || "",
-		Country: metadata.Country || "",
+		Country: metadata.country || "",
 	};
 }
 
