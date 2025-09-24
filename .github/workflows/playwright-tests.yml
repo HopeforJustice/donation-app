@@ -80,8 +80,8 @@ jobs:
           DONORFY_UK_TENANT: ${{ secrets.DONORFY_UK_TENANT }}
           DONORFY_US_KEY: ${{ secrets.DONORFY_US_KEY }}
           DONORFY_US_TENANT: ${{ secrets.DONORFY_US_TENANT }}
-          DONORFY_SANDBOX_KEY: ${{ secrets.DONORFY_US_KEY }}
-          DONORFY_SANDBOX_TENANT: ${{ secrets.DONORFY_US_TENANT }}
+          DONORFY_SANDBOX_KEY: ${{ secrets.DONORFY_SANDBOX_KEY }}
+          DONORFY_SANDBOX_TENANT: ${{ secrets.DONORFY_SANDBOX_TENANT }}
           # GoCardless
           GOCARDLESS_ACCESS_TOKEN_SANDBOX: ${{ secrets.GOCARDLESS_ACCESS_TOKEN_SANDBOX }}
           GOCARDLESS_ENVIRONMENT: sandbox
