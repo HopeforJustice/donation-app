@@ -110,7 +110,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 			metadata.campaign || "Donation App General Campaign",
 			"Stripe Subscription",
 			constituentId,
-			null, // Donorfy will use system date
+			null,
 			metadata.fund || "unrestricted",
 			metadata.utmSource || "unknown",
 			metadata.utmMedium || "unknown",
