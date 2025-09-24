@@ -31,6 +31,11 @@ import {
 	getSparkPostTemplate,
 	sendThankYouEmail,
 } from "@/app/lib/utils";
+import {
+	buildConstituentCreateData,
+	buildConstituentUpdateData,
+	buildConstituentPreferencesData,
+} from "@/app/lib/utils/constituentUtils";
 
 export async function POST(req) {
 	const results = [];
@@ -85,20 +90,12 @@ export async function POST(req) {
 			results.push({ step: currentStep, success: true });
 		} else {
 			currentStep = "Create new constituent in Donorfy";
-			const createConstituentInputData = {
-				ConstituentType: "individual",
-				Title: formData.title || "",
-				FirstName: formData.firstName || "",
-				LastName: formData.lastName || "",
-				AddressLine1: formData.address1 || "",
-				AddressLine2: formData.address2 || "",
-				Town: formData.townCity || "",
-				PostalCode: formData.postcode || "",
-				EmailAddress: formData.email || "",
-				Phone1: formData.phone || "",
-				RecruitmentCampaign: formData.campaign || "",
-				County: donorfyInstance === "us" ? formData.stateCounty : "",
-			};
+			const createConstituentInputData = buildConstituentCreateData(
+				formData,
+				formData.email,
+				donorfyInstance,
+				formData.campaign
+			);
 			const createConstituentData = await donorfy.createConstituent(
 				createConstituentInputData
 			);
@@ -109,22 +106,12 @@ export async function POST(req) {
 		//possibly update the constituent if found
 		if (alreadyInDonorfy) {
 			currentStep = "Update existing constituent details";
-			const updateConstituentInputData = {
-				Title: formData.title || "",
-				FirstName: formData.firstName || "",
-				LastName: formData.lastName || "",
-				AddressLine1: formData.address1 || "",
-				AddressLine2: formData.address2 || "",
-				Town: formData.townCity || "",
-				PostalCode: formData.postcode || "",
-				EmailAddress: formData.email || "",
-				Phone1: formData.phone || "",
-				RecruitmentCampaign: formData.campaign || "",
-				County:
-					donorfyInstance === "us"
-						? formData.state || ""
-						: formData.stateCounty || "",
-			};
+			const updateConstituentInputData = buildConstituentUpdateData(
+				formData,
+				duplicateCheckData[0],
+				formData.email,
+				donorfyInstance
+			);
 			await donorfy.updateConstituent(
 				constituentId,
 				updateConstituentInputData
@@ -134,40 +121,10 @@ export async function POST(req) {
 
 		//update preferences | set all to true if US instance
 		currentStep = "Update constituent preferences";
-		const updatePreferencesData = {
-			PreferencesList: [
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Email",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : formData.emailPreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Mail",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : formData.postPreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "Phone",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : formData.phonePreference,
-				},
-				{
-					PreferenceType: "Channel",
-					PreferenceName: "SMS",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : formData.smsPreference,
-				},
-				{
-					PreferenceType: "Purpose",
-					PreferenceName: "Email Updates",
-					PreferenceAllowed:
-						donorfyInstance === "us" ? true : formData.emailPreference,
-				},
-			],
-		};
+		const updatePreferencesData = buildConstituentPreferencesData(
+			formData,
+			donorfyInstance
+		);
 		await donorfy.updateConstituentPreferences(
 			constituentId,
 			updatePreferencesData
