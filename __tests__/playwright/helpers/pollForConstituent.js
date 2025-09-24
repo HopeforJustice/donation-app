@@ -10,10 +10,7 @@ export default async function pollForConstituent(email, donorfyInstance) {
 				const duplicateCheckData = await donorfy.duplicateCheck({
 					EmailAddress: email,
 				});
-				console.log(
-					`Duplicate check results for ${email}:`,
-					duplicateCheckData
-				);
+
 				if (
 					duplicateCheckData.length > 0 &&
 					duplicateCheckData[0].Score >= 15
