@@ -26,7 +26,7 @@ const donorfySandbox = new DonorfyClient(
  * @throws {Error} If invalid instance provided
  */
 export function getDonorfyClient(instance) {
-	if (process.env.VERCEL_ENV !== "production") {
+	if (process.env.VERCEL_ENV !== "production" || instance === "sandbox") {
 		console.log("Using Donorfy Sandbox instance");
 		return donorfySandbox;
 	}
