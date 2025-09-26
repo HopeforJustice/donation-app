@@ -9,7 +9,7 @@ export default function GivingSummary({
 	currency,
 }) {
 	const giftAidTotal = giftAid ? (amount * 0.25).toFixed(2) : "0.00";
-	if (currency === "usd") {
+	if (currency === "usd" || giftAid === "false") {
 		giftAid = false;
 	}
 	return (
@@ -33,6 +33,7 @@ export default function GivingSummary({
 							<div className="flex justify-between">
 								<p>Gift Aid</p>
 								<p className="font-bold">{giftAid ? "Yes" : "No"}</p>
+								<p>gift aid value = {giftAid}</p>
 							</div>
 						)}
 						<div className="flex justify-between">
