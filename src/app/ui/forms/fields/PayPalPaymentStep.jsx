@@ -126,7 +126,7 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 			}
 
 			// Redirect to success page
-			window.location.href = `/success?paypal_order_id=${data.orderID}`;
+			window.location.href = `/success?paypal_order_id=${data.orderID}&currency=${formData.currency}&amount=${formData.amount}&gateway=paypal&frequency=${formData.givingFrequency}`;
 		} catch (error) {
 			console.error("Error capturing PayPal payment:", error);
 			setError("payment", {

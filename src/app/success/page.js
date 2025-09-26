@@ -10,8 +10,54 @@ import Container from "../ui/layout/containers/Container";
 import LinkedInIcon from "../ui/icons/LinkedInIcon";
 import Image from "next/image";
 import HorizontalRule from "../ui/HorizontalRule";
+import { sendGTMEvent } from "@next/third-parties/google";
 
 const Loading = () => <p>Loading...</p>;
+
+// This is the old way of doing it, leaving here for reference
+// dataLayer.push({ ecommerce: null });  // Clear the previous ecommerce object.
+
+//   //if amount exists in url do the normal data layer stuff
+
+//   if (amount) {
+
+//     dataLayer.push({
+//       event: "purchase",
+//       ecommerce: {
+//         transaction_id: id,
+//         value: amount,
+//         currency: currency,
+//         items: [
+//           {
+//             item_name: type,
+//             price: amount,
+//             currency: currency,
+//             quantity: 1
+//           }]
+//       }
+//     });
+
+//     //if guardian cookie exists and no amount in url do the uk guardian data layer stuff
+
+//   } else if (guardianAmount) {
+//     console.log("guardian signup", guardianAmount, guardianTid);
+//     dataLayer.push({
+//       event: "purchase",
+//       ecommerce: {
+//         transaction_id: guardianTid,
+//         value: guardianAmount,
+//         currency: "GBP",
+//         items: [
+//           {
+//             item_name: "UK Guardian",
+//             price: guardianAmount,
+//             currency: "GBP",
+//             quantity: 1
+//           }]
+//       }
+//     });
+
+//   }
 
 const SuccessPageContent = () => {
 	const searchParams = useSearchParams();
@@ -19,9 +65,116 @@ const SuccessPageContent = () => {
 	const frequency = searchParams.get("frequency");
 	const gateway = searchParams.get("gateway");
 	const sessionId = searchParams.get("session_id");
+	const currency = searchParams.get("currency");
+	const amount = searchParams.get("amount");
 
 	const [paymentStatus, setPaymentStatus] = useState(null);
 	const [loading, setLoading] = useState(!!sessionId); // Only load if we have a session_id
+	const [gtmEventSent, setGtmEventSent] = useState(false); // Track if GTM event was already sent
+
+	// Send GTM purchase event when we have successful payment data
+	useEffect(() => {
+		// Exit early if event already sent
+		if (gtmEventSent) return;
+
+		const getItemName = (currency, frequency) => {
+			const isMonthly = frequency === "monthly";
+
+			switch (currency?.toLowerCase()) {
+				case "aud":
+					return isMonthly ? "Australia Guardian" : "Australia one-off";
+				case "nok":
+					return isMonthly ? "Norway Guardian" : "Norway one-off";
+				case "gbp":
+					return isMonthly ? "UK Guardian" : "UK one-off";
+				case "usd":
+					return isMonthly ? "USA Guardian" : "USA one-off";
+				default:
+					return isMonthly ? "Monthly Donation" : "One-time Donation";
+			}
+		};
+
+		const sendGTMPurchaseEvent = () => {
+			let eventData = null;
+
+			// Prioritize Stripe verification when sessionId exists
+			if (
+				sessionId &&
+				paymentStatus &&
+				paymentStatus.isSuccessful &&
+				paymentStatus.amount
+			) {
+				const transactionId = sessionId;
+				const itemName = getItemName(paymentStatus.currency, frequency);
+
+				eventData = {
+					event: "purchase",
+					ecommerce: {
+						transaction_id: transactionId,
+						value: paymentStatus.amount / 100, // Convert from cents
+						currency: paymentStatus.currency.toUpperCase(),
+						items: [
+							{
+								item_name: itemName,
+								price: paymentStatus.amount / 100,
+								currency: paymentStatus.currency.toUpperCase(),
+								quantity: 1,
+							},
+						],
+					},
+				};
+			}
+			// For non-Stripe payments (PayPal, GoCardless, etc.) - use URL params
+			else if (amount && currency) {
+				const transactionId = sessionId || `donation_${Date.now()}`;
+				const itemName = getItemName(currency, frequency);
+
+				eventData = {
+					event: "purchase",
+					ecommerce: {
+						transaction_id: transactionId,
+						value: parseFloat(amount),
+						currency: currency.toUpperCase(),
+						items: [
+							{
+								item_name: itemName,
+								price: parseFloat(amount),
+								currency: currency.toUpperCase(),
+								quantity: 1,
+							},
+						],
+					},
+				};
+			}
+
+			if (eventData) {
+				sendGTMEvent(eventData);
+				setGtmEventSent(true); // Mark as sent
+				return true;
+			}
+			return false;
+		};
+
+		// Send GTM event when payment is successful and we have the data
+		if (!loading) {
+			// For Stripe: wait for verified payment status
+			if (sessionId && paymentStatus && paymentStatus.isSuccessful) {
+				sendGTMPurchaseEvent();
+			}
+			// For non-Stripe: use URL params
+			else if (!sessionId && amount && currency) {
+				sendGTMPurchaseEvent();
+			}
+		}
+	}, [
+		loading,
+		paymentStatus,
+		amount,
+		currency,
+		sessionId,
+		frequency,
+		gtmEventSent,
+	]);
 
 	useEffect(() => {
 		async function checkStripePaymentStatus() {

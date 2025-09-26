@@ -2,6 +2,7 @@ import "./globals.css";
 import localFont from "next/font/local";
 import clsx from "clsx";
 import { Suspense } from "react";
+import { GoogleTagManager } from "@next/third-parties/google";
 
 const canela = localFont({
 	src: "../fonts/Canela-Medium.woff2",
@@ -42,6 +43,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
 	return (
 		<html lang="en">
+			<GoogleTagManager gtmId="GTM-T7PSM4L" />
 			<body
 				data-testid="root-layout-body"
 				className={clsx(

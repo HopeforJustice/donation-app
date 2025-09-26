@@ -73,6 +73,16 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 			await expect(page.getByRole("heading")).toContainText("Thank you");
 		});
 
+		await test.step("Check URL parameters", async () => {
+			const url = page.url();
+			console.log("Success URL", url);
+			const params = new URL(url).searchParams;
+			expect(params.get("frequency")).toBe("once");
+			expect(params.get("currency")).toBe("gbp");
+			expect(params.get("gateway")).toBe("paypal");
+			expect(Number(params.get("amount"))).toBe(testDetails.amount);
+		});
+
 		// probably poll for processed event
 		await test.step("Poll for webhook event processing", async () => {
 			webhookEvent = await pollForPayPalEvent(testEmail);

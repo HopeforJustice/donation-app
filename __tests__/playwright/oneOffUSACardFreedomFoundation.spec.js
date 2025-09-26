@@ -86,6 +86,16 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 			).toBeVisible({ timeout: 10000 });
 		});
 
+		await test.step("Check URL parameters", async () => {
+			const url = page.url();
+			console.log("Success URL", url);
+			const params = new URL(url).searchParams;
+			expect(params.get("frequency")).toBe("once");
+			expect(params.get("currency")).toBe("usd");
+			expect(params.get("gateway")).toBe("stripe");
+			expect(Number(params.get("amount"))).toBe(testDetails.amount);
+		});
+
 		/*
 		Poll for webhook event processing
 		*/
