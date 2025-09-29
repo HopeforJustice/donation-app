@@ -466,14 +466,14 @@ test.describe("E2E: Setup Direct Debit", () => {
 			}
 
 			// Clean up Donorfy constituent
-			// if (constituentId) {
-			// 	try {
-			// 		await donorfyUK.deleteConstituent(constituentId);
-			// 		console.log(`Deleted Donorfy constituent: ${constituentId}`);
-			// 	} catch (err) {
-			// 		console.warn(`Failed to delete Donorfy constituent: ${err}`);
-			// 	}
-			// }
+			if (constituentId) {
+				try {
+					await donorfyUK.deleteConstituent(constituentId);
+					console.log(`Deleted Donorfy constituent: ${constituentId}`);
+				} catch (err) {
+					console.warn(`Failed to delete Donorfy constituent: ${err}`);
+				}
+			}
 			// Clean up Mailchimp subscriber off due to rate limiting
 			// try {
 			// 	await deleteSubscriber(email, "uk"); // Use US instance
