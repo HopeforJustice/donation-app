@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { formSchema } from "@/app/lib/schema";
+import { formSchema, createDynamicFormSchema } from "@/app/lib/schema";
 import Step from "./Step";
 import Button from "../buttons/Button";
 import ProgressIndicator from "./ProgressIndicator";
@@ -48,7 +48,7 @@ const MultiStepForm = ({
 	}
 
 	const methods = useForm({
-		resolver: zodResolver(formSchema),
+		resolver: zodResolver(createDynamicFormSchema(currency)),
 		mode: "onChange",
 		delayError: 1500,
 		defaultValues,
@@ -65,6 +65,12 @@ const MultiStepForm = ({
 	const formData = getValues();
 
 	const watchedCurrency = watch("currency") || defaultValues.currency;
+
+	// Update resolver when currency changes
+	useEffect(() => {
+		const newSchema = createDynamicFormSchema(watchedCurrency);
+		methods.resolver = zodResolver(newSchema);
+	}, [watchedCurrency, methods]);
 	const watchedFrequency =
 		watch("givingFrequency") || defaultValues.givingFrequency;
 	const watchedAmount = watch("amount") || null;
@@ -139,6 +145,12 @@ const MultiStepForm = ({
 		setGivingFrequency(watchedFrequency);
 		setAmount(watchedAmount);
 		setGiftAid(watchedGiftAid);
+
+		// Trigger amount field validation when currency changes
+		// This ensures dynamic minimum amount validation runs
+		if (watchedAmount) {
+			trigger("amount");
+		}
 	}, [
 		watchedCurrency,
 		watchedFrequency,
@@ -150,6 +162,7 @@ const MultiStepForm = ({
 		setGiftAid,
 		getValues,
 		setValue,
+		trigger,
 	]);
 
 	// handling last step state
@@ -198,6 +211,11 @@ const MultiStepForm = ({
 				}
 			}
 			setStep((s) => s + 1);
+		} else {
+			// If validation failed on first step, show giving details so user can see and fix errors
+			if (step === 0) {
+				setShowAmountField(true);
+			}
 		}
 		setIsLoading(false);
 	};
