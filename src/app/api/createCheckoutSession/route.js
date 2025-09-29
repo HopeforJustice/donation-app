@@ -92,7 +92,7 @@ export async function POST(req) {
 			},
 		],
 		mode: sessionMode,
-		return_url: `${baseurl}/success?session_id={CHECKOUT_SESSION_ID}`,
+		return_url: `${baseurl}/success?currency=${currency}&amount=${amount}&gateway=stripe&frequency=${givingFrequency}&session_id={CHECKOUT_SESSION_ID}`,
 		payment_method_types: paymentMethods,
 		metadata: {
 			...metadata,

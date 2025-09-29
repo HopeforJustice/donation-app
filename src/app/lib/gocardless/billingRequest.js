@@ -111,7 +111,7 @@ export async function billingRequest(data) {
 
 		const successUrl =
 			process.env.GC_SUCCESS_URL +
-			`?name=${data.firstName}&amount=${data.amount}&frequency=${data.givingFrequency}&gateway=gocardless`;
+			`?name=${data.firstName}&amount=${data.amount}&frequency=${data.givingFrequency}&gateway=gocardless&currency=${data.currency}`;
 		const exitUrl = process.env.GC_EXIT_URL;
 
 		// Create the billing request flow with prefilled customer details and dynamic URLs

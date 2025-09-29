@@ -76,6 +76,18 @@ test.describe("E2E: Setup Direct Debit", () => {
 			await fillGoCardlessForm(page, testDetails);
 		});
 
+		await test.step("Check URL parameters", async () => {
+			await page.waitForURL(/.*\/success\?.*gateway=gocardless/);
+
+			const url = page.url();
+			console.log("Success URL", url);
+			const params = new URL(url).searchParams;
+			expect(params.get("frequency")).toBe("monthly");
+			expect(params.get("currency")).toBe("gbp");
+			expect(params.get("gateway")).toBe("gocardless");
+			expect(Number(params.get("amount"))).toBe(testDetails.amount);
+		});
+
 		/*
 		Poll the test database (set with env.test.local)
 		*/
@@ -454,14 +466,14 @@ test.describe("E2E: Setup Direct Debit", () => {
 			}
 
 			// Clean up Donorfy constituent
-			// if (constituentId) {
-			// 	try {
-			// 		await donorfyUK.deleteConstituent(constituentId);
-			// 		console.log(`Deleted Donorfy constituent: ${constituentId}`);
-			// 	} catch (err) {
-			// 		console.warn(`Failed to delete Donorfy constituent: ${err}`);
-			// 	}
-			// }
+			if (constituentId) {
+				try {
+					await donorfyUK.deleteConstituent(constituentId);
+					console.log(`Deleted Donorfy constituent: ${constituentId}`);
+				} catch (err) {
+					console.warn(`Failed to delete Donorfy constituent: ${err}`);
+				}
+			}
 			// Clean up Mailchimp subscriber off due to rate limiting
 			// try {
 			// 	await deleteSubscriber(email, "uk"); // Use US instance
