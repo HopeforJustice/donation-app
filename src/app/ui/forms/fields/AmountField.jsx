@@ -22,7 +22,7 @@ const AmountField = ({
 }) => {
 	const hiddenClasses = hidden ? "hidden" : "";
 
-	const { setValue, trigger } = useFormContext();
+	const { setValue, trigger, clearErrors } = useFormContext();
 
 	return (
 		<div className={`mb-4 ${extraClasses} ${hiddenClasses}`}>
@@ -76,8 +76,11 @@ const AmountField = ({
 						className="h-full rounded-md border-0 bg-transparent py-0 pl-2 pr-7 text-gray-500 focus:ring-2 focus:ring-inset focus:ring-hfj-black sm:text-sm"
 						onChange={(e) => {
 							setValue("currency", e.target.value);
-							// Trigger amount field validation when currency changes
-							trigger("amount");
+							// Clear existing amount error and re-trigger validation with new currency rules
+							clearErrors("amount");
+							setTimeout(() => {
+								trigger("amount");
+							}, 0);
 						}}
 						value={currency} // Use the value prop to control the select element
 					>

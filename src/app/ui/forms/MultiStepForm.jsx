@@ -60,6 +60,7 @@ const MultiStepForm = ({
 		formState: { errors },
 		watch,
 		setValue,
+		clearErrors,
 	} = methods;
 
 	const formData = getValues();
@@ -70,7 +71,9 @@ const MultiStepForm = ({
 	useEffect(() => {
 		const newSchema = createDynamicFormSchema(watchedCurrency);
 		methods.resolver = zodResolver(newSchema);
-	}, [watchedCurrency, methods]);
+		// Clear amount errors when currency changes so new validation can run
+		clearErrors("amount");
+	}, [watchedCurrency, methods, clearErrors]);
 	const watchedFrequency =
 		watch("givingFrequency") || defaultValues.givingFrequency;
 	const watchedAmount = watch("amount") || null;
@@ -149,7 +152,10 @@ const MultiStepForm = ({
 		// Trigger amount field validation when currency changes
 		// This ensures dynamic minimum amount validation runs
 		if (watchedAmount) {
-			trigger("amount");
+			clearErrors("amount");
+			setTimeout(() => {
+				trigger("amount");
+			}, 0);
 		}
 	}, [
 		watchedCurrency,
@@ -163,6 +169,7 @@ const MultiStepForm = ({
 		getValues,
 		setValue,
 		trigger,
+		clearErrors,
 	]);
 
 	// handling last step state

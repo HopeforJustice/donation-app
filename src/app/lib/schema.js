@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { findCurrencySymbol } from "./utils";
 
 // Currency-specific minimum amounts
 export const getMinimumAmount = (currency) => {
@@ -17,14 +18,20 @@ export const getMinimumAmount = (currency) => {
 // Currency-specific minimum amount messages
 export const getMinimumAmountMessage = (currency) => {
 	const minimum = getMinimumAmount(currency);
-	const currencyCode = currency?.toUpperCase() || "";
-	return `Please enter an amount of ${minimum} ${currencyCode} or higher.`;
+	if (currency !== "nok") {
+		return `Please enter an amount of ${findCurrencySymbol(
+			currency
+		)}${minimum} or higher.`;
+	}
+	return `Please enter an amount of ${minimum} ${findCurrencySymbol(
+		currency
+	)} or higher.`;
 };
 
 // Create schema function that takes currency as parameter
 export const createDynamicFormSchema = (currency = "gbp") => {
 	const minimumAmount = getMinimumAmount(currency);
-	
+
 	return z.object({
 		currency: z.string().min(1, { message: "Please select a currency" }),
 		amount: z
