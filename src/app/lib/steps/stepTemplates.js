@@ -65,8 +65,8 @@ export const stepTemplates = [
 						acceptedCurrencies: [
 							{ text: "GBP", value: "gbp" },
 							{ text: "USD", value: "usd" },
+							{ text: "NOK", value: "nok" },
 							// { text: "AUD", value: "aud" },
-							// { text: "NOK", value: "nok" },
 						],
 					},
 					{
