@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { PaymentElement, useCheckout } from "@stripe/react-stripe-js";
 import { useFormContext } from "react-hook-form";
 import { useSearchParams } from "next/navigation";
@@ -7,9 +7,18 @@ export default function StripePaymentElement() {
 	const checkout = useCheckout();
 	const { getValues, setError /*, trigger */ } = useFormContext();
 	const searchParams = useSearchParams();
-	if (searchParams.get("test")) {
+
+	// Move the test check into useEffect to avoid state updates during render
+	useEffect(() => {
+		if (searchParams.get("test")) {
+			window.dispatchEvent(new Event("donation:showButton"));
+		}
+	}, [searchParams]);
+
+	// Create a stable callback for the onFocus handler
+	const handleFocus = useCallback(() => {
 		window.dispatchEvent(new Event("donation:showButton"));
-	}
+	}, []);
 
 	useEffect(() => {
 		async function handleConfirm() {
@@ -44,9 +53,5 @@ export default function StripePaymentElement() {
 			window.removeEventListener("donation:confirmPayment", handleConfirm);
 	}, [checkout, getValues, setError]);
 
-	return (
-		<PaymentElement
-			onFocus={() => window.dispatchEvent(new Event("donation:showButton"))}
-		/>
-	);
+	return <PaymentElement onFocus={handleFocus} />;
 }
