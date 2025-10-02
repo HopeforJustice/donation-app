@@ -14,6 +14,7 @@ function getWebhookSecret(currency, isTestMode) {
 	const currencyToRegion = {
 		USD: "US",
 		GBP: "UK",
+		NOK: "UK", // NOK is handled by UK Stripe account
 	};
 
 	const region = currencyToRegion[currency.toUpperCase()] || "US"; // default to US

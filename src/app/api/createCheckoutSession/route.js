@@ -19,11 +19,15 @@ export async function POST(req) {
 		mode: test ? "test" : "live",
 	});
 
+	// Using UK stripe for NOK and UK
 	if (currency === "gbp") {
 		publishableKey = test ? ukTest : ukLive;
 		paymentMethods = ["card", "pay_by_bank"];
 	} else if (currency === "usd") {
 		publishableKey = test ? usTest : usLive;
+		paymentMethods = ["card"];
+	} else if (currency === "nok") {
+		publishableKey = test ? ukTest : ukLive;
 		paymentMethods = ["card"];
 	} else {
 		return NextResponse.json(

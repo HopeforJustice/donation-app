@@ -3,7 +3,7 @@ import { loadStripe } from "@stripe/stripe-js";
 export const getStripePromise = ({ currency, mode = "live" }) => {
 	let key;
 
-	if (currency === "gbp") {
+	if (currency === "gbp" || currency === "nok") {
 		key =
 			mode === "live"
 				? process.env.NEXT_PUBLIC_STRIPE_UK_PUBLISHABLE_KEY_LIVE

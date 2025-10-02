@@ -76,6 +76,12 @@ const SuccessPageContent = () => {
 	useEffect(() => {
 		// Exit early if event already sent
 		if (gtmEventSent) return;
+		// Don't send events on localhost
+		if (
+			typeof window !== "undefined" &&
+			window.location.hostname === "localhost"
+		)
+			return;
 
 		const getItemName = (currency, frequency) => {
 			const isMonthly = frequency === "monthly";

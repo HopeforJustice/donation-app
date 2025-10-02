@@ -52,7 +52,7 @@ const AmountField = ({
 					name={id}
 					type={type}
 					placeholder={defaultValue ? defaultValue : placeholder}
-					onInput={(e) => onInput(e, currency)} // Pass the currency to the onInput function
+					onChange={(e) => onInput(e, currency)} // Use onChange for better Playwright compatibility
 					defaultValue={defaultValue}
 					aria-describedby={errors[id] ? `${id}-error` : ariaDescription}
 					{...register(id)}

@@ -40,7 +40,20 @@ import {
 
 export async function handleCheckoutSessionCompleted(event, stripeClient) {
 	const session = event.data.object;
-	const donorfyInstance = session.currency === "usd" ? "us" : "uk";
+	let donorfyInstance;
+
+	// Determine Donorfy instance based on currency
+	switch (session.currency) {
+		case "usd":
+			donorfyInstance = "us";
+			break;
+		case "nok":
+			donorfyInstance = "nok";
+			break;
+		default:
+			donorfyInstance = "uk";
+	}
+
 	const results = []; // Builds results object for logging and db storage
 	let currentStep = "";
 	let constituentId = null;
@@ -62,9 +75,6 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 		const metadata = paymentIntent?.metadata || session.metadata || {};
 		const source = metadata.source || "unknown";
 		results.push({ step: currentStep, success: true });
-
-		// Get SparkPost template based on currency and metadata
-		sparkPostTemplate = getSparkPostTemplate(session.currency, metadata);
 
 		// Validate source and campaign
 		currentStep = "Validate webhook source and campaign";
@@ -243,6 +253,10 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 
 		//send thank you email unless suppressed or FreedomFoundation campaign
 		//FreedomFoundation sends it's own sparkpost emails
+		// Get SparkPost template based on currency and metadata
+		// NEED TO UPDATE THIS TO HANDLE NOK
+		sparkPostTemplate = getSparkPostTemplate(session.currency, metadata);
+
 		currentStep = "Send Sparkpost thank you email";
 		const emailSent = await sendThankYouEmail(
 			sparkPostTemplate,

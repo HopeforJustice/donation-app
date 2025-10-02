@@ -3,7 +3,7 @@ import Stripe from "stripe";
 export function getStripeInstance({ currency, mode = "test" }) {
 	let secretKey;
 
-	if (currency === "gbp") {
+	if (currency === "gbp" || currency === "nok") {
 		secretKey =
 			mode === "live"
 				? process.env.STRIPE_UK_SECRET_KEY_LIVE

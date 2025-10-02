@@ -14,6 +14,10 @@ const donorfyUS = new DonorfyClient(
 	process.env.DONORFY_US_KEY,
 	process.env.DONORFY_US_TENANT
 );
+const donorfyNOK = new DonorfyClient(
+	process.env.DONORFY_NOK_KEY,
+	process.env.DONORFY_NOK_TENANT
+);
 const donorfySandbox = new DonorfyClient(
 	process.env.DONORFY_SANDBOX_KEY,
 	process.env.DONORFY_SANDBOX_TENANT
@@ -26,6 +30,11 @@ const donorfySandbox = new DonorfyClient(
  * @throws {Error} If invalid instance provided
  */
 export function getDonorfyClient(instance) {
+	//temp allow nok to go through to live
+	if (instance === "nok") {
+		return donorfyNOK;
+	}
+
 	if (process.env.VERCEL_ENV !== "production" || instance === "sandbox") {
 		console.log("Using Donorfy Sandbox instance");
 		return donorfySandbox;
@@ -34,10 +43,10 @@ export function getDonorfyClient(instance) {
 		return donorfyUS;
 	} else if (instance === "uk") {
 		return donorfyUK;
+	} else if (instance === "nok") {
+		return donorfyNOK;
 	} else {
-		throw new Error(
-			`Invalid Donorfy instance: ${instance}. Must be "us" or "uk"`
-		);
+		throw new Error(`Invalid Donorfy instance: ${instance}.`);
 	}
 }
 
