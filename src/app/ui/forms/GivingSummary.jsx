@@ -9,7 +9,7 @@ export default function GivingSummary({
 	currency,
 }) {
 	const giftAidTotal = giftAid ? (amount * 0.25).toFixed(2) : "0.00";
-	if (currency === "usd") {
+	if (currency === "usd" || giftAid === "false") {
 		giftAid = false;
 	}
 	return (

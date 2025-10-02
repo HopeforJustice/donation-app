@@ -58,6 +58,7 @@ export default async function fillUSRegular(page, testDetails) {
 			.getByRole("button", { name: "Successful card ••••" })
 			.click();
 	}
+	await stripeFrame.getByLabel("Close Stripe Developer Tools").click();
 	await page.locator("body").click({ position: { x: 0, y: 0 } });
 	await page.getByTestId("donate-button").click();
 }
