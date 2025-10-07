@@ -71,7 +71,16 @@ export async function POST(req) {
 
 		currentStep = "Initialize Donorfy client";
 		//donorfy determined by currency
-		donorfyInstance = formData.currency === "usd" ? "us" : "uk";
+		switch (formData.currency) {
+			case "usd":
+				donorfyInstance = "us";
+				break;
+			case "nok":
+				donorfyInstance = "nok";
+				break;
+			default:
+				donorfyInstance = "uk";
+		}
 		const donorfy = getDonorfyClient(donorfyInstance);
 		results.push({ step: currentStep, success: true });
 

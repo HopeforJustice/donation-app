@@ -56,10 +56,6 @@ export default async function fillNokOnce(page, testDetails) {
 	await page.getByLabel("Postcode").fill(testDetails.postalCode);
 	await page.getByLabel("Country").selectOption(testDetails.country);
 	await page.getByRole("button", { name: "Next Step" }).click();
-	await page
-		.getByLabel("Do you want to Gift Aid your")
-		.selectOption(testDetails.giftAid ? "true" : "false");
-	await page.getByRole("button", { name: "Next Step" }).click();
 
 	//preference toggles, on by default
 	if (!testDetails.preferences.email) {
@@ -92,6 +88,7 @@ export default async function fillNokOnce(page, testDetails) {
 				.getByRole("button", { name: "Successful card ••••" })
 				.click();
 		}
+		await stripeFrame.getByLabel("Close Stripe Developer Tools").click();
 		await page.locator("body").click({ position: { x: 0, y: 0 } });
 		await page.getByTestId("donate-button").click();
 	}

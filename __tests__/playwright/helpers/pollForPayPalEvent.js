@@ -2,9 +2,6 @@ import { poll } from "@/app/lib/utilities";
 import getProcessedEvent from "@/app/lib/db/getProcessedEvent";
 import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUK = getDonorfyClient("uk");
-const donorfyUS = getDonorfyClient("us");
-
 export default async function pollForPayPalEvent(testEmail) {
 	return await poll(
 		async () => {
@@ -13,7 +10,19 @@ export default async function pollForPayPalEvent(testEmail) {
 
 			for (const event of events) {
 				if (!event.id) return null;
-				const donorfy = event.event.currency === "usd" ? donorfyUS : donorfyUK;
+				// Select appropriate Donorfy client based on currency
+				let donorfy;
+				switch (event.event.currency) {
+					case "usd":
+						donorfy = getDonorfyClient("us");
+						break;
+					case "nok":
+						donorfy = getDonorfyClient("nok");
+						break;
+					default:
+						donorfy = getDonorfyClient("uk");
+				}
+
 				try {
 					const constituent = await donorfy.getConstituent(
 						event.constituent_id

@@ -11,7 +11,7 @@ export const findCurrencySymbol = (currency) => {
 		case "usd":
 			return "$";
 		case "nok":
-			return "Kr";
+			return "kr";
 		case "aud":
 			return "$";
 		default:

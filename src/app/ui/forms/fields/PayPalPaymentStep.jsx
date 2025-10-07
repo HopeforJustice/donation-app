@@ -15,7 +15,11 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 		// Determine environment and region
 		const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 		const environment = isProduction ? "LIVE" : "SANDBOX";
-		const region = currency.toLowerCase() === "gbp" ? "UK" : "US";
+		// NOK uses the same PayPal client as UK
+		const region =
+			currency.toLowerCase() === "gbp" || currency.toLowerCase() === "nok"
+				? "UK"
+				: "US";
 
 		console.log("PayPal config:", {
 			currency,

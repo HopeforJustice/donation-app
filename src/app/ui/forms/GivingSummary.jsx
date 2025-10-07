@@ -24,9 +24,14 @@ export default function GivingSummary({
 					<div className="flex flex-col gap-2">
 						<div className="flex justify-between">
 							<p>Donation</p>
-							<p className="font-bold uppercase">
-								{currency} {findCurrencySymbol(currency)}
-								{amount}
+							<p className="font-bold">
+								{currency === "nok"
+									? `${currency.toUpperCase()} ${amount} ${findCurrencySymbol(
+											currency
+									  )}`
+									: `${currency.toUpperCase()} ${findCurrencySymbol(
+											currency
+									  )}${amount}`}
 							</p>
 						</div>
 						{currency === "gbp" && (
@@ -44,8 +49,9 @@ export default function GivingSummary({
 					<div className="flex justify-between">
 						<p>Donation Total</p>
 						<p className="font-bold">
-							{findCurrencySymbol(currency)}
-							{amount}{" "}
+							{currency === "nok"
+								? `${amount} ${findCurrencySymbol(currency)}`
+								: `${findCurrencySymbol(currency)}${amount}`}{" "}
 							<span className="font-normal">
 								{giftAid &&
 									`(+${findCurrencySymbol(currency)}${giftAidTotal} Gift Aid)`}

@@ -74,12 +74,7 @@ export const createDynamicFormSchema = (currency = "gbp") => {
 			.optional(),
 		address1: z.string().min(1, { message: "Please enter your address" }),
 		address2: z.string().optional(),
-		postcode: z
-			.string()
-			.regex(
-				/^([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}|^\d{5}(-\d{4})?)$/i,
-				"Invalid format"
-			),
+		postcode: z.string().min(1, { message: "This field is required" }),
 		country: z.string().min(1, { message: "Please select your country" }),
 		stateCounty: z.string().optional(),
 		townCity: z.string().min(1, { message: "Please enter your Town/City" }),

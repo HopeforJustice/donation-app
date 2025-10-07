@@ -1,12 +1,13 @@
 const SparkPost = require("sparkpost");
 const client = new SparkPost(process.env.SPARKPOST_API_KEY);
+const env = process.env.VERCEL_ENV || "unknown";
 
 async function sendErrorEmail(error, additionalInfo = {}) {
 	try {
 		const response = await client.transmissions.send({
 			content: {
 				from: "donation-app@hopeforjustice.org",
-				subject: "Error Occurred in Donation App",
+				subject: `Error Occurred in Donation App [env: ${env}]`,
 				html: `<p><strong>Info:</strong> ${JSON.stringify(
 					additionalInfo,
 					null,

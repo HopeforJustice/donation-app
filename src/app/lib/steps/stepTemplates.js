@@ -239,7 +239,7 @@ export const stepTemplates = [
 			},
 		],
 		visibilityConditions: {
-			currency: "gbp",
+			currency: ["gbp", "nok"],
 		},
 	},
 	{
@@ -257,8 +257,9 @@ export const stepTemplates = [
 				id: "payPalPaymentStep",
 				type: "payPalPaymentStep",
 				labelToken: null,
-				visibilityConditions: ({ currency, frequency }) =>
-					frequency === "once" && (currency === "usd" || currency === "gbp"),
+				visibilityConditions: {
+					frequency: "once",
+				},
 			},
 		],
 	},

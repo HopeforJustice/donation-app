@@ -1,17 +1,7 @@
-/*
- * End to End Test: One off card payments via Stripe NOK
- * Integrations tested
- * - Stripe
- * - Donorfy
- * - Mailchimp
- */
-
 import { test, expect } from "@playwright/test";
 import fillNokOnce from "./helpers/formCompletions/nokOnce";
-import getSubscriber from "@/app/lib/mailchimp/getSubscriber";
-import deleteSubscriber from "@/app/lib/mailchimp/deleteSubscriber";
 import pollForConstituent from "./helpers/pollForConstituent";
-import pollForStripeWebhookEvent from "./helpers/pollForStripeWebhookEvent";
+import pollForPayPalEvent from "./helpers/pollForPayPalEvent";
 import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
 const donorfy = getDonorfyClient("nok");
@@ -22,11 +12,10 @@ const deleteAfterTest = true;
 const testDetails = {
 	fund: null,
 	frequency: "once",
-	amount: "20,50",
+	amount: 100,
 	firstName: "James",
 	lastName: "Holt",
 	phoneNumber: "07777777777",
-	directDebitDay: 15,
 	address1: "10 Test Place",
 	address2: "Test Area",
 	townCity: "Test City",
@@ -36,14 +25,22 @@ const testDetails = {
 	preferences: {
 		//email:true to test mailchimp
 		email: true,
-		post: false,
+		post: true,
 		sms: true,
-		phone: false,
+		phone: true,
 	},
 	inspiration: "Inspiration_Faith",
 	inspirationNotes: "Test notes",
 	campaign: null,
 	defaultCampaign: "Donation App General Campaign",
+	utmSource: "test_source",
+	utmMedium: "test_medium",
+	utmCampaign: "test_campaign",
+	gateway: "paypal",
+	paypal: {
+		email: "sb-aj6gu45381865@personal.example.com",
+		password: "!/r?zUd1",
+	},
 	utmSource: "test_source",
 	utmMedium: "test_medium",
 	utmCampaign: "test_campaign",
@@ -55,29 +52,24 @@ const constituents = [];
 //store emails for deletion
 const emails = [];
 
-test.describe("E2E: Test one off giving via Stripe", () => {
-	test("Should test a successful card", async ({ page }) => {
+test.describe("E2E: Test one off giving via PayPal", () => {
+	test("Should test a successful PayPal Transaction", async ({ page }) => {
 		const timestamp = Date.now();
-		const testEmail = `james.holt+oneoffnok${timestamp}@hopeforjustice.org`;
-		emails.push(testEmail);
+		const testEmail = `james.holt+oneoffnokpaypal${timestamp}@hopeforjustice.org`;
 		let constituentId;
 		let webhookEvent;
+		emails.push(testEmail);
 
-		/*
-        Fill in the form(s)
-        */
-		await test.step("Fill the donation form with test details", async () => {
+		await test.step("Fill in the form with test details", async () => {
 			await fillNokOnce(page, {
-				stripe: { pathway: "successful card" },
 				email: testEmail,
 				...testDetails,
 			});
 		});
 
-		await test.step("Verify successful payment completion", async () => {
-			await expect(
-				page.getByRole("heading", { name: /Thank You/i })
-			).toBeVisible({ timeout: 10000 });
+		await test.step("Wait for redirect to success page and verify", async () => {
+			await page.waitForURL("**/success**");
+			await expect(page.getByRole("heading")).toContainText("Thank you");
 		});
 
 		await test.step("Check URL parameters", async () => {
@@ -86,31 +78,16 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 			const params = new URL(url).searchParams;
 			expect(params.get("frequency")).toBe("once");
 			expect(params.get("currency")).toBe("nok");
-			expect(params.get("gateway")).toBe("stripe");
-			// Convert testDetails.amount from string with comma to number
-			const expectedAmount = parseFloat(testDetails.amount.replace(",", "."));
-			expect(Number(params.get("amount"))).toBe(expectedAmount);
+			expect(params.get("gateway")).toBe("paypal");
+			expect(Number(params.get("amount"))).toBe(testDetails.amount);
 		});
 
-		/*
-        Poll for webhook event processing
-        */
-		await test.step("Poll for Stripe webhook event", async () => {
-			webhookEvent = await pollForStripeWebhookEvent(
-				testEmail,
-				"nok",
-				"checkout.session.completed"
-			);
-			expect(webhookEvent).toBeTruthy();
+		// probably poll for processed event
+		await test.step("Poll for webhook event processing", async () => {
+			webhookEvent = await pollForPayPalEvent(testEmail);
+			expect(webhookEvent).toBeDefined();
+			constituentId = webhookEvent.constituent_id;
 			expect(webhookEvent.status).toBe("processed");
-		});
-
-		/*
-        Get constituent ID and validate Donorfy integration
-        */
-		await test.step("Get constituent ID from Donorfy", async () => {
-			constituentId = await pollForConstituent(testEmail, "nok");
-			expect(constituentId).toBeTruthy();
 		});
 
 		/*
@@ -193,6 +170,16 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 				expect(sameDay).toBe(true);
 			});
 
+			await test.step("Check for inspiration tag if applicable", async () => {
+				if (testDetails.inspiration) {
+					const tags = await donorfy.getConstituentTags(constituentId);
+					expect(tags).toEqual(
+						expect.stringContaining(testDetails.inspiration)
+					);
+				}
+			});
+
+			// probably poll for processed event for transaction id
 			await test.step("Check the transaction was created", async () => {
 				// Get transaction ID from webhook event if available
 				if (webhookEvent.donorfy_transaction_id) {
@@ -204,101 +191,29 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 						const expectedCampaign =
 							testDetails.campaign || testDetails.defaultCampaign;
 						expect(transaction.Campaign).toEqual(expectedCampaign);
-						expect(transaction.PaymentMethod).toEqual("Stripe Checkout");
-						// Convert testDetails.amount from string with comma to number for comparison
-						const expectedAmount = parseFloat(
-							testDetails.amount.replace(",", ".")
-						);
-						expect(transaction.Amount).toEqual(expectedAmount);
+						expect(transaction.PaymentMethod).toEqual("PayPal");
+						expect(transaction.Amount).toEqual(testDetails.amount);
 						expect(transaction.FundList).toEqual(
 							testDetails.fund || "Unrestricted"
-						);
-						expect(transaction.UtmSource).toEqual(
-							testDetails.utmSource || "unknown"
-						);
-						expect(transaction.UtmMedium).toEqual(
-							testDetails.utmMedium || "unknown"
-						);
-						expect(transaction.UtmCampaign).toEqual(
-							testDetails.utmCampaign || "unknown"
 						);
 					});
 				}
 			});
-
-			await test.step("Check for inspiration tag if applicable", async () => {
-				if (testDetails.inspiration) {
-					const tags = await donorfy.getConstituentTags(constituentId);
-					expect(tags).toEqual(
-						expect.stringContaining(testDetails.inspiration)
-					);
-				}
-			});
 		});
-
-		/*
-        Check Mailchimp Details
-        */
-		// await test.step("Check Mailchimp Details", async () => {
-		// 	if (!testDetails.preferences.email) {
-		// 		console.log("Email not set to true in test");
-		// 		test.info().annotations.push({
-		// 			type: "skip-step",
-		// 			description: "Skipped Mailchimp Check: email preference set to false",
-		// 		});
-		// 		return;
-		// 	}
-		// !!!needs to change to allow for nok in mailchimp
-		// 	const subscriber = await getSubscriber(testEmail, "nok");
-
-		// 	await test.step("Check email is subscribed", async () => {
-		// 		expect(subscriber.status).toEqual("subscribed");
-		// 	});
-
-		// 	await test.step("Check merge fields", async () => {
-		// 		expect(subscriber.merge_fields.FNAME).toEqual(testDetails.firstName);
-		// 		expect(subscriber.merge_fields.LNAME).toEqual(testDetails.lastName);
-		// 	});
-
-		// 	await test.step("Check email updates group", async () => {
-		//!!!this will also need to be found and changed for nok
-		// 		expect(subscriber.interests["60a2c211ce"]).toEqual(
-		// 			testDetails.preferences.email
-		// 		);
-		// 	});
-
-		// 	// Check for any organization merge field if provided
-		// merge field created in Norway?
-		// 	if (testDetails.organisationName) {
-		// 		await test.step("Check organization merge field", async () => {
-		// 			expect(subscriber.merge_fields.ORG).toEqual(
-		// 				testDetails.organisationName
-		// 			);
-		// 		});
-		// 	}
-		// });
 	});
-
 	//delete after test
 	test.afterAll(async () => {
 		if (deleteAfterTest) {
 			// Delete the test constituents from Donorfy
 			for (const email of emails) {
 				try {
-					const constituentId = await pollForConstituent(email, "nok");
+					const constituentId = await pollForConstituent(email, "uk");
 					console.log("pollForConstituent", constituentId);
 					await donorfy.deleteConstituent(constituentId);
 					console.log(`Deleted Donorfy constituent: ${constituentId}`);
 				} catch (err) {
 					console.warn(`Failed to delete Donorfy constituent: ${err}`);
 				}
-				// Clean up Mailchimp subscriber off due to rate limiting
-				// try {
-				// 	await deleteSubscriber(email, "uk");
-				// 	console.log("Deleted Mailchimp Subscriber");
-				// } catch (err) {
-				// 	console.warn(`Failed to delete Mailchimp subscriber: ${err}`);
-				// }
 			}
 		}
 	});
