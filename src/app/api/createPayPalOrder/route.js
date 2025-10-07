@@ -6,6 +6,7 @@ export async function POST(req) {
 		const { amount, currency, formData } = await req.json();
 		const test = process.env.VERCEL_ENV !== "production";
 		const mode = test ? "test" : "live";
+		console.log("Creating PayPal order", { amount, currency, mode });
 
 		// Create PayPal order using lib function
 		const { orderID } = await createPayPalOrder({

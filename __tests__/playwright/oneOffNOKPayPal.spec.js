@@ -8,18 +8,18 @@ const donorfy = getDonorfyClient("nok");
 
 // Default campaign: Donation App General Campaign
 
-const deleteAfterTest = true;
+const deleteAfterTest = false;
 const testDetails = {
 	fund: null,
 	frequency: "once",
-	amount: 100,
+	amount: "20,50",
 	firstName: "James",
 	lastName: "Holt",
 	phoneNumber: "07777777777",
-	address1: "10 Test Place",
-	address2: "Test Area",
-	townCity: "Test City",
-	postalCode: "LS7 2TD",
+	address1: "Nicolaysens Vei 2",
+	address2: "",
+	townCity: "Snarøya",
+	postalCode: "32124",
 	country: "Norway",
 	giftAid: false,
 	preferences: {
@@ -79,7 +79,9 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 			expect(params.get("frequency")).toBe("once");
 			expect(params.get("currency")).toBe("nok");
 			expect(params.get("gateway")).toBe("paypal");
-			expect(Number(params.get("amount"))).toBe(testDetails.amount);
+			// Convert testDetails.amount from string with comma to number
+			const expectedAmount = parseFloat(testDetails.amount.replace(",", "."));
+			expect(Number(params.get("amount"))).toBe(expectedAmount);
 		});
 
 		// probably poll for processed event
@@ -192,7 +194,10 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 							testDetails.campaign || testDetails.defaultCampaign;
 						expect(transaction.Campaign).toEqual(expectedCampaign);
 						expect(transaction.PaymentMethod).toEqual("PayPal");
-						expect(transaction.Amount).toEqual(testDetails.amount);
+						const expectedAmount = parseFloat(
+							testDetails.amount.replace(",", ".")
+						);
+						expect(transaction.Amount).toEqual(expectedAmount);
 						expect(transaction.FundList).toEqual(
 							testDetails.fund || "Unrestricted"
 						);

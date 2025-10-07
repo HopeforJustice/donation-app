@@ -18,7 +18,7 @@ const donorfy = getDonorfyClient("nok");
 
 // Default campaign: Donation App General Campaign
 
-const deleteAfterTest = true;
+const deleteAfterTest = false;
 const testDetails = {
 	fund: null,
 	frequency: "once",
@@ -26,11 +26,10 @@ const testDetails = {
 	firstName: "James",
 	lastName: "Holt",
 	phoneNumber: "07777777777",
-	directDebitDay: 15,
-	address1: "10 Test Place",
-	address2: "Test Area",
-	townCity: "Test City",
-	postalCode: "LS7 2TD",
+	address1: "Nicolaysens Vei 2",
+	address2: "",
+	townCity: "Snarøya",
+	postalCode: "32124",
 	country: "Norway",
 	giftAid: false,
 	preferences: {

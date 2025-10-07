@@ -143,7 +143,7 @@ export async function POST(req) {
 		//create transaction with correct campaign and fund
 		currentStep = "Create transaction in Donorfy";
 		const transaction = await donorfy.createTransaction(
-			formData.amount,
+			formData.amount.replace(",", "."), //format amount for NOK locale
 			formData.campaign,
 			paymentMethod, // Use detected payment method (Venmo or PayPal)
 			constituentId,
