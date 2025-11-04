@@ -6,6 +6,7 @@
 
 import { sql } from "@vercel/postgres";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted";
+import { handleCheckoutSessionAsyncPaymentSucceeded } from "./handlers/checkoutSessionAsyncPaymentSucceeded";
 import { handleSubscriptionCreated } from "./handlers/subscriptionCreated";
 import { handleSubscriptionDeleted } from "./handlers/subscriptionDeleted";
 import { handleSubscriptionUpdated } from "./handlers/subscriptionUpdated";
@@ -34,6 +35,12 @@ export async function handleStripeWebhookEvent(event, stripeClient) {
 	switch (event.type) {
 		case "checkout.session.completed":
 			return await handleCheckoutSessionCompleted(event, stripeClient);
+
+		case "checkout.session.async_payment_succeeded":
+			return await handleCheckoutSessionAsyncPaymentSucceeded(
+				event,
+				stripeClient
+			);
 
 		case "customer.subscription.created":
 			return await handleSubscriptionCreated(event, stripeClient);

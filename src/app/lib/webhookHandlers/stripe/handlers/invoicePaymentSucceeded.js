@@ -1,5 +1,6 @@
 /**
  * Handles the Stripe `invoice.payment_succeeded` webhook event.
+ * (subscriptions with metadata source: donation-app)
  *
  * Steps performed:
  * 1. Extracts invoice data and retrieves the associated customer and subscription from Stripe.

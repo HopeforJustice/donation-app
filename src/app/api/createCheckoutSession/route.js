@@ -22,7 +22,7 @@ export async function POST(req) {
 	// Using UK stripe for NOK and UK
 	if (currency === "gbp") {
 		publishableKey = test ? ukTest : ukLive;
-		paymentMethods = ["card", "pay_by_bank", "bacs_debit", "customer_balance"];
+		paymentMethods = ["card", "pay_by_bank", "customer_balance"];
 	} else if (currency === "usd") {
 		publishableKey = test ? usTest : usLive;
 		paymentMethods = ["card"];
@@ -98,12 +98,14 @@ export async function POST(req) {
 		mode: sessionMode,
 		return_url: `${baseurl}/success?currency=${currency}&amount=${amount}&gateway=stripe&frequency=${givingFrequency}&session_id={CHECKOUT_SESSION_ID}`,
 		payment_method_types: paymentMethods,
-		payment_method_options: {
-			customer_balance: {
-				funding_type: "bank_transfer",
-				bank_transfer: { type: "gb_bank_transfer" },
+		...(currency === "gbp" && {
+			payment_method_options: {
+				customer_balance: {
+					funding_type: "bank_transfer",
+					bank_transfer: { type: "gb_bank_transfer" },
+				},
 			},
-		},
+		}),
 		metadata: {
 			...metadata,
 			...(testClockId && { test_clock_id: testClockId }),

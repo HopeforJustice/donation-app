@@ -80,6 +80,30 @@ export default async function fillUkOnce(page, testDetails) {
 		await page.getByTestId("paypal-payment-step").click();
 		// Handle PayPal checkout popup
 		await handlePayPalCheckout(page, testDetails);
+	} else if (testDetails.stripe.pathway === "bank app") {
+		//bank app payment pathway
+		await page
+			.getByTestId("stripe-payment-step")
+			.locator("iframe")
+			.contentFrame()
+			.getByRole("button", { name: "Pay By Bank App" })
+			.click();
+		await page
+			.getByTestId("stripe-payment-step")
+			.locator("iframe")
+			.contentFrame()
+			.getByTestId("featured-institution-uk_monzo")
+			.locator("div")
+			.first()
+			.click();
+		await page.getByTestId("donate-button").click();
+		const outerFrame = page.frameLocator('iframe[src*="lightbox-inner"]');
+		const nestedFrame = outerFrame.frameLocator(
+			'iframe[title="In-context payment completion page"]'
+		);
+
+		await nestedFrame.getByRole("link", { name: "Continue on Web" }).click();
+		await page.getByTestId("authorize-test-payment-button").click();
 	} else {
 		stripeFrame = page.frameLocator(
 			'iframe[allow="payment *; clipboard-write"]'
