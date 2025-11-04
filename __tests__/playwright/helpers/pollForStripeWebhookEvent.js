@@ -56,7 +56,11 @@ export default async function pollForStripeWebhookEvent(
 											const session = stripeEvent.data.object;
 											emailMatch = session.customer_details?.email === email;
 											break;
-
+										case "checkout.session.async_payment_succeeded":
+											const asyncSession = stripeEvent.data.object;
+											emailMatch =
+												asyncSession.customer_details?.email === email;
+											break;
 										case "customer.subscription.created":
 										case "customer.subscription.updated":
 										case "customer.subscription.deleted":
