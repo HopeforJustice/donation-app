@@ -25,6 +25,13 @@ export default function Home() {
 		typeof window !== "undefined" ? window.innerWidth > 1279 : false
 	);
 
+	//look for param to restrict payment methods
+	const allowedPaymentMethods = useMemo(() => {
+		const param = searchParams.get("allowedPaymentMethods");
+		if (!param) return [];
+		return param.split(",").map((method) => method.trim());
+	}, [searchParams]);
+
 	useEffect(() => {
 		function handleResize() {
 			setDesktopSize(window.innerWidth > 1279);
@@ -114,6 +121,7 @@ export default function Home() {
 									lastStep={lastStep}
 									setLastStep={setLastStep}
 									desktopSize={desktopSize}
+									allowedPaymentMethods={allowedPaymentMethods}
 								/>
 							</Suspense>
 						</div>

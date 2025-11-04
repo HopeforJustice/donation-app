@@ -12,7 +12,8 @@ export async function POST(req) {
 	let paymentMethods;
 
 	const body = await req.json();
-	const { currency, amount, givingFrequency, metadata } = body;
+	const { currency, amount, givingFrequency, metadata, allowedPaymentMethods } =
+		body;
 
 	const stripe = getStripeInstance({
 		currency,
@@ -22,7 +23,11 @@ export async function POST(req) {
 	// Using UK stripe for NOK and UK
 	if (currency === "gbp") {
 		publishableKey = test ? ukTest : ukLive;
-		paymentMethods = ["card", "pay_by_bank", "customer_balance"];
+		if (allowedPaymentMethods && Array.isArray(allowedPaymentMethods)) {
+			paymentMethods = allowedPaymentMethods;
+		} else {
+			paymentMethods = ["card", "pay_by_bank", "customer_balance"];
+		}
 	} else if (currency === "usd") {
 		publishableKey = test ? usTest : usLive;
 		paymentMethods = ["card"];

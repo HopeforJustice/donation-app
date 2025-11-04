@@ -27,6 +27,7 @@ const MultiStepForm = ({
 	setLastStep,
 	lastStep,
 	desktopSize,
+	allowedPaymentMethods = [],
 }) => {
 	const searchParams = useSearchParams();
 	const validate = searchParams.get("validate") || true;
@@ -338,6 +339,7 @@ const MultiStepForm = ({
 						frequency={frequency}
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
+						allowedPaymentMethods={allowedPaymentMethods}
 					/>
 					{step === steps.length - 1 &&
 						Object.keys(errors).length > 0 &&

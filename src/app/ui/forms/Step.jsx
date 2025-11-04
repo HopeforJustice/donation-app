@@ -18,6 +18,7 @@ const Field = ({
 	onShowGivingDetails,
 	currency,
 	frequency,
+	allowedPaymentMethods,
 }) => {
 	const {
 		register,
@@ -30,6 +31,9 @@ const Field = ({
 
 	const givingTo = searchParams.get("givingTo") || null;
 	const allowChange = searchParams.get("allowChange") || "true";
+	const restrictedUKBankTransfer =
+		allowedPaymentMethods.includes("pay_by_bank") ||
+		allowedPaymentMethods.includes("customer_balance");
 
 	// Watch the value of inspirationQuestion
 	const inspirationValue = watch("inspirationQuestion");
@@ -46,18 +50,23 @@ const Field = ({
 
 	switch (field.type) {
 		case "givingPreview":
-			if (values.amount) {
-				return (
+			if (!values.amount) return null;
+			const currencyCode = values.currency?.toUpperCase();
+			const currencySymbol = findCurrencySymbol(values.currency);
+			const isNOK = values.currency === "nok";
+
+			// Format currency display based on NOK special handling
+			const currencyPrefix = isNOK ? "" : currencySymbol;
+			const currencySuffix = isNOK ? `${currencySymbol} ` : "";
+
+			return (
+				<>
 					<p id="givingPreview" className="mb-4 flex gap-2 flex-wrap">
-						You&apos;re giving {values.currency?.toUpperCase()}{" "}
-						{values.currency !== "nok"
-							? findCurrencySymbol(values.currency)
-							: ""}
-						{formattedAmount}{" "}
-						{values.currency === "nok"
-							? findCurrencySymbol(values.currency) + " "
-							: ""}
-						{values.givingFrequency} {givingTo && `to ${givingTo}`}
+						You&apos;re giving {currencyCode} {currencyPrefix}
+						{formattedAmount} {currencySuffix}
+						{values.givingFrequency}
+						{restrictedUKBankTransfer && " via bank transfer"}
+						{givingTo && ` to ${givingTo}`}
 						{allowChange === "true" && !showGivingDetails && (
 							<Button
 								text="Change giving details"
@@ -67,10 +76,8 @@ const Field = ({
 							/>
 						)}
 					</p>
-				);
-			} else {
-				return null;
-			}
+				</>
+			);
 		case "text":
 			return (
 				<InputField
@@ -122,6 +129,7 @@ const Field = ({
 					currency={values.currency}
 					currencySymbol={findCurrencySymbol(values.currency)}
 					acceptedCurrencies={field.acceptedCurrencies}
+					allowedPaymentMethods={allowedPaymentMethods}
 				/>
 			);
 		case "email":
@@ -159,6 +167,7 @@ const Field = ({
 					defaultValue={field.defaultValue}
 					hidden={field.hidden}
 					descriptionAbove={field.descriptionAbove}
+					allowedPaymentMethods={allowedPaymentMethods}
 				/>
 			);
 		case "toggle":
@@ -181,6 +190,13 @@ const Field = ({
 			if (field.id === "givingDetails" && !showGivingDetails) {
 				return null;
 			}
+			if (
+				field.id === "givingDetails" &&
+				(allowedPaymentMethods.includes("pay_by_bank") ||
+					allowedPaymentMethods.includes("customer_balance"))
+			) {
+				field.columns = 1;
+			}
 			return (
 				<div className="">
 					<div
@@ -195,6 +211,7 @@ const Field = ({
 								showGivingDetails={showGivingDetails}
 								onShowGivingDetails={onShowGivingDetails}
 								currency={currency}
+								allowedPaymentMethods={allowedPaymentMethods}
 							/>
 						))}
 					</div>
@@ -266,10 +283,19 @@ const Field = ({
 						amount={values.amount}
 						givingFrequency={values.givingFrequency}
 						currency={values.currency}
+						allowedPaymentMethods={allowedPaymentMethods}
 					/>
 				</div>
 			);
 		case "payPalPaymentStep":
+			if (
+				allowedPaymentMethods &&
+				allowedPaymentMethods.includes(
+					"pay_by_bank" || allowedPaymentMethods.includes("customer_balance")
+				)
+			) {
+				return null;
+			}
 			return (
 				<div data-testid="paypal-payment-step">
 					<PayPalPaymentStep
@@ -292,6 +318,7 @@ const Step = ({
 	frequency,
 	onCurrencyChange,
 	onSubmit,
+	allowedPaymentMethods,
 }) => {
 	return (
 		<div className="">
@@ -320,6 +347,7 @@ const Step = ({
 					currency={currency}
 					frequency={frequency}
 					onCurrencyChange={onCurrencyChange}
+					allowedPaymentMethods={allowedPaymentMethods}
 				/>
 			))}
 		</div>
