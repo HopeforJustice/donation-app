@@ -23,7 +23,11 @@ export async function POST(req) {
 	// Using UK stripe for NOK and UK
 	if (currency === "gbp") {
 		publishableKey = test ? ukTest : ukLive;
-		if (allowedPaymentMethods && Array.isArray(allowedPaymentMethods)) {
+		if (
+			allowedPaymentMethods &&
+			Array.isArray(allowedPaymentMethods) &&
+			allowedPaymentMethods.length > 0
+		) {
 			paymentMethods = allowedPaymentMethods;
 		} else {
 			paymentMethods = ["card", "pay_by_bank", "customer_balance"];
@@ -60,9 +64,13 @@ export async function POST(req) {
 		sessionMode = "payment";
 	}
 
+	// Check if customer_balance payment method is being used
+	const needsCustomer = paymentMethods.includes("customer_balance");
+
 	// For test environment, create a test clock for time simulation
 	let testClockId = null;
-	let testCustomer = null;
+	let customer = null;
+
 	if (test) {
 		try {
 			// Create test clock with current time as frozen_time
@@ -75,7 +83,7 @@ export async function POST(req) {
 
 			// Create a customer with the test clock
 			// This associates all future operations with this customer to the test clock
-			testCustomer = await stripe.customers.create({
+			customer = await stripe.customers.create({
 				test_clock: testClockId,
 				metadata: {
 					...metadata,
@@ -83,11 +91,28 @@ export async function POST(req) {
 					created_for: sessionMode,
 				},
 			});
-			console.log(`Created test customer with test clock: ${testCustomer.id}`);
+			console.log(`Created test customer with test clock: ${customer.id}`);
 		} catch (error) {
 			console.warn(
 				"Failed to create test clock/customer, proceeding without it:",
 				error.message
+			);
+		}
+	} else if (needsCustomer && !test) {
+		// For production, create a customer when using customer_balance
+		try {
+			customer = await stripe.customers.create({
+				metadata: {
+					...metadata,
+					created_for: sessionMode,
+				},
+			});
+			console.log(`Created customer for customer_balance: ${customer.id}`);
+		} catch (error) {
+			console.error("Failed to create customer:", error.message);
+			return NextResponse.json(
+				{ error: "Failed to create customer for bank transfer payment" },
+				{ status: 500 }
 			);
 		}
 	}
@@ -115,7 +140,7 @@ export async function POST(req) {
 			...metadata,
 			...(testClockId && { test_clock_id: testClockId }),
 		},
-		...(testCustomer && { customer: testCustomer.id }),
+		...(customer && { customer: customer.id }),
 		...(sessionMode === "payment" && {
 			payment_intent_data: {
 				metadata: {
@@ -143,7 +168,7 @@ export async function POST(req) {
 		publishableKey,
 		...(testClockId && {
 			testClockId,
-			testCustomerId: testCustomer?.id,
+			testCustomerId: customer?.id,
 			testClockFrozenTime: Math.floor(Date.now() / 1000),
 		}),
 	});
