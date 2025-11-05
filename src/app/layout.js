@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import clsx from "clsx";
 import { Suspense } from "react";
 import { GoogleTagManager } from "@next/third-parties/google";
+import { Analytics } from "@vercel/analytics/next";
 
 const canela = localFont({
 	src: "../fonts/Canela-Medium.woff2",
@@ -55,6 +56,7 @@ export default function RootLayout({ children }) {
 			>
 				<Suspense>{children}</Suspense>
 			</body>
+			<Analytics />
 		</html>
 	);
 }
