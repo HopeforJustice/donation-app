@@ -10,6 +10,7 @@ export default function StripePaymentStep({
 	amount,
 	currency,
 	givingFrequency,
+	allowedPaymentMethods,
 }) {
 	const { getValues } = useFormContext();
 	const formData = getValues();
@@ -29,6 +30,7 @@ export default function StripePaymentStep({
 				currency,
 				givingFrequency,
 				email: formData.email,
+				allowedPaymentMethods,
 				metadata: {
 					title: formData.title || "",
 					firstName: formData.firstName || "",

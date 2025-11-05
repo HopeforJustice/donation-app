@@ -14,8 +14,19 @@ const SelectField = ({
 	hidden,
 	defaultValue,
 	descriptionAbove = false,
+	allowedPaymentMethods = [],
 }) => {
 	const hiddenClasses = hidden ? "hidden" : "";
+	const asyncPaymentMethods = ["pay_by_bank", "customer_balance"];
+	const disableSelector =
+		id === "givingFrequency" &&
+		asyncPaymentMethods.some((method) =>
+			allowedPaymentMethods.includes(method)
+		);
+	if (disableSelector) {
+		return null;
+	}
+
 	return (
 		<div className={`mb-4 ${extraClasses} ${hiddenClasses}`}>
 			<div className="flex justify-between">
@@ -65,6 +76,7 @@ const SelectField = ({
 				{...register(id)}
 				{...(onChange ? { onChange: (e) => onChange(e) } : {})} // Conditional inclusion of onChange function
 				defaultValue={defaultValue}
+				disabled={disableSelector}
 			>
 				{!defaultValue && (
 					<option value="">Select {optional && "(Optional)"}</option>

@@ -12,7 +12,8 @@ export async function POST(req) {
 	let paymentMethods;
 
 	const body = await req.json();
-	const { currency, amount, givingFrequency, metadata } = body;
+	const { currency, amount, givingFrequency, metadata, allowedPaymentMethods } =
+		body;
 
 	const stripe = getStripeInstance({
 		currency,
@@ -22,7 +23,15 @@ export async function POST(req) {
 	// Using UK stripe for NOK and UK
 	if (currency === "gbp") {
 		publishableKey = test ? ukTest : ukLive;
-		paymentMethods = ["card", "pay_by_bank"];
+		if (
+			allowedPaymentMethods &&
+			Array.isArray(allowedPaymentMethods) &&
+			allowedPaymentMethods.length > 0
+		) {
+			paymentMethods = allowedPaymentMethods;
+		} else {
+			paymentMethods = ["card", "pay_by_bank", "customer_balance"];
+		}
 	} else if (currency === "usd") {
 		publishableKey = test ? usTest : usLive;
 		paymentMethods = ["card"];
@@ -55,9 +64,13 @@ export async function POST(req) {
 		sessionMode = "payment";
 	}
 
+	// Check if customer_balance payment method is being used
+	const needsCustomer = paymentMethods.includes("customer_balance");
+
 	// For test environment, create a test clock for time simulation
 	let testClockId = null;
-	let testCustomer = null;
+	let customer = null;
+
 	if (test) {
 		try {
 			// Create test clock with current time as frozen_time
@@ -70,7 +83,7 @@ export async function POST(req) {
 
 			// Create a customer with the test clock
 			// This associates all future operations with this customer to the test clock
-			testCustomer = await stripe.customers.create({
+			customer = await stripe.customers.create({
 				test_clock: testClockId,
 				metadata: {
 					...metadata,
@@ -78,11 +91,28 @@ export async function POST(req) {
 					created_for: sessionMode,
 				},
 			});
-			console.log(`Created test customer with test clock: ${testCustomer.id}`);
+			console.log(`Created test customer with test clock: ${customer.id}`);
 		} catch (error) {
 			console.warn(
 				"Failed to create test clock/customer, proceeding without it:",
 				error.message
+			);
+		}
+	} else if (needsCustomer && !test) {
+		// For production, create a customer when using customer_balance
+		try {
+			customer = await stripe.customers.create({
+				metadata: {
+					...metadata,
+					created_for: sessionMode,
+				},
+			});
+			console.log(`Created customer for customer_balance: ${customer.id}`);
+		} catch (error) {
+			console.error("Failed to create customer:", error.message);
+			return NextResponse.json(
+				{ error: "Failed to create customer for bank transfer payment" },
+				{ status: 500 }
 			);
 		}
 	}
@@ -98,11 +128,19 @@ export async function POST(req) {
 		mode: sessionMode,
 		return_url: `${baseurl}/success?currency=${currency}&amount=${amount}&gateway=stripe&frequency=${givingFrequency}&session_id={CHECKOUT_SESSION_ID}`,
 		payment_method_types: paymentMethods,
+		...(currency === "gbp" && {
+			payment_method_options: {
+				customer_balance: {
+					funding_type: "bank_transfer",
+					bank_transfer: { type: "gb_bank_transfer" },
+				},
+			},
+		}),
 		metadata: {
 			...metadata,
 			...(testClockId && { test_clock_id: testClockId }),
 		},
-		...(testCustomer && { customer: testCustomer.id }),
+		...(customer && { customer: customer.id }),
 		...(sessionMode === "payment" && {
 			payment_intent_data: {
 				metadata: {
@@ -130,7 +168,7 @@ export async function POST(req) {
 		publishableKey,
 		...(testClockId && {
 			testClockId,
-			testCustomerId: testCustomer?.id,
+			testCustomerId: customer?.id,
 			testClockFrozenTime: Math.floor(Date.now() / 1000),
 		}),
 	});

@@ -27,6 +27,7 @@ const MultiStepForm = ({
 	setLastStep,
 	lastStep,
 	desktopSize,
+	allowedPaymentMethods = [],
 }) => {
 	const searchParams = useSearchParams();
 	const validate = searchParams.get("validate") || true;
@@ -318,10 +319,10 @@ const MultiStepForm = ({
 
 	return (
 		<div className="">
-			{formData.amount > 5000 && formData.currency === "gbp" && (
+			{formData.amount > 10000 && formData.currency === "gbp" && (
 				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
 					<p className="text-hfj-black">
-						For donations over £5,000 please contact our Supporter Care team on{" "}
+						For donations over £10,000 please contact our Supporter Care team on{" "}
 						<a className="underline" href="tel:03000088000">
 							0300 008 8000
 						</a>{" "}
@@ -363,6 +364,7 @@ const MultiStepForm = ({
 						frequency={frequency}
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
+						allowedPaymentMethods={allowedPaymentMethods}
 					/>
 					{step === steps.length - 1 &&
 						Object.keys(errors).length > 0 &&
