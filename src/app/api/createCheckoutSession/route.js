@@ -34,7 +34,7 @@ export async function POST(req) {
 		}
 	} else if (currency === "usd") {
 		publishableKey = test ? usTest : usLive;
-		paymentMethods = ["card"];
+		paymentMethods = ["card", "us_bank_account"];
 	} else if (currency === "nok") {
 		publishableKey = test ? ukTest : ukLive;
 		paymentMethods = ["card"];
