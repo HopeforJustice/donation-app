@@ -21,6 +21,19 @@ export default function Home() {
 
 	const frequency = searchParams.get("frequency") || "monthly";
 
+	const image = searchParams.get("image") || null;
+
+	// Decode the image URL if it exists
+	const decodedImage = useMemo(() => {
+		if (!image) return null;
+		try {
+			return decodeURIComponent(image);
+		} catch (error) {
+			console.error("Error decoding image URL:", error);
+			return null;
+		}
+	}, [image]);
+
 	const [desktopSize, setDesktopSize] = useState(
 		typeof window !== "undefined" ? window.innerWidth > 1279 : false
 	);
@@ -69,15 +82,15 @@ export default function Home() {
 				{/* background image */}
 				<div className="fixed h-full min-h-7 w-full z-0 hidden md:block xl:w-1/2 xl:right-0 bg-hfj-black min-[1921px]:relative min-[1921px]:col-start-7 min-[1921px]:col-end-13 min-[1921px]:w-full min-[1921px]:row-start-1 min-[1921px]:h-[80vh] min-[1921px]:self-center min-[1921px]:rounded-xl min-[1921px]:overflow-hidden min-[1921px]:-ml-10 min-[1921px]:z-30">
 					<Image
-						src="/donation-img.jpg"
+						src={image ? decodedImage : "/donation-img.jpg"}
 						layout="fill"
-						alt="Picture of Hope for Justice client small"
+						alt="Campaign image"
 						className="object-cover xl:hidden"
 					/>
 					<Image
-						src="/donation-img-centered.jpg"
+						src={image ? decodedImage : "/donation-img-centered.jpg"}
 						layout="fill"
-						alt="Picture of Hope for Justice client"
+						alt="Campaign image"
 						className="object-cover hidden xl:block xl:!h-[90%]"
 					/>
 					<div className="absolute bottom-[10%] w-full h-1/4 bg-gradient-to-t from-hfj-black to-transparent hidden xl:block"></div>
