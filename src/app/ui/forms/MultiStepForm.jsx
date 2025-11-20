@@ -16,6 +16,7 @@ import { stepTemplates } from "@/app/lib/steps/stepTemplates";
 import { getPreferences } from "@/app/lib/utilities";
 import { extractPreferences } from "@/app/lib/utilities";
 import GivingSummary from "./GivingSummary";
+import { matchFundingOn } from "@/app/lib/utils/formUtils";
 
 const MultiStepForm = ({
 	currency = "gbp",
@@ -35,6 +36,7 @@ const MultiStepForm = ({
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [step, setStep] = useState(0);
+	const [matchFunding, setMatchFunding] = useState(false);
 
 	const supportedCurrencies = ["usd", "gbp", "nok", "aud"];
 	const isCurrencyAccepted = supportedCurrencies.includes(currency);
@@ -64,6 +66,9 @@ const MultiStepForm = ({
 	} = methods;
 
 	const formData = getValues();
+	useEffect(() => {
+		setMatchFunding(matchFundingOn(formData.campaign));
+	}, [formData.campaign]);
 
 	const watchedCurrency = watch("currency") || defaultValues.currency;
 	const watchedFrequency =
@@ -340,6 +345,7 @@ const MultiStepForm = ({
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
 						allowedPaymentMethods={allowedPaymentMethods}
+						matchFunding={matchFunding}
 					/>
 					{step === steps.length - 1 &&
 						Object.keys(errors).length > 0 &&

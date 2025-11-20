@@ -14,7 +14,13 @@
  */
 
 // Form utilities - Input validation and formatting
-export { onlyNumbers, handlePhoneInput, formatAmount } from "./formUtils";
+export {
+	onlyNumbers,
+	handlePhoneInput,
+	formatAmount,
+	getLocaleFromCurrency,
+	formatAmountWithLocale,
+} from "./formUtils";
 
 // Currency utilities - Currency symbols and formatting
 export { findCurrencySymbol } from "./currencyUtils";
