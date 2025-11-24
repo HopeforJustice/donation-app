@@ -11,6 +11,7 @@ export default function GivingSummary({
 	giftAid = false,
 	givingFrequency,
 	currency,
+	setIsModalOpen,
 }) {
 	const searchParams = useSearchParams();
 	const campaignCode = searchParams.get("campaign") || null;
@@ -70,6 +71,7 @@ export default function GivingSummary({
 							currency={currency}
 							formattedAmount={formattedAmount}
 							formattedDoubledAmount={formattedDoubledAmount}
+							setIsModalOpen={setIsModalOpen}
 						/>
 					)}
 				</div>

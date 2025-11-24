@@ -29,6 +29,7 @@ const MultiStepForm = ({
 	lastStep,
 	desktopSize,
 	allowedPaymentMethods = [],
+	setIsModalOpen,
 }) => {
 	const searchParams = useSearchParams();
 	const validate = searchParams.get("validate") || true;
@@ -346,6 +347,7 @@ const MultiStepForm = ({
 						onShowGivingDetails={showGivingDetailsHandler}
 						allowedPaymentMethods={allowedPaymentMethods}
 						matchFunding={matchFunding}
+						setIsModalOpen={setIsModalOpen}
 					/>
 					{step === steps.length - 1 &&
 						Object.keys(errors).length > 0 &&
@@ -371,6 +373,7 @@ const MultiStepForm = ({
 					givingFrequency={watchedFrequency}
 					currency={watchedCurrency}
 					giftAid={watchedGiftAid}
+					setIsModalOpen={setIsModalOpen}
 				/>
 			)}
 

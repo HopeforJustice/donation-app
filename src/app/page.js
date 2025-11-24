@@ -6,6 +6,7 @@ import Container from "./ui/layout/containers/Container";
 import { Suspense, useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import GivingSummary from "./ui/forms/GivingSummary";
+import Button from "./ui/buttons/Button";
 
 export default function Home() {
 	const searchParams = useSearchParams();
@@ -22,6 +23,8 @@ export default function Home() {
 	const frequency = searchParams.get("frequency") || "monthly";
 
 	const image = searchParams.get("image") || null;
+
+	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	// Decode the image URL if it exists
 	const decodedImage = useMemo(() => {
@@ -80,7 +83,7 @@ export default function Home() {
 				</div>
 
 				{/* background image */}
-				<div className="fixed h-full min-h-7 w-full z-20 hidden md:block xl:w-1/2 xl:right-0 bg-hfj-black min-[1921px]:relative min-[1921px]:col-start-7 min-[1921px]:col-end-13 min-[1921px]:w-full min-[1921px]:row-start-1 min-[1921px]:h-[80vh] min-[1921px]:self-center min-[1921px]:rounded-xl min-[1921px]:overflow-hidden min-[1921px]:-ml-10 min-[1921px]:z-30">
+				<div className="fixed h-full min-h-7 w-full xl:z-20 hidden md:block xl:w-1/2 xl:right-0 bg-hfj-black min-[1921px]:relative min-[1921px]:col-start-7 min-[1921px]:col-end-13 min-[1921px]:w-full min-[1921px]:row-start-1 min-[1921px]:h-[80vh] min-[1921px]:self-center min-[1921px]:rounded-xl min-[1921px]:overflow-hidden min-[1921px]:-ml-10 min-[1921px]:z-30">
 					<Image
 						src={image ? decodedImage : "/donation-img.jpg"}
 						layout="fill"
@@ -109,6 +112,7 @@ export default function Home() {
 							givingFrequency={givingFrequency}
 							currency={currency}
 							giftAid={giftAid}
+							setIsModalOpen={setIsModalOpen}
 						/>
 					)}
 				</div>
@@ -135,12 +139,59 @@ export default function Home() {
 									setLastStep={setLastStep}
 									desktopSize={desktopSize}
 									allowedPaymentMethods={allowedPaymentMethods}
+									setIsModalOpen={setIsModalOpen}
 								/>
 							</Suspense>
 						</div>
 					</div>
 				</Container>
 			</Grid>
+			{/* Modal */}
+			{isModalOpen && (
+				<div
+					className="fixed inset-0 bg-black bg-opacity-80 flex items-start justify-center z-50 p-4"
+					onClick={() => setIsModalOpen(false)}
+				>
+					<div
+						className="bg-white rounded-lg max-w-xl max-h-[90vh] overflow-y-auto p-6 mt-20"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="flex justify-between items-start mb-4">
+							<h2 className="text-2xl font-bold text-hfj-black">
+								Your gift is being doubled
+							</h2>
+							<button
+								onClick={() => setIsModalOpen(false)}
+								className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+							>
+								×
+							</button>
+						</div>
+
+						<div className="space-y-4 leading-relaxed text-sm text-hfj-black">
+							<p>
+								A group of generous donors have pledged to match-fund every
+								donation made to this campaign before December 31st 2025,
+								meaning everything you give will be worth double (up to a global
+								total of $650,000 / £500,000). That means double the impact for
+								victims and survivors of human trafficking, at no additional
+								cost to you.
+							</p>
+							<p className="font-bold">
+								Thank you for doing twice the good and making twice as much
+								difference by choosing to give to Hope for Justice
+							</p>
+
+							<Button
+								text="Close"
+								onClick={() => setIsModalOpen(false)}
+								size="large"
+								extraClasses="min-w-24"
+							/>
+						</div>
+					</div>
+				</div>
+			)}
 		</main>
 	);
 }

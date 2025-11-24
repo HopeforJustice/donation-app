@@ -21,6 +21,7 @@ const Field = ({
 	frequency,
 	allowedPaymentMethods,
 	matchFunding,
+	setIsModalOpen,
 }) => {
 	const {
 		register,
@@ -61,6 +62,7 @@ const Field = ({
 					showGivingDetails={showGivingDetails}
 					onShowGivingDetails={onShowGivingDetails}
 					matchFunding={matchFunding}
+					setIsModalOpen={setIsModalOpen}
 				/>
 			);
 		case "text":
@@ -306,6 +308,7 @@ const Step = ({
 	onSubmit,
 	allowedPaymentMethods,
 	matchFunding,
+	setIsModalOpen,
 }) => {
 	return (
 		<div className="">
@@ -336,6 +339,7 @@ const Step = ({
 					onCurrencyChange={onCurrencyChange}
 					allowedPaymentMethods={allowedPaymentMethods}
 					matchFunding={matchFunding}
+					setIsModalOpen={setIsModalOpen}
 				/>
 			))}
 		</div>

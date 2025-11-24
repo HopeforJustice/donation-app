@@ -14,6 +14,7 @@ const GivingPreview = ({
 	showGivingDetails,
 	onShowGivingDetails,
 	matchFunding,
+	setIsModalOpen,
 }) => {
 	const searchParams = useSearchParams();
 
@@ -59,6 +60,7 @@ const GivingPreview = ({
 					currency={values.currency}
 					formattedAmount={formattedAmount}
 					formattedDoubledAmount={formattedDoubledAmount}
+					setIsModalOpen={setIsModalOpen}
 				/>
 			)}
 		</>
