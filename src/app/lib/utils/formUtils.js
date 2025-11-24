@@ -65,8 +65,10 @@ export const formatAmount = (amount, currency) => {
 export const matchFundingOn = (campaign) => {
 	const fundingOnCampaigns = ["2025 EOY"];
 	if (fundingOnCampaigns.includes(campaign)) {
+		console.log("Match funding applied for campaign:", campaign);
 		return true;
 	}
+	console.log("NO matchfunding for campaign:", campaign);
 	return false;
 };
 
@@ -74,22 +76,23 @@ export const matchFundingOn = (campaign) => {
 export const getLocaleFromCurrency = (currency) => {
 	const currencyToLocale = {
 		gbp: "en-GB",
-		usd: "en-US", 
+		usd: "en-US",
 		nok: "nb-NO",
 		aud: "en-AU",
 		eur: "de-DE", // Default to German formatting for EUR
 	};
-	
+
 	return currencyToLocale[currency?.toLowerCase()] || "en-US";
 };
 
 // Format amount with proper locale
 export const formatAmountWithLocale = (amount, currency) => {
 	const locale = getLocaleFromCurrency(currency);
-	const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-	
-	if (isNaN(numericAmount)) return '0';
-	
+	const numericAmount =
+		typeof amount === "string" ? parseFloat(amount) : amount;
+
+	if (isNaN(numericAmount)) return "0";
+
 	return numericAmount.toLocaleString(locale, {
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 2,
