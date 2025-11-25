@@ -18,6 +18,7 @@ import { extractPreferences } from "@/app/lib/utilities";
 import GivingSummary from "./GivingSummary";
 import { matchFundingOn } from "@/app/lib/utils/formUtils";
 import { getCookie } from "@/app/lib/utils/dataUtils";
+import SubmitButton from "../buttons/SubmitButton";
 
 const MultiStepForm = ({
 	currency = "gbp",
@@ -418,6 +419,15 @@ const MultiStepForm = ({
 						size="extraLarge"
 						extraClasses="ml-auto"
 					/>
+				)}
+				{lastStep && desktopSize && (
+					<div>
+						<SubmitButton
+							currency={watchedCurrency}
+							givingFrequency={watchedFrequency}
+							amount={watchedAmount}
+						/>
+					</div>
 				)}
 			</div>
 		</div>
