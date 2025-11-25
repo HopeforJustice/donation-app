@@ -232,8 +232,8 @@ export async function processCheckoutSessionDonation(
 			results.push({ step: currentStep, success: true });
 		}
 
-		//send thank you email unless suppressed or FreedomFoundation campaign
-		//FreedomFoundation sends it's own sparkpost emails
+		// Send thank you email unless suppressed or is part of
+		// the excluded campaigns array in sendThankYouEmail function
 		currentStep = "Send Sparkpost thank you email";
 		const emailSent = await sendThankYouEmail(
 			sparkPostTemplate,

@@ -178,7 +178,7 @@ export async function sendThankYouEmail(
 	amount,
 	currency,
 	sendEmailFunction,
-	excludedCampaigns = ["FreedomFoundation"]
+	excludedCampaigns = ["FreedomFoundation", "2025 EOY"]
 ) {
 	// Skip if no template or campaign is excluded
 	if (!sparkPostTemplate || excludedCampaigns.includes(campaign)) {

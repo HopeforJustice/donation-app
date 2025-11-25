@@ -5,7 +5,7 @@ import sendEmailByTemplateName from "../sparkpost/sendEmailByTemplateName";
 
 const test = process.env.VERCEL_ENV !== "production";
 
-export default async function EOY2025(formData, currency, amount) {
+export default async function EOY2025(metadata, currency, amount) {
 	const currencySymbol = currency === "gbp" ? "£" : "$";
 	const sparkPostTemplate =
 		currency === "gbp"
@@ -14,13 +14,13 @@ export default async function EOY2025(formData, currency, amount) {
 	const substitutionData = {
 		amount: `${currencySymbol}${amount}`,
 		doubledAmount: `${currencySymbol}${amount * 2}`,
-		name: formData.firstName,
+		name: metadata.firstName,
 	};
 
 	try {
 		await sendEmailByTemplateName(
 			sparkPostTemplate,
-			formData.email,
+			metadata.email,
 			substitutionData
 		);
 	} catch (error) {

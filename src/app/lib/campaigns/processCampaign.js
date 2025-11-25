@@ -19,7 +19,7 @@ export default async function processCampaign(
 				amount
 			);
 		case "2025 EOY":
-			return await EOY2025(formData, currency, amount);
+			return await EOY2025(metadata, currency, amount);
 		// Add more cases for other campaigns as needed
 		default:
 			console.log(`${campaign} has no specific processing logic defined.`);

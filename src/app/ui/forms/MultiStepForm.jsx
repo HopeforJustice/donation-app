@@ -17,6 +17,7 @@ import { getPreferences } from "@/app/lib/utilities";
 import { extractPreferences } from "@/app/lib/utilities";
 import GivingSummary from "./GivingSummary";
 import { matchFundingOn } from "@/app/lib/utils/formUtils";
+import { getCookie } from "@/app/lib/utils/dataUtils";
 
 const MultiStepForm = ({
 	currency = "gbp",
@@ -92,6 +93,18 @@ const MultiStepForm = ({
 
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
 
+	// get cookies for utm and set in form
+	useEffect(() => {
+		const utm_source = getCookie("wordpress_utm_source") || "unknown";
+		const utm_medium = getCookie("wordpress_utm_medium") || "unknown";
+		const utm_campaign = getCookie("wordpress_utm_campaign") || "unknown";
+
+		setValue("utm_source", utm_source);
+		setValue("utm_medium", utm_medium);
+		setValue("utm_campaign", utm_campaign);
+	}, [setValue]);
+
+	//regenerate steps
 	useEffect(() => {
 		// Only regenerate steps if currency or frequency changed
 		setSteps((prevSteps) => {
@@ -209,6 +222,7 @@ const MultiStepForm = ({
 		setIsLoading(false);
 	};
 
+	//prev step
 	const prevStep = () => setStep((s) => s - 1);
 
 	// Global submit orchestrator: validate, then route to GoCardless or card flow
@@ -300,6 +314,7 @@ const MultiStepForm = ({
 
 	return (
 		<div className="">
+			{/* amount disclaimer UK */}
 			{formData.amount > 10000 && formData.currency === "gbp" && (
 				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
 					<p className="text-hfj-black">
@@ -317,6 +332,7 @@ const MultiStepForm = ({
 					</p>
 				</div>
 			)}
+			{/* amount disclaimer USA */}
 			{formData.amount > 10000 && formData.currency === "usd" && (
 				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
 					<p className="text-hfj-black">

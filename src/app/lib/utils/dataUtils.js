@@ -73,3 +73,21 @@ export const sanitiseForLogging = (body) => {
 
 	return JSON.stringify(data);
 };
+
+/**
+ * Get a cookie value by name
+ * @param {string} name - The name of the cookie to retrieve
+ * @returns {string|null} The cookie value or null if not found
+ */
+export const getCookie = (name) => {
+	if (typeof document === "undefined") return null;
+
+	const value = `; ${document.cookie}`;
+	const parts = value.split(`; ${name}=`);
+
+	if (parts.length === 2) {
+		return parts.pop().split(";").shift();
+	}
+
+	return null;
+};
