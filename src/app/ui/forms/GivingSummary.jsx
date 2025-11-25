@@ -79,6 +79,7 @@ export default function GivingSummary({
 					currency={currency}
 					givingFrequency={givingFrequency}
 					amount={amount}
+					location="giving-summary"
 				/>
 			</div>
 		</div>
