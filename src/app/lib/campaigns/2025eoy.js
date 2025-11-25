@@ -12,8 +12,8 @@ export default async function EOY2025(metadata, currency, amount) {
 			? "donation-receipt-uk-doubled"
 			: "donation-receipt-us-doubled";
 	const substitutionData = {
-		amount: `${currencySymbol}${amount}`,
-		doubledAmount: `${currencySymbol}${amount * 2}`,
+		amount: `${currencySymbol}${parseFloat(amount).toFixed(2)}`,
+		doubledAmount: `${currencySymbol}${parseFloat(amount * 2).toFixed(2)}`,
 		name: metadata.firstName,
 	};
 
