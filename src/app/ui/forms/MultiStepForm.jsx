@@ -95,13 +95,19 @@ const MultiStepForm = ({
 
 	// get cookies for utm and set in form
 	useEffect(() => {
-		const utm_source = getCookie("wordpress_utm_source") || "unknown";
-		const utm_medium = getCookie("wordpress_utm_medium") || "unknown";
-		const utm_campaign = getCookie("wordpress_utm_campaign") || "unknown";
+		const utm_source = getCookie("wordpress_utm_source");
+		const utm_medium = getCookie("wordpress_utm_medium");
+		const utm_campaign = getCookie("wordpress_utm_campaign");
 
-		setValue("utm_source", utm_source);
-		setValue("utm_medium", utm_medium);
-		setValue("utm_campaign", utm_campaign);
+		if (utm_source) {
+			setValue("utm_source", utm_source);
+		}
+		if (utm_medium) {
+			setValue("utm_medium", utm_medium);
+		}
+		if (utm_campaign) {
+			setValue("utm_campaign", utm_campaign);
+		}
 	}, [setValue]);
 
 	//regenerate steps
