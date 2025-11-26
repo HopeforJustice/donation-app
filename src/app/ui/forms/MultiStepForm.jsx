@@ -1,7 +1,7 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSchema } from "@/app/lib/schema";
@@ -34,12 +34,22 @@ const MultiStepForm = ({
 	setIsModalOpen,
 }) => {
 	const searchParams = useSearchParams();
+	const router = useRouter();
+	const pathname = usePathname();
 	const validate = searchParams.get("validate") || true;
 
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isLoading, setIsLoading] = useState(false);
-	const [step, setStep] = useState(0);
+	
+	// Get initial step from URL or default to 0 (convert from 1-based URL to 0-based internal)
+	const getInitialStep = useCallback(() => {
+		const stepParam = searchParams.get("step");
+		return stepParam ? Math.max(0, parseInt(stepParam, 10) - 1) : 0;
+	}, [searchParams]);
+	
+	const [step, setStep] = useState(getInitialStep);
 	const [matchFunding, setMatchFunding] = useState(false);
+	const isUpdatingFromURL = useRef(false);
 
 	const supportedCurrencies = ["usd", "gbp", "nok", "aud"];
 	const isCurrencyAccepted = supportedCurrencies.includes(currency);
@@ -92,7 +102,51 @@ const MultiStepForm = ({
 		);
 	}
 
+	// Function to update URL with current step (convert from 0-based internal to 1-based URL)
+	const updateURL = useCallback((newStep) => {
+		// Use requestAnimationFrame to ensure URL update happens after DOM updates
+		requestAnimationFrame(() => {
+			const params = new URLSearchParams(searchParams.toString());
+			if (newStep === 0) {
+				params.delete("step");
+			} else {
+				params.set("step", (newStep + 1).toString());
+			}
+			
+			const newURL = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+			router.push(newURL, { shallow: true });
+		});
+	}, [router, pathname, searchParams]);
+
+	// Function to safely change step with bounds checking
+	const changeStep = useCallback((newStep, updateUrl = true) => {
+		const maxStep = steps.length - 1;
+		const clampedStep = Math.max(0, Math.min(newStep, maxStep));
+		
+		// Prevent unnecessary updates if step is the same
+		if (clampedStep === step) return;
+		
+		setStep(clampedStep);
+		
+		if (updateUrl && !isUpdatingFromURL.current) {
+			updateURL(clampedStep);
+		}
+	}, [steps.length, updateURL, step]);
+
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
+
+	// Sync step with URL changes (handles browser back/forward)
+	useEffect(() => {
+		const urlStep = getInitialStep();
+		if (urlStep !== step) {
+			isUpdatingFromURL.current = true;
+			changeStep(urlStep, false); // Don't update URL since it's already changed
+			// Reset flag after a short delay to allow for the update to complete
+			setTimeout(() => {
+				isUpdatingFromURL.current = false;
+			}, 0);
+		}
+	}, [searchParams, step, changeStep, getInitialStep]);
 
 	// get cookies for utm and set in form
 	useEffect(() => {
@@ -139,6 +193,13 @@ const MultiStepForm = ({
 				return prevSteps;
 			}
 			console.log("step structure or fields changed");
+			
+			// If steps changed, ensure current step is within bounds
+			const maxStep = newSteps.length - 1;
+			if (step > maxStep) {
+				changeStep(maxStep);
+			}
+			
 			return newSteps;
 		});
 
@@ -177,6 +238,8 @@ const MultiStepForm = ({
 		setGiftAid,
 		getValues,
 		setValue,
+		step,
+		changeStep,
 	]);
 
 	// handling last step state
@@ -192,7 +255,7 @@ const MultiStepForm = ({
 	const nextStep = async () => {
 		setIsLoading(true);
 		if (validate === "false") {
-			setStep((s) => s + 1);
+			changeStep(step + 1);
 			setIsLoading(false);
 			return;
 		}
@@ -224,13 +287,13 @@ const MultiStepForm = ({
 					}
 				}
 			}
-			setStep((s) => s + 1);
+			changeStep(step + 1);
 		}
 		setIsLoading(false);
 	};
 
 	//prev step
-	const prevStep = () => setStep((s) => s - 1);
+	const prevStep = () => changeStep(step - 1);
 
 	// Global submit orchestrator: validate, then route to GoCardless or card flow
 	useEffect(() => {
