@@ -19,72 +19,51 @@ async function isDuplicateEvent(eventId) {
 	return rows.length > 0;
 }
 
-async function processEventAsync(event, stripeClient) {
-	try {
-		const eventId = event.id;
-
-		// Check if we have already processed the event
-		if (await isDuplicateEvent(eventId)) {
-			console.log(`Duplicate webhook ignored: ${eventId}`);
-			return;
-		}
-
-		let result;
-		switch (event.type) {
-			case "checkout.session.completed":
-				result = await handleCheckoutSessionCompleted(event, stripeClient);
-				break;
-
-			case "checkout.session.async_payment_succeeded":
-				result = await handleCheckoutSessionAsyncPaymentSucceeded(
-					event,
-					stripeClient
-				);
-				break;
-
-			case "customer.subscription.created":
-				result = await handleSubscriptionCreated(event, stripeClient);
-				break;
-
-			// No need for this at the moment
-			// case "customer.subscription.updated":
-			// 	result = await handleSubscriptionUpdated(event, stripeClient);
-			//	break;
-
-			case "invoice.payment_succeeded":
-				result = await handleInvoicePaymentSucceeded(event, stripeClient);
-				break;
-
-			case "invoice.payment_failed":
-				result = await handleInvoicePaymentFailed(event, stripeClient);
-				break;
-
-			case "customer.subscription.deleted":
-				result = await handleSubscriptionDeleted(event, stripeClient);
-				break;
-
-			default:
-				console.log(`Unhandled event type: ${event.type}`);
-				return;
-		}
-
-		console.log(`Successfully processed ${event.type}:`, result);
-	} catch (error) {
-		console.error(`Error processing event ${event.id}:`, error);
-		// You might want to implement retry logic or dead letter queue here
-	}
-}
-
 export async function handleStripeWebhookEvent(event, stripeClient) {
-	// Return 200 immediately to Stripe
-	const response = {
-		message: `Webhook received: ${event.id}`,
-		status: 200,
-		eventStatus: "received",
-	};
+	const eventId = event.id;
 
-	// Process the event asynchronously (don't await)
-	processEventAsync(event, stripeClient);
+	//check if we have already processed the event
+	if (await isDuplicateEvent(eventId)) {
+		console.log(`Duplicate webhook ignored: ${eventId}`);
+		return {
+			message: `Duplicate webhook ignored: ${eventId}`,
+			status: 200,
+			eventStatus: "ignored",
+		};
+	}
 
-	return response;
+	switch (event.type) {
+		case "checkout.session.completed":
+			return await handleCheckoutSessionCompleted(event, stripeClient);
+
+		case "checkout.session.async_payment_succeeded":
+			return await handleCheckoutSessionAsyncPaymentSucceeded(
+				event,
+				stripeClient
+			);
+
+		case "customer.subscription.created":
+			return await handleSubscriptionCreated(event, stripeClient);
+
+		// No need for this at the moment
+		// case "customer.subscription.updated":
+		// 	return await handleSubscriptionUpdated(event, stripeClient);
+
+		case "invoice.payment_succeeded":
+			return await handleInvoicePaymentSucceeded(event, stripeClient);
+
+		case "invoice.payment_failed":
+			return await handleInvoicePaymentFailed(event, stripeClient);
+
+		case "customer.subscription.deleted":
+			return await handleSubscriptionDeleted(event, stripeClient);
+
+		default:
+			console.log(`Unhandled event type: ${event.type}`);
+			return {
+				message: `Unhandled event type: ${event.type}`,
+				status: 200,
+				eventStatus: "ignored",
+			};
+	}
 }
