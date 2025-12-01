@@ -238,7 +238,11 @@ export async function POST(req) {
 		await processCampaign(
 			formData.campaign,
 			formData,
-			null,
+			{
+				firstName: formData.firstName,
+				lastName: formData.lastName,
+				email: formData.email,
+			},
 			constituentId,
 			formData.currency,
 			formData.amount
