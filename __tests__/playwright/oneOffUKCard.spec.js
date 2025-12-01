@@ -130,6 +130,7 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 						PostalCode: testDetails.postalCode,
 						Country: testDetails.country,
 						Phone1: testDetails.phoneNumber,
+						RecruitmentCampaign: testDetails.campaign,
 					})
 				);
 			});
