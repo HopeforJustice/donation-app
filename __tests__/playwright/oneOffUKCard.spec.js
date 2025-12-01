@@ -43,7 +43,7 @@ const testDetails = {
 	},
 	inspiration: "Inspiration_Faith",
 	inspirationNotes: "Test notes",
-	campaign: null,
+	campaign: "2025 EOY",
 	defaultCampaign: "Donation App General Campaign",
 	utmSource: "test_source",
 	utmMedium: "test_medium",

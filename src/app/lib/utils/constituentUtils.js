@@ -65,7 +65,8 @@ export function buildConstituentCreateData(
 		PostalCode: metadata.postalCode || metadata.postcode || "",
 		EmailAddress: email || "",
 		Phone1: metadata.phone || "",
-		RecruitmentCampaign: campaign || "Donation App General Campaign",
+		RecruitmentCampaign:
+			campaign || metadata.campaign || "Donation App General Campaign",
 		County:
 			donorfyInstance === "us" ? metadata.stateCounty : metadata.state || "",
 		Country: metadata.country || "",
