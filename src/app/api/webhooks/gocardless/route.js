@@ -22,6 +22,8 @@ const eventHandlers = {
 	"subscriptions:cancelled": handleSubscriptionCancelled,
 };
 
+const test = process.env.VERCEL_ENV !== "production";
+
 export async function POST(req) {
 	const webhookSecret =
 		process.env.GOCARDLESS_ENVIRONMENT === "live"
@@ -119,13 +121,17 @@ export async function POST(req) {
 						constituentId,
 						goCardlessCustomerId
 					);
-					await sendErrorEmail(error, {
-						name: "Gocardless webhook event failed to fully process",
-						constituentId: constituentId,
-						goCardlessCustomerId: goCardlessCustomerId,
-						event: stripMetadata(event),
-						results: errorResults,
-					});
+					await sendErrorEmail(
+						error,
+						{
+							name: "Gocardless webhook event failed to fully process",
+							constituentId: constituentId,
+							goCardlessCustomerId: goCardlessCustomerId,
+							event: stripMetadata(event),
+							results: errorResults,
+						},
+						test
+					);
 				}
 			}
 		}
@@ -137,10 +143,14 @@ export async function POST(req) {
 	} catch (error) {
 		console.error("Error processing webhook:", error);
 		await storeWebhookEvent(body || {}, "failed", error.message);
-		await sendErrorEmail(error, {
-			name: "Gocardless webhook failed to process",
-			event: body || {},
-		});
+		await sendErrorEmail(
+			error,
+			{
+				name: "Gocardless webhook failed to process",
+				event: body || {},
+			},
+			test
+		);
 		return NextResponse.json(
 			{ error: "Webhook processing failed" },
 			{ status: 500 }

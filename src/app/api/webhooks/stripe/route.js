@@ -154,23 +154,33 @@ async function processWebhookAsync(rawBody, sig) {
 				error.donorfyTransactionId || null,
 				subscriptionId
 			);
-			await sendErrorEmail(error, {
+			await sendErrorEmail(
+				error,
+				{
+					name: "Stripe webhook failed to process",
+					event: {
+						results: JSON.stringify(error.results || [], null, 2),
+						error: error.message,
+						id: event.id || "unknown",
+					},
+				},
+				test
+			);
+		}
+	} catch (error) {
+		console.error("Error processing webhook:", error);
+		await sendErrorEmail(
+			error,
+			{
 				name: "Stripe webhook failed to process",
 				event: {
 					results: JSON.stringify(error.results || [], null, 2),
 					error: error.message,
+					id: event.id || "unknown",
 				},
-			});
-		}
-	} catch (error) {
-		console.error("Error processing webhook:", error);
-		await sendErrorEmail(error, {
-			name: "Stripe webhook failed to process",
-			event: {
-				results: JSON.stringify(error.results || [], null, 2),
-				error: error.message,
 			},
-		});
+			test
+		);
 	}
 }
 

@@ -1,12 +1,12 @@
 const SparkPost = require("sparkpost");
 const client = new SparkPost(process.env.SPARKPOST_API_KEY);
 
-async function sendErrorEmail(error, additionalInfo = {}) {
+async function sendErrorEmail(error, additionalInfo = {}, test = false) {
 	try {
 		const response = await client.transmissions.send({
 			content: {
 				from: "donation-app@hopeforjustice.org",
-				subject: "Error Occurred in Donation App",
+				subject: `${test ? "TEST:" : "LIVE:"} Error Occurred in Donation App`,
 				html: `<p><strong>Info:</strong> ${JSON.stringify(
 					additionalInfo,
 					null,
