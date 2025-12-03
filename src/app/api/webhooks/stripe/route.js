@@ -3,7 +3,7 @@ import { getStripeInstance } from "@/app/lib/stripe/getStripeInstance";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import { stripMetadata } from "@/app/lib/utilities";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // stops next/vercel from caching the response
 export const bodyParser = false;
 
 const test = process.env.VERCEL_ENV !== "production";
@@ -54,11 +54,10 @@ function parseWebhookMetadata(rawBody) {
 	}
 }
 
-export async function POST(req) {
+// Async function to handle webhook processing without blocking the response
+async function processWebhookAsync(rawBody, sig) {
 	try {
-		const rawBody = await req.text();
 		const buffer = Buffer.from(rawBody);
-		const sig = req.headers.get("stripe-signature");
 
 		// Parse webhook metadata to determine currency and mode
 		const { currency, isTestMode } = parseWebhookMetadata(rawBody);
@@ -67,7 +66,8 @@ export async function POST(req) {
 		);
 
 		if (!currency) {
-			return new Response("Unhandled webhook, no currency", { status: 200 });
+			console.log("Unhandled webhook, no currency");
+			return;
 		}
 
 		// Get the appropriate Stripe instance and webhook secret
@@ -84,10 +84,7 @@ export async function POST(req) {
 					isTestMode ? "test" : "live"
 				} mode`
 			);
-			return new Response(
-				`Webhook Error: No webhook secret configured for ${currency}`,
-				{ status: 400 }
-			);
+			return;
 		}
 
 		let event;
@@ -96,7 +93,7 @@ export async function POST(req) {
 			event = stripe.webhooks.constructEvent(buffer, sig, webhookSecret);
 		} catch (err) {
 			console.error("Invalid signature:", err.message);
-			return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+			return;
 		}
 
 		try {
@@ -164,10 +161,7 @@ export async function POST(req) {
 					error: error.message,
 				},
 			});
-			return new Response(`Webhook Error: ${error.message}`, { status: 500 });
 		}
-
-		return new Response(JSON.stringify({ received: true }), { status: 200 });
 	} catch (error) {
 		console.error("Error processing webhook:", error);
 		await sendErrorEmail(error, {
@@ -177,6 +171,38 @@ export async function POST(req) {
 				error: error.message,
 			},
 		});
+	}
+}
+
+export async function POST(req) {
+	try {
+		const rawBody = await req.text();
+		const sig = req.headers.get("stripe-signature");
+
+		// Basic validation before returning 200
+		if (!sig) {
+			console.error("Missing stripe-signature header");
+			return new Response("Missing stripe-signature header", { status: 400 });
+		}
+
+		// Return 200 immediately to acknowledge receipt to Stripe
+		const response = new Response(JSON.stringify({ received: true }), {
+			status: 200,
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+
+		// Process webhook asynchronously without blocking the response
+		setImmediate(() => {
+			processWebhookAsync(rawBody, sig).catch((error) => {
+				console.error("Async webhook processing failed:", error);
+			});
+		});
+
+		return response;
+	} catch (error) {
+		console.error("Error processing webhook request:", error);
 		return new Response(`Webhook Error: ${error.message}`, { status: 500 });
 	}
 }
