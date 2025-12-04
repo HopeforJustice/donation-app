@@ -64,7 +64,7 @@ export default function Home() {
 				rows="1"
 				className="min-h-full max-w-[1920px] min-[1921px]:mx-auto realtive xl:bg-white"
 			>
-				{/* logo */}
+				{/* logo image */}
 				<div className="z-10 p-3 xl:hidden col-span-12">
 					<Image
 						src="/logo-white-text.svg"
