@@ -2,7 +2,7 @@ const SparkPost = require("sparkpost");
 const client = new SparkPost(process.env.SPARKPOST_API_KEY);
 const test = process.env.VERCEL_ENV !== "production";
 
-async function sendErrorEmail(error, additionalInfo = {}, test = false) {
+async function sendErrorEmail(error, additionalInfo = {}) {
 	try {
 		const response = await client.transmissions.send({
 			content: {

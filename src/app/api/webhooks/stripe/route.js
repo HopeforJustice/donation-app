@@ -3,12 +3,8 @@ import { getStripeInstance } from "@/app/lib/stripe/getStripeInstance";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import { stripMetadata } from "@/app/lib/utilities";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
-<<<<<<< Updated upstream
-export const dynamic = "force-dynamic"; // stops next/vercel from caching the response
-=======
 import { waitUntil } from "@vercel/functions";
 export const dynamic = "force-dynamic";
->>>>>>> Stashed changes
 export const bodyParser = false;
 
 const test = process.env.VERCEL_ENV !== "production";
@@ -59,10 +55,11 @@ function parseWebhookMetadata(rawBody) {
 	}
 }
 
-// Async function to handle webhook processing without blocking the response
-async function processWebhookAsync(rawBody, sig) {
+export async function POST(req) {
 	try {
+		const rawBody = await req.text();
 		const buffer = Buffer.from(rawBody);
+		const sig = req.headers.get("stripe-signature");
 
 		// "customer.subscription.updated" not currently in use
 		const acceptedEvents = [
@@ -81,8 +78,7 @@ async function processWebhookAsync(rawBody, sig) {
 		);
 
 		if (!currency) {
-			console.log("Unhandled webhook, no currency");
-			return;
+			return new Response("Unhandled webhook, no currency", { status: 200 });
 		}
 
 		// Get the appropriate Stripe instance and webhook secret
@@ -99,7 +95,10 @@ async function processWebhookAsync(rawBody, sig) {
 					isTestMode ? "test" : "live"
 				} mode`
 			);
-			return;
+			return new Response(
+				`Webhook Error: No webhook secret configured for ${currency}`,
+				{ status: 400 }
+			);
 		}
 
 		let event;
@@ -205,75 +204,6 @@ async function processWebhookAsync(rawBody, sig) {
 			}
 		})();
 
-<<<<<<< Updated upstream
-			// Extract subscription ID for error cases too
-			let subscriptionId = null;
-			if (event.data?.object) {
-				const dataObject = event.data.object;
-				if (dataObject.object === "subscription") {
-					subscriptionId = dataObject.id;
-				} else if (dataObject.object === "invoice" && dataObject.subscription) {
-					subscriptionId = dataObject.subscription;
-				}
-			}
-
-			// Store the error in the database
-			await storeWebhookEvent(
-				await stripMetadata(event),
-				"error",
-				JSON.stringify(error.results || [], null, 2),
-				error.constituentId || null,
-				null,
-				error.donorfyTransactionId || null,
-				subscriptionId
-			);
-			await sendErrorEmail(
-				error,
-				{
-					name: "Stripe webhook failed to process",
-					event: {
-						results: JSON.stringify(error.results || [], null, 2),
-						error: error.message,
-						id: event.id || "unknown",
-					},
-				},
-				test
-			);
-		}
-	} catch (error) {
-		console.error("Error processing webhook:", error);
-		await sendErrorEmail(
-			error,
-			{
-				name: "Stripe webhook failed to process",
-				event: {
-					results: JSON.stringify(error.results || [], null, 2),
-					error: error.message,
-					id: event.id || "unknown",
-				},
-			},
-			test
-		);
-	}
-}
-
-export async function POST(req) {
-	try {
-		const rawBody = await req.text();
-		const sig = req.headers.get("stripe-signature");
-
-		// Basic validation before returning 200
-		if (!sig) {
-			console.error("Missing stripe-signature header");
-			return new Response("Missing stripe-signature header", { status: 400 });
-		}
-
-		// Return 200 immediately to acknowledge receipt to Stripe
-		const response = new Response(JSON.stringify({ received: true }), {
-			status: 200,
-			headers: {
-				"Content-Type": "application/json",
-=======
 		// Use waitUntil to process in background without blocking response
 		waitUntil(processingPromise);
 
@@ -286,20 +216,8 @@ export async function POST(req) {
 			event: {
 				results: JSON.stringify(error.results || [], null, 2),
 				error: error.message,
->>>>>>> Stashed changes
 			},
 		});
-
-		// Process webhook asynchronously without blocking the response
-		setImmediate(() => {
-			processWebhookAsync(rawBody, sig).catch((error) => {
-				console.error("Async webhook processing failed:", error);
-			});
-		});
-
-		return response;
-	} catch (error) {
-		console.error("Error processing webhook request:", error);
 		return new Response(`Webhook Error: ${error.message}`, { status: 500 });
 	}
 }

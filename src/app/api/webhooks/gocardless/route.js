@@ -121,17 +121,13 @@ export async function POST(req) {
 						constituentId,
 						goCardlessCustomerId
 					);
-					await sendErrorEmail(
-						error,
-						{
-							name: "Gocardless webhook event failed to fully process",
-							constituentId: constituentId,
-							goCardlessCustomerId: goCardlessCustomerId,
-							event: stripMetadata(event),
-							results: errorResults,
-						},
-						test
-					);
+					await sendErrorEmail(error, {
+						name: "Gocardless webhook event failed to fully process",
+						constituentId: constituentId,
+						goCardlessCustomerId: goCardlessCustomerId,
+						event: stripMetadata(event),
+						results: errorResults,
+					});
 				}
 			}
 		}
@@ -143,14 +139,10 @@ export async function POST(req) {
 	} catch (error) {
 		console.error("Error processing webhook:", error);
 		await storeWebhookEvent(body || {}, "failed", error.message);
-		await sendErrorEmail(
-			error,
-			{
-				name: "Gocardless webhook failed to process",
-				event: body || {},
-			},
-			test
-		);
+		await sendErrorEmail(error, {
+			name: "Gocardless webhook failed to process",
+			event: body || {},
+		});
 		return NextResponse.json(
 			{ error: "Webhook processing failed" },
 			{ status: 500 }

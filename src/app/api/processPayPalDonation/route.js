@@ -275,18 +275,14 @@ export async function POST(req) {
 	} catch (error) {
 		console.error("Error in PayPal donation processing API:", error);
 		results.push({ step: currentStep, success: false });
-		await sendErrorEmail(
-			error,
-			{
-				name: "PayPal donation processing failed",
-				event: {
-					results: JSON.stringify(results, null, 2),
-					error: error.message,
-					id: orderID || "unknown",
-				},
+		await sendErrorEmail(error, {
+			name: "PayPal donation processing failed",
+			event: {
+				results: JSON.stringify(results, null, 2),
+				error: error.message,
+				id: orderID || "unknown",
 			},
-			test
-		);
+		});
 
 		// Log the error details
 		console.log("results", results);
