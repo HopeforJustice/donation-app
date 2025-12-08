@@ -33,7 +33,11 @@ export default async function pollForStripeWebhookEvent(
 							// Parse the event_id from the stored event data
 							const eventId = row.event_id;
 
-							if (!eventId || eventId === "unknown_event_id") {
+							if (
+								!eventId ||
+								eventId === "unknown_event_id" ||
+								row.status !== "processed"
+							) {
 								continue;
 							}
 

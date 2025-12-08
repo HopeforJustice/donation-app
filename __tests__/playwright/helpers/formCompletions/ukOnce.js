@@ -82,20 +82,16 @@ export default async function fillUkOnce(page, testDetails) {
 		await handlePayPalCheckout(page, testDetails);
 	} else if (testDetails.stripe.pathway === "bank app") {
 		//bank app payment pathway
-		await page
-			.getByTestId("stripe-payment-step")
-			.locator("iframe")
-			.contentFrame()
-			.getByRole("button", { name: "Pay By Bank App" })
-			.click();
-		await page
-			.getByTestId("stripe-payment-step")
-			.locator("iframe")
-			.contentFrame()
-			.getByTestId("featured-institution-uk_monzo")
-			.locator("div")
-			.first()
-			.click();
+		stripeFrame = page.frameLocator(
+			'iframe[allow="payment *; clipboard-write"]'
+		);
+		await page.getByTestId("stripe-payment-step").locator("iframe").click();
+		await stripeFrame.getByLabel("Open Stripe Developer Tools").click();
+		await stripeFrame.getByRole("button", { name: "Pay By Bank App" }).click();
+		await stripeFrame.getByRole("button", { name: "Valid", exact: true }).click();
+
+		await stripeFrame.getByLabel("Close Stripe Developer Tools").click();
+		await page.locator("body").click({ position: { x: 0, y: 0 } });
 		await page.getByTestId("donate-button").click();
 		const outerFrame = page.frameLocator('iframe[src*="lightbox-inner"]');
 		const nestedFrame = outerFrame.frameLocator(

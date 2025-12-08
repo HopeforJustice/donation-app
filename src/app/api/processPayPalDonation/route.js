@@ -280,6 +280,7 @@ export async function POST(req) {
 			event: {
 				results: JSON.stringify(results, null, 2),
 				error: error.message,
+				id: orderID || "unknown",
 			},
 		});
 

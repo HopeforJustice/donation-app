@@ -22,6 +22,8 @@ const eventHandlers = {
 	"subscriptions:cancelled": handleSubscriptionCancelled,
 };
 
+const test = process.env.VERCEL_ENV !== "production";
+
 export async function POST(req) {
 	const webhookSecret =
 		process.env.GOCARDLESS_ENVIRONMENT === "live"
