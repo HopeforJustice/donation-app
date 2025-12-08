@@ -54,7 +54,7 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 				message:
 					"Async payment checkout ignored - handled by checkout.session.async_payment_succeeded",
 				status: 200,
-				eventStatus: "ignored",
+				eventStatus: "skipped",
 				results,
 			};
 		}

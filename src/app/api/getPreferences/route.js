@@ -4,7 +4,6 @@
 import { NextResponse } from "next/server";
 import { duplicateCheck } from "@/app/lib/donorfy/old/duplicateCheck";
 import { getConstituentPreferences } from "@/app/lib/donorfy/old/getConstituentPreferences";
-import { set } from "react-hook-form";
 
 export async function POST(req) {
 	const donorfyInstance = "uk";
