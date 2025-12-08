@@ -9,7 +9,7 @@ module.exports = defineConfig({
 		baseURL: "http://localhost:3000", // Your app's base URL
 		headless: false, // Run tests in headless mode
 		launchOptions: {
-			slowMo: process.env.CI ? 0 : 10, // No delay in CI for faster execution
+			slowMo: process.env.CI ? 50 : 100, // Smaller delay in CI for faster execution (less flaky if there's a bit of delay)
 		},
 		viewport: { width: 1800, height: 1000 }, // Set the default browser viewport
 		screenshot: "only-on-failure", // Take screenshots on failure
