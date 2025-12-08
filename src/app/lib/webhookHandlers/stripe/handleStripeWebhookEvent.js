@@ -12,25 +12,49 @@ import { handleSubscriptionDeleted } from "./handlers/subscriptionDeleted";
 import { handleSubscriptionUpdated } from "./handlers/subscriptionUpdated";
 import { handleInvoicePaymentSucceeded } from "./handlers/invoicePaymentSucceeded";
 import { handleInvoicePaymentFailed } from "./handlers/invoicePaymentFailed";
+import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 
-async function isDuplicateEvent(eventId) {
-	const { rows } =
-		await sql`SELECT 1 FROM processed_events WHERE event_id = ${eventId} LIMIT 1`;
-	return rows.length > 0;
+async function isEventAlreadyProcessed(eventId) {
+	// Check if event is already in db
+	const { rows } = await sql`
+		SELECT status FROM processed_events 
+		WHERE event_id = ${eventId} 
+		LIMIT 1
+	`;
+
+	// If found and status not 'received', it's a duplicate
+	if (rows.length > 0 && rows[0].status !== "received") {
+		const status = rows[0].status;
+		return { isDuplicate: true, status };
+	}
+
+	return { isDuplicate: false, status: null };
 }
 
 export async function handleStripeWebhookEvent(event, stripeClient) {
 	const eventId = event.id;
 
-	//check if we have already processed the event
-	if (await isDuplicateEvent(eventId)) {
-		console.log(`Duplicate webhook ignored: ${eventId}`);
+	// Check if we have already processed or are currently processing the event
+	const { isDuplicate, status } = await isEventAlreadyProcessed(eventId);
+	if (isDuplicate) {
+		console.log(`Duplicate webhook ignored: ${eventId} (status: ${status})`);
 		return {
 			message: `Duplicate webhook ignored: ${eventId}`,
 			status: 200,
 			eventStatus: "ignored",
 		};
 	}
+
+	// Mark event as processing to prevent concurrent processing
+	await storeWebhookEvent(
+		event,
+		"processing",
+		"Started processing webhook event",
+		null,
+		null,
+		null,
+		null
+	);
 
 	switch (event.type) {
 		case "checkout.session.completed":

@@ -3,7 +3,12 @@ import { getStripeInstance } from "@/app/lib/stripe/getStripeInstance";
 import storeWebhookEvent from "@/app/lib/db/storeWebhookEvent";
 import { stripMetadata } from "@/app/lib/utilities";
 import sendErrorEmail from "@/app/lib/sparkpost/sendErrorEmail";
+<<<<<<< Updated upstream
 export const dynamic = "force-dynamic"; // stops next/vercel from caching the response
+=======
+import { waitUntil } from "@vercel/functions";
+export const dynamic = "force-dynamic";
+>>>>>>> Stashed changes
 export const bodyParser = false;
 
 const test = process.env.VERCEL_ENV !== "production";
@@ -59,6 +64,16 @@ async function processWebhookAsync(rawBody, sig) {
 	try {
 		const buffer = Buffer.from(rawBody);
 
+		// "customer.subscription.updated" not currently in use
+		const acceptedEvents = [
+			"checkout.session.completed",
+			"invoice.payment_failed",
+			"invoice.payment_succeeded",
+			"checkout.session.async_payment_succeeded",
+			"customer.subscription.created",
+			"customer.subscription.deleted",
+		];
+
 		// Parse webhook metadata to determine currency and mode
 		const { currency, isTestMode } = parseWebhookMetadata(rawBody);
 		console.log(
@@ -96,43 +111,101 @@ async function processWebhookAsync(rawBody, sig) {
 			return;
 		}
 
-		try {
-			const webhookHandlerResponse = await handleStripeWebhookEvent(
-				event,
-				stripe
-			);
-			if (webhookHandlerResponse.eventStatus !== "ignored") {
-				// Extract subscription ID from various event types
+		if (!acceptedEvents.includes(event.type)) {
+			console.log(`Ignored unhandled event type: ${event.type}`);
+			return new Response(`Unhandled event type: ${event.type}`, {
+				status: 200,
+			});
+		}
+
+		// Store event as 'received' immediately to create deduplication lock
+		await storeWebhookEvent(
+			event,
+			"received",
+			"Webhook received and validated",
+			null,
+			null,
+			null,
+			null
+		);
+
+		// Process webhook asynchronously while returning 200 OK immediately to Stripe
+		const processingPromise = (async () => {
+			try {
+				const webhookHandlerResponse = await handleStripeWebhookEvent(
+					event,
+					stripe
+				);
+				if (webhookHandlerResponse.eventStatus !== "ignored") {
+					// Extract subscription ID from various event types
+					let subscriptionId = null;
+					if (event.data?.object) {
+						const dataObject = event.data.object;
+						// Direct subscription events
+						if (dataObject.object === "subscription") {
+							subscriptionId = dataObject.id;
+						}
+						// Invoice events - get subscription from invoice
+						else if (
+							dataObject.object === "invoice" &&
+							dataObject.subscription
+						) {
+							subscriptionId = dataObject.subscription;
+						}
+						// Subscription from webhook response
+						else if (webhookHandlerResponse.subscriptionId) {
+							subscriptionId = webhookHandlerResponse.subscriptionId;
+						}
+					}
+
+					await storeWebhookEvent(
+						event,
+						webhookHandlerResponse.eventStatus,
+						JSON.stringify(webhookHandlerResponse.results || [], null, 2),
+						webhookHandlerResponse.constituentId,
+						null,
+						webhookHandlerResponse.donorfyTransactionId,
+						subscriptionId
+					);
+				}
+			} catch (error) {
+				console.error("Error handling webhook event:", error);
+
+				// Extract subscription ID for error cases too
 				let subscriptionId = null;
 				if (event.data?.object) {
 					const dataObject = event.data.object;
-					// Direct subscription events
 					if (dataObject.object === "subscription") {
 						subscriptionId = dataObject.id;
-					}
-					// Invoice events - get subscription from invoice
-					else if (dataObject.object === "invoice" && dataObject.subscription) {
+					} else if (
+						dataObject.object === "invoice" &&
+						dataObject.subscription
+					) {
 						subscriptionId = dataObject.subscription;
-					}
-					// Subscription from webhook response
-					else if (webhookHandlerResponse.subscriptionId) {
-						subscriptionId = webhookHandlerResponse.subscriptionId;
 					}
 				}
 
+				// Store the error in the database
 				await storeWebhookEvent(
-					event,
-					webhookHandlerResponse.eventStatus,
-					JSON.stringify(webhookHandlerResponse.results || [], null, 2),
-					webhookHandlerResponse.constituentId,
+					await stripMetadata(event),
+					"error",
+					JSON.stringify(error.results || [], null, 2),
+					error.constituentId || null,
 					null,
-					webhookHandlerResponse.donorfyTransactionId,
+					error.donorfyTransactionId || null,
 					subscriptionId
 				);
+				await sendErrorEmail(error, {
+					name: "Stripe webhook failed to process",
+					event: {
+						results: JSON.stringify(error.results || [], null, 2),
+						error: error.message,
+					},
+				});
 			}
-		} catch (error) {
-			console.error("Error handling webhook event:", error);
+		})();
 
+<<<<<<< Updated upstream
 			// Extract subscription ID for error cases too
 			let subscriptionId = null;
 			if (event.data?.object) {
@@ -200,6 +273,20 @@ export async function POST(req) {
 			status: 200,
 			headers: {
 				"Content-Type": "application/json",
+=======
+		// Use waitUntil to process in background without blocking response
+		waitUntil(processingPromise);
+
+		// Return 200 OK immediately to Stripe
+		return new Response(JSON.stringify({ received: true }), { status: 200 });
+	} catch (error) {
+		console.error("Error processing webhook:", error);
+		await sendErrorEmail(error, {
+			name: "Stripe webhook failed to process",
+			event: {
+				results: JSON.stringify(error.results || [], null, 2),
+				error: error.message,
+>>>>>>> Stashed changes
 			},
 		});
 
