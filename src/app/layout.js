@@ -40,10 +40,12 @@ export const metadata = {
 	description: "Donate to Hope for Justice",
 };
 
+const isProduction = process.env.VERCEL_ENV === "production";
+
 export default function RootLayout({ children }) {
 	return (
 		<html lang="en">
-			<GoogleTagManager gtmId="GTM-T7PSM4L" />
+			{isProduction && <GoogleTagManager gtmId="GTM-T7PSM4L" />}
 			<body
 				data-testid="root-layout-body"
 				className={clsx(
