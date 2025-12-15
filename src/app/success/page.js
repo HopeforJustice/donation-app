@@ -68,6 +68,7 @@ const SuccessPageContent = () => {
 	const currency = searchParams.get("currency");
 	const amount = searchParams.get("amount");
 
+	const [paymentMethod, setPaymentMethod] = useState(null);
 	const [paymentStatus, setPaymentStatus] = useState(null);
 	const [loading, setLoading] = useState(!!sessionId); // Only load if we have a session_id
 	const [gtmEventSent, setGtmEventSent] = useState(false); // Track if GTM event was already sent
@@ -76,6 +77,13 @@ const SuccessPageContent = () => {
 	useEffect(() => {
 		// Exit early if event already sent
 		if (gtmEventSent) return;
+		// Don't send GTM events on localhost
+		if (
+			typeof window !== "undefined" &&
+			window.location.hostname === "localhost"
+		) {
+			return;
+		}
 
 		const getItemName = (currency, frequency) => {
 			const isMonthly = frequency === "monthly";
@@ -189,6 +197,7 @@ const SuccessPageContent = () => {
 				);
 				const status = await response.json();
 				setPaymentStatus(status);
+				setPaymentMethod(status.paymentMethod);
 			} catch (error) {
 				console.error("Error checking payment status:", error);
 				setPaymentStatus({ error: error.message });
@@ -210,6 +219,12 @@ const SuccessPageContent = () => {
 
 			if (paymentStatus.isSuccessful) {
 				return "Your donation was successfully processed, you should receive a receipt shortly.";
+			} else if (paymentMethod === "customer_balance") {
+				return `<strong>You'll shortly receive an email from Stripe with the subject line: “Please complete the payment for your purchase at Hope for Justice”, with instructions on how to complete your payment via bank transfer.</strong><br><br>
+
+				<strong>If you have already transferred your donation, you can ignore that email.</strong><br><br>
+
+				We are so grateful for your support, which will help change lives for people trapped in modern slavery and human trafficking.`;
 			} else if (paymentStatus.isPending) {
 				return "Your payment is being processed. You should receive a receipt once completed.";
 			} else {

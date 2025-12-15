@@ -42,9 +42,8 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 			);
 		}
 
-		// Get metadata from subscription, customer, or invoice
-		const metadata =
-			subscription?.metadata || customer?.metadata || invoice.metadata || {};
+		// Get metadata from subscription
+		const metadata = subscription?.metadata;
 		const source = metadata.source || "unknown";
 		results.push({ step: currentStep, success: true });
 
