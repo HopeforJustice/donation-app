@@ -63,7 +63,7 @@ export const formatAmount = (amount, currency) => {
 };
 
 export const matchFundingOn = (campaign) => {
-	const fundingOnCampaigns = ["2025 EOY"];
+	const fundingOnCampaigns = [];
 	if (fundingOnCampaigns.includes(campaign)) {
 		console.log("Match funding applied for campaign:", campaign);
 		return true;
