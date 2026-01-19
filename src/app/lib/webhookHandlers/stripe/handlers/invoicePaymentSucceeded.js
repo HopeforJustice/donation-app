@@ -5,7 +5,7 @@
  * Steps performed:
  * 1. Extracts invoice data and retrieves the associated customer and subscription from Stripe.
  * 2. Extracts metadata from the subscription, customer, or invoice.
- * 3. Validates the webhook source to ensure it originated from the donation app.
+ * 3. Validates the metadata source to ensure it originated from the donation app.
  * 4. Ensures the invoice is related to a subscription.
  * 5. Determines if the payment is the initial subscription payment or a recurring payment.
  * 6. Initializes the Donorfy client based on the invoice currency.
@@ -38,7 +38,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 		}
 		if (invoice.subscription) {
 			subscription = await stripeClient.subscriptions.retrieve(
-				invoice.subscription
+				invoice.subscription,
 			);
 		}
 
@@ -52,9 +52,9 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 		if (source !== "donation-app") {
 			console.log("Ignored invoice webhook from unknown source:", source);
 			return {
-				message: `Invoice webhook ignored - source: ${source}`,
+				message: `Invoice webhook ignored, no metadata indicating donation app source`,
 				status: 200,
-				eventStatus: "ignored",
+				eventStatus: "skipped",
 				results,
 			};
 		}
@@ -96,7 +96,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 				results.push({ step: currentStep, success: true });
 			} else {
 				throw new Error(
-					`No matching constituent found for email: ${customer?.email}`
+					`No matching constituent found for email: ${customer?.email}`,
 				);
 			}
 		} else {
@@ -114,7 +114,7 @@ export async function handleInvoicePaymentSucceeded(event, stripeClient) {
 			metadata.fund || "unrestricted",
 			metadata.utmSource || "unknown",
 			metadata.utmMedium || "unknown",
-			metadata.utmCampaign || "unknown"
+			metadata.utmCampaign || "unknown",
 		);
 		const transactionId = transaction.Id;
 		results.push({ step: currentStep, success: true });
