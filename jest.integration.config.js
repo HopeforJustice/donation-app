@@ -9,29 +9,26 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const config = {
 	coverageProvider: "v8",
-	testEnvironment: "jsdom",
+	testEnvironment: "node", // Integration tests need node environment
 	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/src/$1",
 		"^@tests/(.*)$": "<rootDir>/__tests__/$1",
 	},
 	collectCoverage: false,
-	collectCoverageFrom: ["src/app/ui/**/*.{js,jsx,ts,tsx}"],
 	testMatch: [
-		"**/__tests__/unit/**/*.{js,jsx,ts,tsx}", // Look only in the `unit` folder inside `__tests__`
-		"**/*.test.{js,jsx,ts,tsx}", // Or files with `.test.js` extension
+		"**/__tests__/jest/app/integration/**/*.{js,jsx,ts,tsx}", // Only integration tests
 	],
 	testPathIgnorePatterns: [
 		"/node_modules/", // Always ignore node_modules
-		"__tests__/integration/", // Explicitly ignore the integration tests
+		"__tests__/jest/app/integration/old/", // Exclude old integration tests
 	],
+	testTimeout: 30000, // 30 seconds for integration tests
 	// Ensure clean test environment
 	clearMocks: true,
 	resetMocks: false,
 	restoreMocks: true,
 	// Add setup file for fetch polyfill
 	setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-	// Add more setup options before each test is run
-	// setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
