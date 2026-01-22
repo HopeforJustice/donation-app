@@ -3,8 +3,8 @@
  */
 import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 const donorfyUK = new DonorfyClient(
-	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
+	process.env.DONORFY_SANDBOX_KEY,
+	process.env.DONORFY_SANDBOX_TENANT,
 );
 
 describe("Integration Test: Donorfy UK CRUD", () => {
@@ -45,7 +45,7 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 		expect(constituent).toEqual(
 			expect.objectContaining({
 				ConstituentId: expect.any(String),
-			})
+			}),
 		);
 		constituentId = constituent.ConstituentId;
 	}, 10000);
@@ -53,7 +53,7 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 		let result = await donorfyUK.duplicateCheck({ EmailAddress: testEmail });
 		result = result[0];
 		expect(result).toEqual(
-			expect.objectContaining({ ConstituentId: constituentId })
+			expect.objectContaining({ ConstituentId: constituentId }),
 		);
 	}, 10000);
 	it("Should update and get the constituent's preferences", async () => {
@@ -91,7 +91,7 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 
 		for (const preference of data.PreferencesList) {
 			expect(result.PreferencesList).toEqual(
-				expect.arrayContaining([expect.objectContaining(preference)])
+				expect.arrayContaining([expect.objectContaining(preference)]),
 			);
 		}
 	}, 10000);
@@ -103,7 +103,7 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 		};
 		const result = await donorfyUK.createGiftAidDeclaration(
 			constituentId,
-			data
+			data,
 		);
 		expect(result).toEqual(expect.any(Object));
 	}, 10000);
@@ -143,7 +143,7 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 		const result = await donorfyUK.getConstituentActivities(constituentId);
 		console.log("getActivitiesResult:", result.ActivitiesList[0]);
 		expect(result.ActivitiesList[0]).toEqual(
-			expect.objectContaining(activityData)
+			expect.objectContaining(activityData),
 		);
 	}, 10000);
 	it("Should add a Transaction to the Constituent", async () => {
@@ -151,7 +151,7 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 			10,
 			campaign,
 			"GoCardless DD",
-			constituentId
+			constituentId,
 		);
 		transactionId = result.Id;
 		expect(result).toEqual(expect.any(Object));
@@ -169,4 +169,4 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 		const result = await donorfyUK.deleteConstituent(constituentId);
 		expect(result).toEqual(expect.any(Object));
 	}, 10000);
-});
+}, 30000);

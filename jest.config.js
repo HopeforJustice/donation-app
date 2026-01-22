@@ -14,8 +14,8 @@ const config = {
 		"^@/(.*)$": "<rootDir>/src/$1",
 		"^@tests/(.*)$": "<rootDir>/__tests__/$1",
 	},
-	collectCoverage: false,
-	collectCoverageFrom: ["src/app/ui/**/*.{js,jsx,ts,tsx}"],
+	collectCoverage: true,
+	collectCoverageFrom: ["src/app/**/*.{js,jsx,ts,tsx}"],
 	testMatch: [
 		"**/__tests__/unit/**/*.{js,jsx,ts,tsx}", // Look only in the `unit` folder inside `__tests__`
 		"**/*.test.{js,jsx,ts,tsx}", // Or files with `.test.js` extension

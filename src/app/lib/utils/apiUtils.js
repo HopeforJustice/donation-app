@@ -30,7 +30,7 @@ const donorfySandbox = new DonorfyClient(
  * @throws {Error} If invalid instance provided
  */
 export function getDonorfyClient(instance) {
-	//temp allow nok to go through to live
+	//temp allow row to go through to live
 	if (instance === "row") {
 		return donorfyROW;
 	}

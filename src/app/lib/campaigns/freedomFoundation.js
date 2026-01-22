@@ -1,5 +1,6 @@
 /* 
 FreedomFoundation Campaign specific workflows
+
 */
 import addTag from "../mailchimp/addTag";
 import sendEmailByTemplateName from "../sparkpost/sendEmailByTemplateName";
@@ -17,7 +18,7 @@ export default async function freedomFoundation(
 	metadata,
 	constituentId,
 	currency,
-	amount
+	amount,
 ) {
 	try {
 		const emailPreference =
@@ -33,7 +34,7 @@ export default async function freedomFoundation(
 		const constituent = await donorfy.getConstituent(constituentId);
 
 		console.log(
-			`Processing Freedom Foundation campaign for Constituent ID: ${constituentId} emailPreference: ${emailPreference} projectId: ${projectId} givingTo: ${givingTo} donorType: ${donorType} organisationName: ${organisationName} donorfyInstance: ${donorfyInstance}`
+			`Processing Freedom Foundation campaign for Constituent ID: ${constituentId} emailPreference: ${emailPreference} projectId: ${projectId} givingTo: ${givingTo} donorType: ${donorType} organisationName: ${organisationName} donorfyInstance: ${donorfyInstance}`,
 		);
 
 		//Add tags in Donorfy
@@ -51,8 +52,8 @@ export default async function freedomFoundation(
 		const adminEmailTo = test
 			? "james.holt@hopeforjustice.org"
 			: donorfyInstance === "uk"
-			? "supporters@hopeforjustice.org"
-			: "donorsupport.us@hopeforjustice.org";
+				? "supporters@hopeforjustice.org"
+				: "donorsupport.us@hopeforjustice.org";
 
 		currentStep = "Send admin notification email";
 		const adminEmailSubstitutionData = {
@@ -64,7 +65,7 @@ export default async function freedomFoundation(
 		await sendEmailByTemplateName(
 			"freedom-foundation-admin-notification",
 			adminEmailTo,
-			adminEmailSubstitutionData
+			adminEmailSubstitutionData,
 		);
 		results.push({ step: currentStep, success: true });
 
@@ -93,7 +94,7 @@ export default async function freedomFoundation(
 		await sendEmailByTemplateName(
 			sparkPostTemplate,
 			constituent.EmailAddress,
-			thankYouEmailSubstitutionData
+			thankYouEmailSubstitutionData,
 		);
 		results.push({ step: currentStep, success: true });
 
@@ -121,7 +122,7 @@ export default async function freedomFoundation(
 				await addTag(
 					constituent.EmailAddress,
 					`FreedomFoundation Type Organisation`,
-					donorfyInstance
+					donorfyInstance,
 				);
 				results.push({ step: currentStep, success: true });
 			}
@@ -130,7 +131,7 @@ export default async function freedomFoundation(
 			await addTag(
 				constituent.EmailAddress,
 				`Dont send welcome email`,
-				donorfyInstance
+				donorfyInstance,
 			);
 			results.push({ step: currentStep, success: true });
 
@@ -138,7 +139,7 @@ export default async function freedomFoundation(
 			await addTag(
 				constituent.EmailAddress,
 				`FreedomFoundation Fund ${metadata.projectId}`,
-				donorfyInstance
+				donorfyInstance,
 			);
 			results.push({ step: currentStep, success: true });
 		}
@@ -148,7 +149,7 @@ export default async function freedomFoundation(
 		console.log(results);
 		console.error("Error processing Freedom Foundation campaign:", error);
 		throw new Error(
-			`Failed to process Freedom Foundation campaign: ${error.message}`
+			`Failed to process Freedom Foundation campaign: ${error.message}`,
 		);
 	}
 }

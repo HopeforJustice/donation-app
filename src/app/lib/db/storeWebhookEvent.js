@@ -7,11 +7,12 @@ export default async function storeWebhookEvent(
 	constituentId = null,
 	goCardlessCustomerId = null,
 	donorfyTransactionId = null,
-	subscriptionId = null
+	subscriptionId = null,
 ) {
 	const test = process.env.VERCEL_ENV === "production" ? false : true;
 	try {
-		const eventId = event.id || event.meta?.webhook_id || "unknown_event_id";
+		const eventId =
+			event.id || event.meta?.webhook_id || `unknown_event_id${Date.now()}`;
 		const eventToStore = {
 			id: eventId,
 			currency: event.currency || event.data?.object?.currency || "unknown",
@@ -40,7 +41,7 @@ export default async function storeWebhookEvent(
 				RETURNING id;
 			`;
 			console.log(
-				`Updated webhook event: ${eventId} to status '${status}' (row id ${result.rows[0].id})`
+				`Updated webhook event: ${eventId} to status '${status}' (row id ${result.rows[0].id})`,
 			);
 		} else {
 			// Insert new event
@@ -63,7 +64,7 @@ export default async function storeWebhookEvent(
 				RETURNING id;
 			`;
 			console.log(
-				`Stored webhook event: ${eventId} with status '${status}' (row id ${result.rows[0].id})`
+				`Stored webhook event: ${eventId} with status '${status}' (row id ${result.rows[0].id})`,
 			);
 		}
 
