@@ -1,11 +1,10 @@
 /**
  * @jest-environment node
  */
-import DonorfyClient from "@/app/lib/donorfy/donorfyClient";
 import { getDonorfyClient } from "@/app/lib/utils";
-const donorfy = getDonorfyClient("nok"); //ensure keys are loaded
+const donorfy = getDonorfyClient("row"); //ensure keys are loaded
 
-describe("Integration Test: Donorfy NOK CRUD", () => {
+describe("Integration Test: Donorfy ROW CRUD", () => {
 	let constituentId;
 	let transactionId;
 	const tags = "Stripe_Active Subscription,Supporter Type_Influencer";
@@ -43,7 +42,7 @@ describe("Integration Test: Donorfy NOK CRUD", () => {
 		expect(constituent).toEqual(
 			expect.objectContaining({
 				ConstituentId: expect.any(String),
-			})
+			}),
 		);
 		constituentId = constituent.ConstituentId;
 	}, 10000);
@@ -51,7 +50,7 @@ describe("Integration Test: Donorfy NOK CRUD", () => {
 		let result = await donorfy.duplicateCheck({ EmailAddress: testEmail });
 		result = result[0];
 		expect(result).toEqual(
-			expect.objectContaining({ ConstituentId: constituentId })
+			expect.objectContaining({ ConstituentId: constituentId }),
 		);
 	}, 10000);
 	it("Should update and get the constituent's preferences", async () => {
@@ -89,7 +88,7 @@ describe("Integration Test: Donorfy NOK CRUD", () => {
 
 		for (const preference of data.PreferencesList) {
 			expect(result.PreferencesList).toEqual(
-				expect.arrayContaining([expect.objectContaining(preference)])
+				expect.arrayContaining([expect.objectContaining(preference)]),
 			);
 		}
 	}, 10000);
@@ -129,7 +128,7 @@ describe("Integration Test: Donorfy NOK CRUD", () => {
 		const result = await donorfy.getConstituentActivities(constituentId);
 		console.log("getActivitiesResult:", result.ActivitiesList[0]);
 		expect(result.ActivitiesList[0]).toEqual(
-			expect.objectContaining(activityData)
+			expect.objectContaining(activityData),
 		);
 	}, 10000);
 	it("Should add a Transaction to the Constituent", async () => {
@@ -137,7 +136,7 @@ describe("Integration Test: Donorfy NOK CRUD", () => {
 			10,
 			campaign,
 			"Stripe Checkout",
-			constituentId
+			constituentId,
 		);
 		transactionId = result.Id;
 		expect(result).toEqual(expect.any(Object));

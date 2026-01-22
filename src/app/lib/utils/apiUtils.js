@@ -8,19 +8,19 @@ import DonorfyClient from "../donorfy/donorfyClient";
 // Initialize Donorfy clients for both regions
 const donorfyUK = new DonorfyClient(
 	process.env.DONORFY_UK_KEY,
-	process.env.DONORFY_UK_TENANT
+	process.env.DONORFY_UK_TENANT,
 );
 const donorfyUS = new DonorfyClient(
 	process.env.DONORFY_US_KEY,
-	process.env.DONORFY_US_TENANT
+	process.env.DONORFY_US_TENANT,
 );
-const donorfyNOK = new DonorfyClient(
-	process.env.DONORFY_NOK_KEY,
-	process.env.DONORFY_NOK_TENANT
+const donorfyROW = new DonorfyClient(
+	process.env.DONORFY_ROW_KEY,
+	process.env.DONORFY_ROW_TENANT,
 );
 const donorfySandbox = new DonorfyClient(
 	process.env.DONORFY_SANDBOX_KEY,
-	process.env.DONORFY_SANDBOX_TENANT
+	process.env.DONORFY_SANDBOX_TENANT,
 );
 
 /**
@@ -31,8 +31,8 @@ const donorfySandbox = new DonorfyClient(
  */
 export function getDonorfyClient(instance) {
 	//temp allow nok to go through to live
-	if (instance === "nok") {
-		return donorfyNOK;
+	if (instance === "row") {
+		return donorfyROW;
 	}
 
 	if (process.env.VERCEL_ENV !== "production" || instance === "sandbox") {
@@ -43,8 +43,8 @@ export function getDonorfyClient(instance) {
 		return donorfyUS;
 	} else if (instance === "uk") {
 		return donorfyUK;
-	} else if (instance === "nok") {
-		return donorfyNOK;
+	} else if (instance === "row") {
+		return donorfyROW;
 	} else {
 		throw new Error(`Invalid Donorfy instance: ${instance}.`);
 	}
@@ -127,7 +127,7 @@ export async function poll(fn, { interval, timeout }) {
 export function getSparkPostTemplate(
 	currency,
 	metadata = {},
-	templateType = "donation"
+	templateType = "donation",
 ) {
 	// Start with default templates based on currency and type
 	let template;
@@ -187,7 +187,7 @@ export async function sendThankYouEmail(
 	amount,
 	currency,
 	sendEmailFunction,
-	excludedCampaigns = ["FreedomFoundation", "2025 EOY"]
+	excludedCampaigns = ["FreedomFoundation", "2025 EOY"],
 ) {
 	// Skip if no template or campaign is excluded
 	if (!sparkPostTemplate || excludedCampaigns.includes(campaign)) {
@@ -209,7 +209,7 @@ export async function sendThankYouEmail(
 	await sendEmailFunction(
 		sparkPostTemplate,
 		email,
-		thankYouEmailSubstitutionData
+		thankYouEmailSubstitutionData,
 	);
 
 	return true;
