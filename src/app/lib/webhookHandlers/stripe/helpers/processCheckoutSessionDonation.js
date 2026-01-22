@@ -31,7 +31,21 @@ export async function processCheckoutSessionDonation(
 	eventId,
 	eventType = "checkout session",
 ) {
-	const donorfyInstance = session.currency === "usd" ? "us" : "uk";
+	let donorfyInstance;
+	switch (session.currency) {
+		case "gbp":
+			donorfyInstance = "uk";
+			break;
+		case "usd":
+			donorfyInstance = "us";
+			break;
+		case "nok":
+			donorfyInstance = "mc";
+		default:
+			throw new Error(
+				`Unsupported currency for Donorfy instance mapping: ${session.currency}`,
+			);
+	}
 	const results = []; // Builds results object for logging and db storage
 	let currentStep = "";
 	let constituentId = null;

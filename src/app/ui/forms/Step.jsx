@@ -5,6 +5,7 @@ import SelectField from "@/app/ui/forms/fields/SelectField";
 import TextareaField from "@/app/ui/forms/fields/TextareaField";
 import GivingPreview from "./fields/GivingPreview";
 import { findCurrencySymbol, formatAmount } from "@/app/lib/utilities";
+import { parseAndFormatAmount } from "@/app/lib/utils/formUtils";
 import Button from "../buttons/Button";
 import AmountField from "./fields/AmountField";
 import AddressSearchLoqate from "./fields/AddressSearchLoqate";
@@ -41,15 +42,8 @@ const Field = ({
 	// Watch the value of inspirationQuestion
 	const inspirationValue = watch("inspirationQuestion");
 
-	const amount = Number(values.amount);
-
-	const formattedAmount =
-		amount % 1 === 0
-			? amount.toLocaleString() // whole number — no decimals
-			: amount.toLocaleString(undefined, {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-			  }); // decimal — show 2 places
+	// Format amount for display using utility function
+	const formattedAmount = parseAndFormatAmount(values.amount, values.currency);
 
 	switch (field.type) {
 		case "givingPreview":

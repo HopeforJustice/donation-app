@@ -18,11 +18,15 @@ export default function StripePaymentStep({
 	const [stripePromise, setStripePromise] = useState(null);
 	const [clientSecret, setClientSecret] = useState(null);
 	useEffect(() => {
+		// Convert amount to standard number format (comma to period for Norwegian locale)
+		const normalizedAmount =
+			typeof amount === "string" ? amount.replace(",", ".") : amount;
+
 		fetch("/api/createCheckoutSession", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
-				amount,
+				amount: normalizedAmount,
 				currency,
 				givingFrequency,
 				email: formData.email,
@@ -94,6 +98,10 @@ export default function StripePaymentStep({
 		formData.inspirationDetails,
 		formData.campaign,
 		formData.giftAid,
+		formData.utm_source,
+		formData.utm_medium,
+		formData.utm_campaign,
+		formData.sparkPostTemplate,
 		searchParams,
 		formData.inspirationQuestion,
 		formData.townCity,

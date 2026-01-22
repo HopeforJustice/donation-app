@@ -193,7 +193,7 @@ const SuccessPageContent = () => {
 
 			try {
 				const response = await fetch(
-					`/api/checkPaymentStatus?session_id=${sessionId}`
+					`/api/checkPaymentStatus?session_id=${sessionId}`,
 				);
 				const status = await response.json();
 				setPaymentStatus(status);

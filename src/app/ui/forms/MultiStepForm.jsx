@@ -4,7 +4,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { formSchema } from "@/app/lib/schema";
+import { formSchema, createDynamicFormSchema } from "@/app/lib/schema";
 import Step from "./Step";
 import Button from "../buttons/Button";
 import ProgressIndicator from "./ProgressIndicator";
@@ -58,7 +58,7 @@ const MultiStepForm = ({
 
 	const { defaultValues, amountProvided } = extractDefaultValues(
 		stepTemplates,
-		searchParams
+		searchParams,
 	);
 
 	function regenerateSteps({ currency, frequency }) {
@@ -66,7 +66,7 @@ const MultiStepForm = ({
 	}
 
 	const methods = useForm({
-		resolver: zodResolver(formSchema),
+		resolver: zodResolver(createDynamicFormSchema(currency)),
 		mode: "onChange",
 		delayError: 1500,
 		defaultValues,
@@ -78,6 +78,7 @@ const MultiStepForm = ({
 		formState: { errors },
 		watch,
 		setValue,
+		clearErrors,
 	} = methods;
 
 	const formData = getValues();
@@ -86,21 +87,29 @@ const MultiStepForm = ({
 	}, [formData.campaign]);
 
 	const watchedCurrency = watch("currency") || defaultValues.currency;
+
+	// Update resolver when currency changes
+	useEffect(() => {
+		const newSchema = createDynamicFormSchema(watchedCurrency);
+		methods.resolver = zodResolver(newSchema);
+		// Clear amount errors when currency changes so new validation can run
+		clearErrors("amount");
+	}, [watchedCurrency, methods, clearErrors]);
 	const watchedFrequency =
 		watch("givingFrequency") || defaultValues.givingFrequency;
 	const watchedAmount = watch("amount") || null;
 	const watchedGiftAid = watch("giftAid") || false;
 
 	const [steps, setSteps] = useState(() =>
-		regenerateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
+		regenerateSteps({ currency: watchedCurrency, frequency: watchedFrequency }),
 	);
 
 	function updateStepDescription(stepId, newDescription) {
 		console.log("updating steps", stepId, newDescription);
 		setSteps((prevSteps) =>
 			prevSteps.map((step) =>
-				step.id === stepId ? { ...step, description: newDescription } : step
-			)
+				step.id === stepId ? { ...step, description: newDescription } : step,
+			),
 		);
 	}
 
@@ -122,7 +131,7 @@ const MultiStepForm = ({
 				router.push(newURL, { shallow: true });
 			});
 		},
-		[router, pathname, searchParams]
+		[router, pathname, searchParams],
 	);
 
 	// Function to safely change step with bounds checking
@@ -141,7 +150,7 @@ const MultiStepForm = ({
 				updateURL(clampedStep);
 			}
 		},
-		[steps.length, updateURL, step]
+		[steps.length, updateURL, step],
 	);
 
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
@@ -204,10 +213,10 @@ const MultiStepForm = ({
 
 			// Check if the visible fields have actually changed
 			const prevFieldIds = prevSteps.flatMap((step) =>
-				step.fields.map((field) => field.id)
+				step.fields.map((field) => field.id),
 			);
 			const newFieldIds = newSteps.flatMap((step) =>
-				step.fields.map((field) => field.id)
+				step.fields.map((field) => field.id),
 			);
 
 			// If the structure and visible fields are the same, keep the previous steps
@@ -255,6 +264,15 @@ const MultiStepForm = ({
 		setGivingFrequency(watchedFrequency);
 		setAmount(watchedAmount);
 		setGiftAid(watchedGiftAid);
+
+		// Trigger amount field validation when currency changes
+		// This ensures dynamic minimum amount validation runs
+		if (watchedAmount) {
+			clearErrors("amount");
+			setTimeout(() => {
+				trigger("amount");
+			}, 0);
+		}
 	}, [
 		watchedCurrency,
 		watchedFrequency,
@@ -266,6 +284,8 @@ const MultiStepForm = ({
 		setGiftAid,
 		getValues,
 		setValue,
+		trigger,
+		clearErrors,
 		step,
 		changeStep,
 	]);
@@ -310,7 +330,7 @@ const MultiStepForm = ({
 						}
 						updateStepDescription(
 							"preferences",
-							`These are the preferences we hold for <strong>${formVals.email}</strong> for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
+							`These are the preferences we hold for <strong>${formVals.email}</strong> for how we can contact you about the work of Hope for Justice and how your support is making a difference:`,
 						);
 					}
 				}
@@ -329,13 +349,13 @@ const MultiStepForm = ({
 		console.log("Fields to validate:", fields);
 		async function handleGlobalSubmit() {
 			window.dispatchEvent(
-				new CustomEvent("donation:submitting", { detail: true })
+				new CustomEvent("donation:submitting", { detail: true }),
 			);
 			try {
 				const valid = await trigger(fields);
 				if (!valid) {
 					window.dispatchEvent(
-						new CustomEvent("donation:submitting", { detail: false })
+						new CustomEvent("donation:submitting", { detail: false }),
 					);
 					return;
 				}
@@ -371,7 +391,7 @@ const MultiStepForm = ({
 							</a>,
 						]);
 						window.dispatchEvent(
-							new CustomEvent("donation:submitting", { detail: false })
+							new CustomEvent("donation:submitting", { detail: false }),
 						);
 						return;
 					}
@@ -382,7 +402,7 @@ const MultiStepForm = ({
 			} catch (e) {
 				console.error(e);
 				window.dispatchEvent(
-					new CustomEvent("donation:submitting", { detail: false })
+					new CustomEvent("donation:submitting", { detail: false }),
 				);
 			}
 		}

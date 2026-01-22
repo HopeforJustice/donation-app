@@ -52,7 +52,7 @@ export default function RootLayout({ children }) {
 					"font-sans antialiased",
 					apercu.variable,
 					canela.variable,
-					fk.variable
+					fk.variable,
 				)}
 			>
 				<Suspense>{children}</Suspense>

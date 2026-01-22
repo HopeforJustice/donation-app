@@ -71,7 +71,16 @@ export async function POST(req) {
 
 		currentStep = "Initialize Donorfy client";
 		//donorfy determined by currency
-		donorfyInstance = formData.currency === "usd" ? "us" : "uk";
+		switch (formData.currency) {
+			case "usd":
+				donorfyInstance = "us";
+				break;
+			case "nok":
+				donorfyInstance = "nok";
+				break;
+			default:
+				donorfyInstance = "uk";
+		}
 		const donorfy = getDonorfyClient(donorfyInstance);
 		results.push({ step: currentStep, success: true });
 
@@ -134,7 +143,7 @@ export async function POST(req) {
 		//create transaction with correct campaign and fund
 		currentStep = "Create transaction in Donorfy";
 		const transaction = await donorfy.createTransaction(
-			formData.amount,
+			formData.amount.replace(",", "."), //format amount for NOK locale
 			formData.campaign,
 			paymentMethod, // Use detected payment method (Venmo or PayPal)
 			constituentId,

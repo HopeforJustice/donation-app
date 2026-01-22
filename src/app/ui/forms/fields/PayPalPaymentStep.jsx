@@ -15,7 +15,11 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 		// Determine environment and region
 		const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 		const environment = isProduction ? "LIVE" : "SANDBOX";
-		const region = currency.toLowerCase() === "gbp" ? "UK" : "US";
+		// NOK uses the same PayPal client as UK
+		const region =
+			currency.toLowerCase() === "gbp" || currency.toLowerCase() === "nok"
+				? "UK"
+				: "US";
 
 		console.log("PayPal config:", {
 			currency,
@@ -66,12 +70,17 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 				donorType,
 				organisationName,
 			};
+			// Convert amount to standard number format (comma to period for Norwegian locale)
+			const normalizedAmount =
+				typeof formData.amount === "string"
+					? formData.amount.replace(",", ".")
+					: formData.amount;
 
 			const response = await fetch("/api/createPayPalOrder", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
-					amount,
+					amount: normalizedAmount,
 					currency,
 					expandedFormData,
 				}),
@@ -112,6 +121,11 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 				organisationName,
 			};
 
+			const normalizedAmount =
+				typeof formData.amount === "string"
+					? formData.amount.replace(",", ".")
+					: formData.amount;
+
 			const response = await fetch("/api/capturePayPalOrder", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -126,7 +140,7 @@ const PayPalPaymentStep = ({ amount, currency }) => {
 			}
 
 			// Redirect to success page
-			window.location.href = `/success?paypal_order_id=${data.orderID}&currency=${formData.currency}&amount=${formData.amount}&gateway=paypal&frequency=${formData.givingFrequency}`;
+			window.location.href = `/success?paypal_order_id=${data.orderID}&currency=${formData.currency}&amount=${normalizedAmount}&gateway=paypal&frequency=${formData.givingFrequency}`;
 		} catch (error) {
 			console.error("Error capturing PayPal payment:", error);
 			setError("payment", {

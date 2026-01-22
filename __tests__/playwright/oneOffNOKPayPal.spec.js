@@ -1,28 +1,27 @@
 import { test, expect } from "@playwright/test";
-import fillUkOnce from "./helpers/formCompletions/ukOnce";
+import fillNokOnce from "./helpers/formCompletions/nokOnce";
 import pollForConstituent from "./helpers/pollForConstituent";
 import pollForPayPalEvent from "./helpers/pollForPayPalEvent";
 import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfyUK = getDonorfyClient("uk");
+const donorfy = getDonorfyClient("nok");
 
 // Default campaign: Donation App General Campaign
 
-const deleteAfterTest = true;
+const deleteAfterTest = false;
 const testDetails = {
 	fund: null,
 	frequency: "once",
-	amount: 10.25,
-	title: "Mr",
+	amount: "20,50",
 	firstName: "James",
 	lastName: "Holt",
 	phoneNumber: "07777777777",
-	address1: "10 Test Place",
-	address2: "Test Area",
-	townCity: "Test City",
-	postalCode: "LS7 2TD",
-	country: "United Kingdom",
-	giftAid: true,
+	address1: "Nicolaysens Vei 2",
+	address2: "",
+	townCity: "Snarøya",
+	postalCode: "32124",
+	country: "Norway",
+	giftAid: false,
 	preferences: {
 		//email:true to test mailchimp
 		email: true,
@@ -32,7 +31,7 @@ const testDetails = {
 	},
 	inspiration: "Inspiration_Faith",
 	inspirationNotes: "Test notes",
-	campaign: "2025 EOY",
+	campaign: null,
 	defaultCampaign: "Donation App General Campaign",
 	utmSource: "test_source",
 	utmMedium: "test_medium",
@@ -53,16 +52,16 @@ const constituents = [];
 //store emails for deletion
 const emails = [];
 
-test.skip("E2E: Test one off giving via PayPal", () => {
+test.describe("E2E: Test one off giving via PayPal", () => {
 	test("Should test a successful PayPal Transaction", async ({ page }) => {
 		const timestamp = Date.now();
-		const testEmail = `james.holt+oneoffukpaypal${timestamp}@hopeforjustice.org`;
+		const testEmail = `james.holt+oneoffnokpaypal${timestamp}@hopeforjustice.org`;
 		let constituentId;
 		let webhookEvent;
 		emails.push(testEmail);
 
 		await test.step("Fill in the form with test details", async () => {
-			await fillUkOnce(page, {
+			await fillNokOnce(page, {
 				email: testEmail,
 				...testDetails,
 			});
@@ -78,9 +77,11 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 			console.log("Success URL", url);
 			const params = new URL(url).searchParams;
 			expect(params.get("frequency")).toBe("once");
-			expect(params.get("currency")).toBe("gbp");
+			expect(params.get("currency")).toBe("nok");
 			expect(params.get("gateway")).toBe("paypal");
-			expect(Number(params.get("amount"))).toBe(testDetails.amount);
+			// Convert testDetails.amount from string with comma to number
+			const expectedAmount = parseFloat(testDetails.amount.replace(",", "."));
+			expect(Number(params.get("amount"))).toBe(expectedAmount);
 		});
 
 		// probably poll for processed event
@@ -96,11 +97,10 @@ test.skip("E2E: Test one off giving via PayPal", () => {
         */
 		await test.step("Check Donorfy Details", async () => {
 			await test.step("Get the Constituent and check details", async () => {
-				const constituentData = await donorfyUK.getConstituent(constituentId);
+				const constituentData = await donorfy.getConstituent(constituentId);
 				expect(constituentData.EmailAddress).toBe(testEmail);
 				expect(constituentData).toEqual(
 					expect.objectContaining({
-						Title: testDetails.title,
 						FirstName: testDetails.firstName,
 						LastName: testDetails.lastName,
 						AddressLine1: testDetails.address1,
@@ -109,13 +109,13 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 						PostalCode: testDetails.postalCode,
 						Country: testDetails.country,
 						Phone1: testDetails.phoneNumber,
-					}),
+					})
 				);
 			});
 
 			await test.step("Get the Constituent's preferences and check details", async () => {
 				const getConstituentPreferencesResult =
-					await donorfyUK.getConstituentPreferences(constituentId);
+					await donorfy.getConstituentPreferences(constituentId);
 				const preferencesArray =
 					getConstituentPreferencesResult.PreferencesList;
 
@@ -135,18 +135,18 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 						Post: testDetails.preferences.post,
 						SMS: testDetails.preferences.sms,
 						Phone: testDetails.preferences.phone,
-					}),
+					})
 				);
 
 				//Check "Email Updates" Purpose
 				const emailUpdatesPref = preferencesArray.find(
 					(pref) =>
 						pref.PreferenceType === "Purpose" &&
-						pref.PreferenceName === "Email Updates",
+						pref.PreferenceName === "Email Updates"
 				);
 
 				expect(emailUpdatesPref?.PreferenceAllowed).toBe(
-					testDetails.preferences.email,
+					testDetails.preferences.email
 				);
 			});
 
@@ -159,8 +159,9 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 					});
 					return;
 				}
-				const giftAidData =
-					await donorfyUK.getConstituentGiftAidDeclarations(constituentId);
+				const giftAidData = await donorfy.getConstituentGiftAidDeclarations(
+					constituentId
+				);
 				const mostRecent = giftAidData.GiftAidDeclarationsList[0];
 				const now = new Date();
 				const declarationDate = new Date(mostRecent.DeclarationDate);
@@ -173,9 +174,9 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 
 			await test.step("Check for inspiration tag if applicable", async () => {
 				if (testDetails.inspiration) {
-					const tags = await donorfyUK.getConstituentTags(constituentId);
+					const tags = await donorfy.getConstituentTags(constituentId);
 					expect(tags).toEqual(
-						expect.stringContaining(testDetails.inspiration),
+						expect.stringContaining(testDetails.inspiration)
 					);
 				}
 			});
@@ -184,8 +185,8 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 			await test.step("Check the transaction was created", async () => {
 				// Get transaction ID from webhook event if available
 				if (webhookEvent.donorfy_transaction_id) {
-					const transaction = await donorfyUK.getTransaction(
-						webhookEvent.donorfy_transaction_id,
+					const transaction = await donorfy.getTransaction(
+						webhookEvent.donorfy_transaction_id
 					);
 
 					await test.step("Verify transaction details", async () => {
@@ -193,9 +194,12 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 							testDetails.campaign || testDetails.defaultCampaign;
 						expect(transaction.Campaign).toEqual(expectedCampaign);
 						expect(transaction.PaymentMethod).toEqual("PayPal");
-						expect(transaction.Amount).toEqual(testDetails.amount);
+						const expectedAmount = parseFloat(
+							testDetails.amount.replace(",", ".")
+						);
+						expect(transaction.Amount).toEqual(expectedAmount);
 						expect(transaction.FundList).toEqual(
-							testDetails.fund || "Unrestricted",
+							testDetails.fund || "Unrestricted"
 						);
 					});
 				}
@@ -210,7 +214,7 @@ test.skip("E2E: Test one off giving via PayPal", () => {
 				try {
 					const constituentId = await pollForConstituent(email, "uk");
 					console.log("pollForConstituent", constituentId);
-					await donorfyUK.deleteConstituent(constituentId);
+					await donorfy.deleteConstituent(constituentId);
 					console.log(`Deleted Donorfy constituent: ${constituentId}`);
 				} catch (err) {
 					console.warn(`Failed to delete Donorfy constituent: ${err}`);

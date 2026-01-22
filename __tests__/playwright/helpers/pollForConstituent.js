@@ -1,7 +1,7 @@
 import { poll } from "@/app/lib/utilities";
 import { getDonorfyClient } from "@/app/lib/utils/apiUtils";
 
-const donorfy = getDonorfyClient("sandbox");
+const donorfy = getDonorfyClient("nok");
 
 export default async function pollForConstituent(email, donorfyInstance) {
 	return await poll(

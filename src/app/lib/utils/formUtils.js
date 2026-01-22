@@ -62,6 +62,43 @@ export const formatAmount = (amount, currency) => {
 	return formattedAmount;
 };
 
+// Helper function to get proper locale for currency
+export const getLocaleForCurrency = (currency) => {
+	switch (currency?.toLowerCase()) {
+		case "nok":
+			return "nb-NO"; // Norwegian
+		case "gbp":
+			return "en-GB"; // British English
+		case "usd":
+			return "en-US"; // US English
+		case "aud":
+			return "en-AU"; // Australian English
+		default:
+			return undefined; // Use browser default
+	}
+};
+
+// Parse and format amount for display with proper localization
+export const parseAndFormatAmount = (inputAmount, currency) => {
+	// Handle Norwegian number format (comma as decimal separator) for display
+	const amount = inputAmount
+		? parseFloat(inputAmount.toString().replace(",", "."))
+		: 0;
+
+	// Return formatted amount based on locale
+	if (amount % 1 === 0) {
+		// Whole number — no decimals
+		return amount.toLocaleString(getLocaleForCurrency(currency));
+	} else {
+		// Decimal — show 2 places
+		return amount.toLocaleString(getLocaleForCurrency(currency), {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		});
+	}
+};
+
+// Check if campaign is eligible for match funding
 export const matchFundingOn = (campaign) => {
 	const fundingOnCampaigns = [];
 	if (fundingOnCampaigns.includes(campaign)) {
