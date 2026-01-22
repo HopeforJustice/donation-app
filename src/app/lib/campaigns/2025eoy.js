@@ -1,5 +1,6 @@
 /* 
 2025 EOY Campaign specific workflows
+it should recieve data and send a custom email via SparkPost
 */
 import sendEmailByTemplateName from "../sparkpost/sendEmailByTemplateName";
 
@@ -21,7 +22,7 @@ export default async function EOY2025(metadata, currency, amount) {
 		await sendEmailByTemplateName(
 			sparkPostTemplate,
 			metadata.email,
-			substitutionData
+			substitutionData,
 		);
 	} catch (error) {
 		console.error("Error sending EOY2025 donation receipt email:", error);
