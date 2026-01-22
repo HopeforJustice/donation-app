@@ -43,7 +43,7 @@ const testDetails = {
 	},
 	inspiration: "Inspiration_Faith",
 	inspirationNotes: "Test notes",
-	campaign: null,
+	campaign: "2025 EOY",
 	defaultCampaign: "Donation App General Campaign",
 	utmSource: "test_source",
 	utmMedium: "test_medium",
@@ -130,6 +130,7 @@ test.describe("E2E: Test one off giving via Stripe", () => {
 						PostalCode: testDetails.postalCode,
 						Country: testDetails.country,
 						Phone1: testDetails.phoneNumber,
+						RecruitmentCampaign: testDetails.campaign,
 					})
 				);
 			});

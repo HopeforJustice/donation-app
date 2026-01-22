@@ -54,7 +54,7 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 				message:
 					"Async payment checkout ignored - handled by checkout.session.async_payment_succeeded",
 				status: 200,
-				eventStatus: "ignored",
+				eventStatus: "skipped",
 				results,
 			};
 		}
@@ -67,9 +67,11 @@ export async function handleCheckoutSessionCompleted(event, stripeClient) {
 			"Checkout Session Completed"
 		);
 	} catch (error) {
-		results.push({ step: "Pre-processing check", success: false });
-		console.error("Error processing checkout session webhook:", error);
-		error.results = results;
+		if (!error.results) {
+			results.push({ step: "Pre-processing check", success: false });
+			error.results = results;
+		}
+		console.error("Error processing checkout session webhook:", error.results);
 		error.eventId = event.id;
 		throw error;
 	}

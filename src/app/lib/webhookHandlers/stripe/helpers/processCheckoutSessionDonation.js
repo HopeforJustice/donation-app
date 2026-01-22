@@ -29,7 +29,7 @@ export async function processCheckoutSessionDonation(
 	session,
 	stripeClient,
 	eventId,
-	eventType = "checkout session"
+	eventType = "checkout session",
 ) {
 	const donorfyInstance = session.currency === "usd" ? "us" : "uk";
 	const results = []; // Builds results object for logging and db storage
@@ -45,7 +45,7 @@ export async function processCheckoutSessionDonation(
 		let paymentIntent = null;
 		if (session.payment_intent) {
 			paymentIntent = await stripeClient.paymentIntents.retrieve(
-				session.payment_intent
+				session.payment_intent,
 			);
 		}
 
@@ -73,13 +73,13 @@ export async function processCheckoutSessionDonation(
 		// Check if this is a subscription checkout - if so, skip processing as subscription.created will handle it
 		if (session.mode === "subscription") {
 			console.log(
-				"Skipping subscription checkout - will be handled by subscription.created event"
+				"Skipping subscription checkout - will be handled by subscription.created event",
 			);
 			return {
 				message:
 					"Subscription checkout ignored - handled by subscription.created",
 				status: 200,
-				eventStatus: "ignored",
+				eventStatus: "skipped",
 				results,
 			};
 		}
@@ -108,10 +108,10 @@ export async function processCheckoutSessionDonation(
 			const createConstituentInputData = buildConstituentCreateData(
 				metadata,
 				session.customer_details?.email,
-				donorfyInstance
+				donorfyInstance,
 			);
 			const createConstituentData = await donorfy.createConstituent(
-				createConstituentInputData
+				createConstituentInputData,
 			);
 			constituentId = createConstituentData.ConstituentId;
 			results.push({ step: currentStep, success: true });
@@ -124,11 +124,11 @@ export async function processCheckoutSessionDonation(
 				metadata,
 				duplicateCheckData[0],
 				session.customer_details?.email,
-				donorfyInstance
+				donorfyInstance,
 			);
 			await donorfy.updateConstituent(
 				constituentId,
-				updateConstituentInputData
+				updateConstituentInputData,
 			);
 			results.push({ step: currentStep, success: true });
 		}
@@ -137,11 +137,11 @@ export async function processCheckoutSessionDonation(
 		currentStep = "Update constituent preferences";
 		const updatePreferencesData = buildConstituentPreferencesData(
 			metadata,
-			donorfyInstance
+			donorfyInstance,
 		);
 		await donorfy.updateConstituentPreferences(
 			constituentId,
-			updatePreferencesData
+			updatePreferencesData,
 		);
 		results.push({ step: currentStep, success: true });
 
@@ -156,7 +156,7 @@ export async function processCheckoutSessionDonation(
 			metadata.projectId || metadata.fund || "unrestricted",
 			metadata.utmSource || "unknown",
 			metadata.utmMedium || "unknown",
-			metadata.utmCampaign || "unknown"
+			metadata.utmCampaign || "unknown",
 		);
 		const transactionId = transaction.Id;
 		results.push({ step: currentStep, success: true });
@@ -170,7 +170,7 @@ export async function processCheckoutSessionDonation(
 				Notes: metadata.inspirationDetails || "",
 			};
 			const addInspirationActivityData = await donorfy.addActivity(
-				inspirationActivityData
+				inspirationActivityData,
 			);
 			if (addInspirationActivityData) {
 				results.push({ step: currentStep, success: true });
@@ -196,7 +196,7 @@ export async function processCheckoutSessionDonation(
 					TaxPayerTitle: metadata.title || "",
 					TaxPayerFirstName: metadata.firstName,
 					TaxPayerLastName: metadata.lastName,
-				}
+				},
 			);
 			if (createGiftAidData) {
 				results.push({ step: currentStep, success: true });
@@ -226,14 +226,14 @@ export async function processCheckoutSessionDonation(
 				donorfyInstance,
 				Object.keys(additionalMergeFields).length > 0
 					? additionalMergeFields
-					: undefined
+					: undefined,
 			);
 
 			results.push({ step: currentStep, success: true });
 		}
 
-		//send thank you email unless suppressed or FreedomFoundation campaign
-		//FreedomFoundation sends it's own sparkpost emails
+		// Send thank you email unless suppressed or is part of
+		// the excluded campaigns array in sendThankYouEmail function
 		currentStep = "Send Sparkpost thank you email";
 		const emailSent = await sendThankYouEmail(
 			sparkPostTemplate,
@@ -242,7 +242,7 @@ export async function processCheckoutSessionDonation(
 			metadata.firstName,
 			session.amount_total / 100,
 			session.currency,
-			sendEmailByTemplateName
+			sendEmailByTemplateName,
 		);
 		if (emailSent) {
 			results.push({ step: currentStep, success: true });
@@ -255,7 +255,7 @@ export async function processCheckoutSessionDonation(
 			metadata,
 			constituentId,
 			session.currency,
-			(session.amount_total / 100).toFixed(2)
+			(session.amount_total / 100).toFixed(2),
 		);
 		results.push({ step: currentStep, success: true });
 

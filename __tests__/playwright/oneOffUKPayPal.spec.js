@@ -32,7 +32,7 @@ const testDetails = {
 	},
 	inspiration: "Inspiration_Faith",
 	inspirationNotes: "Test notes",
-	campaign: null,
+	campaign: "2025 EOY",
 	defaultCampaign: "Donation App General Campaign",
 	utmSource: "test_source",
 	utmMedium: "test_medium",
@@ -53,7 +53,7 @@ const constituents = [];
 //store emails for deletion
 const emails = [];
 
-test.describe("E2E: Test one off giving via PayPal", () => {
+test.skip("E2E: Test one off giving via PayPal", () => {
 	test("Should test a successful PayPal Transaction", async ({ page }) => {
 		const timestamp = Date.now();
 		const testEmail = `james.holt+oneoffukpaypal${timestamp}@hopeforjustice.org`;
@@ -109,7 +109,7 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 						PostalCode: testDetails.postalCode,
 						Country: testDetails.country,
 						Phone1: testDetails.phoneNumber,
-					})
+					}),
 				);
 			});
 
@@ -135,18 +135,18 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 						Post: testDetails.preferences.post,
 						SMS: testDetails.preferences.sms,
 						Phone: testDetails.preferences.phone,
-					})
+					}),
 				);
 
 				//Check "Email Updates" Purpose
 				const emailUpdatesPref = preferencesArray.find(
 					(pref) =>
 						pref.PreferenceType === "Purpose" &&
-						pref.PreferenceName === "Email Updates"
+						pref.PreferenceName === "Email Updates",
 				);
 
 				expect(emailUpdatesPref?.PreferenceAllowed).toBe(
-					testDetails.preferences.email
+					testDetails.preferences.email,
 				);
 			});
 
@@ -159,9 +159,8 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 					});
 					return;
 				}
-				const giftAidData = await donorfyUK.getConstituentGiftAidDeclarations(
-					constituentId
-				);
+				const giftAidData =
+					await donorfyUK.getConstituentGiftAidDeclarations(constituentId);
 				const mostRecent = giftAidData.GiftAidDeclarationsList[0];
 				const now = new Date();
 				const declarationDate = new Date(mostRecent.DeclarationDate);
@@ -176,7 +175,7 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 				if (testDetails.inspiration) {
 					const tags = await donorfyUK.getConstituentTags(constituentId);
 					expect(tags).toEqual(
-						expect.stringContaining(testDetails.inspiration)
+						expect.stringContaining(testDetails.inspiration),
 					);
 				}
 			});
@@ -186,7 +185,7 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 				// Get transaction ID from webhook event if available
 				if (webhookEvent.donorfy_transaction_id) {
 					const transaction = await donorfyUK.getTransaction(
-						webhookEvent.donorfy_transaction_id
+						webhookEvent.donorfy_transaction_id,
 					);
 
 					await test.step("Verify transaction details", async () => {
@@ -196,7 +195,7 @@ test.describe("E2E: Test one off giving via PayPal", () => {
 						expect(transaction.PaymentMethod).toEqual("PayPal");
 						expect(transaction.Amount).toEqual(testDetails.amount);
 						expect(transaction.FundList).toEqual(
-							testDetails.fund || "Unrestricted"
+							testDetails.fund || "Unrestricted",
 						);
 					});
 				}

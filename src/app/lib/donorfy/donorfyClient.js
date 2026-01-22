@@ -110,9 +110,9 @@ class DonorfyClient {
 		constituentId,
 		chargeDate = null,
 		fund = "unrestricted",
-		utmSource = "",
-		utmMedium = "",
-		utmCampaign = ""
+		utmSource = "unknown",
+		utmMedium = "unknown",
+		utmCampaign = "unknown"
 	) {
 		const modifiedData = {
 			Product: "Donation",
@@ -125,6 +125,7 @@ class DonorfyClient {
 			UtmSource: utmSource,
 			UtmMedium: utmMedium,
 			UtmCampaign: utmCampaign,
+			Comments: `utm_source=${utmSource}, utm_medium=${utmMedium}, utm_campaign=${utmCampaign}`,
 		};
 		return this.request("transactions", "POST", modifiedData);
 	}

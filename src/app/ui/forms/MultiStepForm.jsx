@@ -1,7 +1,7 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSchema, createDynamicFormSchema } from "@/app/lib/schema";
@@ -16,6 +16,9 @@ import { stepTemplates } from "@/app/lib/steps/stepTemplates";
 import { getPreferences } from "@/app/lib/utilities";
 import { extractPreferences } from "@/app/lib/utilities";
 import GivingSummary from "./GivingSummary";
+import { matchFundingOn } from "@/app/lib/utils/formUtils";
+import { getCookie } from "@/app/lib/utils/dataUtils";
+import SubmitButton from "../buttons/SubmitButton";
 
 const MultiStepForm = ({
 	currency = "gbp",
@@ -28,20 +31,34 @@ const MultiStepForm = ({
 	lastStep,
 	desktopSize,
 	allowedPaymentMethods = [],
+	setIsModalOpen,
 }) => {
 	const searchParams = useSearchParams();
+	const router = useRouter();
+	const pathname = usePathname();
 	const validate = searchParams.get("validate") || true;
 
 	const [submissionError, setSubmissionError] = useState(null);
 	const [isLoading, setIsLoading] = useState(false);
+
+	// Get initial step from URL or default to 0 (convert from 1-based URL to 0-based internal)
+	const getInitialStep = useCallback(() => {
+		if (typeof window === "undefined") return 0; // Always return 0 during SSR
+		const stepParam = searchParams.get("step");
+		return stepParam ? Math.max(0, parseInt(stepParam, 10) - 1) : 0;
+	}, [searchParams]);
+
 	const [step, setStep] = useState(0);
+	const [matchFunding, setMatchFunding] = useState(false);
+	const isUpdatingFromURL = useRef(false);
+	const hasNavigatedInForm = useRef(false); // Track if user has navigated within the form
 
 	const supportedCurrencies = ["usd", "gbp", "nok", "aud"];
 	const isCurrencyAccepted = supportedCurrencies.includes(currency);
 
 	const { defaultValues, amountProvided } = extractDefaultValues(
 		stepTemplates,
-		searchParams
+		searchParams,
 	);
 
 	function regenerateSteps({ currency, frequency }) {
@@ -65,6 +82,9 @@ const MultiStepForm = ({
 	} = methods;
 
 	const formData = getValues();
+	useEffect(() => {
+		setMatchFunding(matchFundingOn(formData.campaign));
+	}, [formData.campaign]);
 
 	const watchedCurrency = watch("currency") || defaultValues.currency;
 
@@ -81,20 +101,108 @@ const MultiStepForm = ({
 	const watchedGiftAid = watch("giftAid") || false;
 
 	const [steps, setSteps] = useState(() =>
-		regenerateSteps({ currency: watchedCurrency, frequency: watchedFrequency })
+		regenerateSteps({ currency: watchedCurrency, frequency: watchedFrequency }),
 	);
 
 	function updateStepDescription(stepId, newDescription) {
 		console.log("updating steps", stepId, newDescription);
 		setSteps((prevSteps) =>
 			prevSteps.map((step) =>
-				step.id === stepId ? { ...step, description: newDescription } : step
-			)
+				step.id === stepId ? { ...step, description: newDescription } : step,
+			),
 		);
 	}
 
+	// Function to update URL with current step (convert from 0-based internal to 1-based URL)
+	const updateURL = useCallback(
+		(newStep) => {
+			// Use requestAnimationFrame to ensure URL update happens after DOM updates
+			requestAnimationFrame(() => {
+				const params = new URLSearchParams(searchParams.toString());
+				if (newStep === 0) {
+					params.delete("step");
+				} else {
+					params.set("step", (newStep + 1).toString());
+				}
+
+				const newURL = params.toString()
+					? `${pathname}?${params.toString()}`
+					: pathname;
+				router.push(newURL, { shallow: true });
+			});
+		},
+		[router, pathname, searchParams],
+	);
+
+	// Function to safely change step with bounds checking
+	const changeStep = useCallback(
+		(newStep, updateUrl = true) => {
+			const maxStep = steps.length - 1;
+			const clampedStep = Math.max(0, Math.min(newStep, maxStep));
+
+			// Prevent unnecessary updates if step is the same
+			if (clampedStep === step) return;
+
+			setStep(clampedStep);
+			hasNavigatedInForm.current = true; // Mark that user has navigated
+
+			if (updateUrl && !isUpdatingFromURL.current) {
+				updateURL(clampedStep);
+			}
+		},
+		[steps.length, updateURL, step],
+	);
+
 	const [showGivingDetails, setShowAmountField] = useState(!amountProvided);
 
+	// Reset to step 0 on initial mount if user lands on/refreshes at a non-zero step
+	useEffect(() => {
+		const urlStep = getInitialStep();
+		// Only redirect to start if: 1) on a non-zero step, 2) haven't navigated in form yet
+		if (urlStep !== 0 && !hasNavigatedInForm.current) {
+			// Redirect to start immediately
+			const params = new URLSearchParams(searchParams.toString());
+			params.delete("step");
+			const newURL = params.toString()
+				? `${pathname}?${params.toString()}`
+				: pathname;
+			router.replace(newURL);
+			setStep(0);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []); // Empty dependency array - only run on mount
+
+	// Sync step with URL changes (handles browser back/forward)
+	useEffect(() => {
+		const urlStep = getInitialStep();
+		if (urlStep !== step && hasNavigatedInForm.current) {
+			isUpdatingFromURL.current = true;
+			changeStep(urlStep, false); // Don't update URL since it's already changed
+			// Reset flag after a short delay to allow for the update to complete
+			setTimeout(() => {
+				isUpdatingFromURL.current = false;
+			}, 0);
+		}
+	}, [searchParams, step, changeStep, getInitialStep]);
+
+	// get cookies for utm and set in form
+	useEffect(() => {
+		const utm_source = getCookie("wordpress_utm_source");
+		const utm_medium = getCookie("wordpress_utm_medium");
+		const utm_campaign = getCookie("wordpress_utm_campaign");
+
+		if (utm_source) {
+			setValue("utm_source", utm_source);
+		}
+		if (utm_medium) {
+			setValue("utm_medium", utm_medium);
+		}
+		if (utm_campaign) {
+			setValue("utm_campaign", utm_campaign);
+		}
+	}, [setValue]);
+
+	//regenerate steps
 	useEffect(() => {
 		// Only regenerate steps if currency or frequency changed
 		setSteps((prevSteps) => {
@@ -105,10 +213,10 @@ const MultiStepForm = ({
 
 			// Check if the visible fields have actually changed
 			const prevFieldIds = prevSteps.flatMap((step) =>
-				step.fields.map((field) => field.id)
+				step.fields.map((field) => field.id),
 			);
 			const newFieldIds = newSteps.flatMap((step) =>
-				step.fields.map((field) => field.id)
+				step.fields.map((field) => field.id),
 			);
 
 			// If the structure and visible fields are the same, keep the previous steps
@@ -122,6 +230,13 @@ const MultiStepForm = ({
 				return prevSteps;
 			}
 			console.log("step structure or fields changed");
+
+			// If steps changed, ensure current step is within bounds
+			const maxStep = newSteps.length - 1;
+			if (step > maxStep) {
+				changeStep(maxStep);
+			}
+
 			return newSteps;
 		});
 
@@ -171,6 +286,8 @@ const MultiStepForm = ({
 		setValue,
 		trigger,
 		clearErrors,
+		step,
+		changeStep,
 	]);
 
 	// handling last step state
@@ -186,7 +303,7 @@ const MultiStepForm = ({
 	const nextStep = async () => {
 		setIsLoading(true);
 		if (validate === "false") {
-			setStep((s) => s + 1);
+			changeStep(step + 1);
 			setIsLoading(false);
 			return;
 		}
@@ -213,22 +330,18 @@ const MultiStepForm = ({
 						}
 						updateStepDescription(
 							"preferences",
-							`These are the preferences we hold for <strong>${formVals.email}</strong> for how we can contact you about the work of Hope for Justice and how your support is making a difference:`
+							`These are the preferences we hold for <strong>${formVals.email}</strong> for how we can contact you about the work of Hope for Justice and how your support is making a difference:`,
 						);
 					}
 				}
 			}
-			setStep((s) => s + 1);
-		} else {
-			// If validation failed on first step, show giving details so user can see and fix errors
-			if (step === 0) {
-				setShowAmountField(true);
-			}
+			changeStep(step + 1);
 		}
 		setIsLoading(false);
 	};
 
-	const prevStep = () => setStep((s) => s - 1);
+	//prev step
+	const prevStep = () => changeStep(step - 1);
 
 	// Global submit orchestrator: validate, then route to GoCardless or card flow
 	useEffect(() => {
@@ -236,13 +349,13 @@ const MultiStepForm = ({
 		console.log("Fields to validate:", fields);
 		async function handleGlobalSubmit() {
 			window.dispatchEvent(
-				new CustomEvent("donation:submitting", { detail: true })
+				new CustomEvent("donation:submitting", { detail: true }),
 			);
 			try {
 				const valid = await trigger(fields);
 				if (!valid) {
 					window.dispatchEvent(
-						new CustomEvent("donation:submitting", { detail: false })
+						new CustomEvent("donation:submitting", { detail: false }),
 					);
 					return;
 				}
@@ -278,7 +391,7 @@ const MultiStepForm = ({
 							</a>,
 						]);
 						window.dispatchEvent(
-							new CustomEvent("donation:submitting", { detail: false })
+							new CustomEvent("donation:submitting", { detail: false }),
 						);
 						return;
 					}
@@ -289,7 +402,7 @@ const MultiStepForm = ({
 			} catch (e) {
 				console.error(e);
 				window.dispatchEvent(
-					new CustomEvent("donation:submitting", { detail: false })
+					new CustomEvent("donation:submitting", { detail: false }),
 				);
 			}
 		}
@@ -319,6 +432,7 @@ const MultiStepForm = ({
 
 	return (
 		<div className="">
+			{/* amount disclaimer UK */}
 			{formData.amount > 10000 && formData.currency === "gbp" && (
 				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
 					<p className="text-hfj-black">
@@ -336,6 +450,7 @@ const MultiStepForm = ({
 					</p>
 				</div>
 			)}
+			{/* amount disclaimer USA */}
 			{formData.amount > 10000 && formData.currency === "usd" && (
 				<div className="p-4 mb-4 border-2 border-hfj-red bg-hfj-red/10 rounded-md">
 					<p className="text-hfj-black">
@@ -365,6 +480,8 @@ const MultiStepForm = ({
 						showGivingDetails={showGivingDetails}
 						onShowGivingDetails={showGivingDetailsHandler}
 						allowedPaymentMethods={allowedPaymentMethods}
+						matchFunding={matchFunding}
+						setIsModalOpen={setIsModalOpen}
 					/>
 					{step === steps.length - 1 &&
 						Object.keys(errors).length > 0 &&
@@ -390,6 +507,7 @@ const MultiStepForm = ({
 					givingFrequency={watchedFrequency}
 					currency={watchedCurrency}
 					giftAid={watchedGiftAid}
+					setIsModalOpen={setIsModalOpen}
 				/>
 			)}
 
@@ -412,6 +530,15 @@ const MultiStepForm = ({
 						size="extraLarge"
 						extraClasses="ml-auto"
 					/>
+				)}
+				{lastStep && desktopSize && (
+					<div>
+						<SubmitButton
+							currency={watchedCurrency}
+							givingFrequency={watchedFrequency}
+							amount={watchedAmount}
+						/>
+					</div>
 				)}
 			</div>
 		</div>

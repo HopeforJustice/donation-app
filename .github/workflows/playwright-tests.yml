@@ -20,16 +20,17 @@ jobs:
           cache: "npm"
 
       - name: Wait for Vercel Preview Deployment
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        uses: patrickedqvist/wait-for-vercel-preview@main
         id: vercel-preview
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
           check_interval: 10
           environment: preview
+          vercel_protection_bypass_header: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -55,6 +56,9 @@ jobs:
             use: {
               baseURL: "\${{ steps.vercel-preview.outputs.url }}",
               headless: true,
+              extraHTTPHeaders: {
+                'x-vercel-protection-bypass': '\${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}',
+              },
               launchOptions: {
                 slowMo: 10,
               },
@@ -72,6 +76,8 @@ jobs:
         run: npx playwright test
         env:
           CI: true
+          # Vercel Protection Bypass
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}
           # Database
           DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
           POSTGRES_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}

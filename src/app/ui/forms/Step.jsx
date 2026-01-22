@@ -3,6 +3,7 @@ import { useFormContext } from "react-hook-form";
 import InputField from "@/app/ui/forms/fields/InputField";
 import SelectField from "@/app/ui/forms/fields/SelectField";
 import TextareaField from "@/app/ui/forms/fields/TextareaField";
+import GivingPreview from "./fields/GivingPreview";
 import { findCurrencySymbol, formatAmount } from "@/app/lib/utilities";
 import { parseAndFormatAmount } from "@/app/lib/utils/formUtils";
 import Button from "../buttons/Button";
@@ -20,6 +21,8 @@ const Field = ({
 	currency,
 	frequency,
 	allowedPaymentMethods,
+	matchFunding,
+	setIsModalOpen,
 }) => {
 	const {
 		register,
@@ -45,32 +48,16 @@ const Field = ({
 	switch (field.type) {
 		case "givingPreview":
 			if (!values.amount) return null;
-			const currencyCode = values.currency?.toUpperCase();
-			const currencySymbol = findCurrencySymbol(values.currency);
-			const isNOK = values.currency === "nok";
-
-			// Format currency display based on NOK special handling
-			const currencyPrefix = isNOK ? "" : currencySymbol;
-			const currencySuffix = isNOK ? `${currencySymbol} ` : "";
-
 			return (
-				<>
-					<p id="givingPreview" className="mb-4 flex gap-2 flex-wrap">
-						You&apos;re giving {currencyCode} {currencyPrefix}
-						{formattedAmount} {currencySuffix}
-						{values.givingFrequency}
-						{restrictedUKBankTransfer && " via bank transfer"}
-						{givingTo && ` to ${givingTo}`}
-						{allowChange === "true" && !showGivingDetails && (
-							<Button
-								text="Change giving details"
-								size="small"
-								onClick={onShowGivingDetails}
-								buttonType="secondary"
-							/>
-						)}
-					</p>
-				</>
+				<GivingPreview
+					values={values}
+					formattedAmount={formattedAmount}
+					allowedPaymentMethods={allowedPaymentMethods}
+					showGivingDetails={showGivingDetails}
+					onShowGivingDetails={onShowGivingDetails}
+					matchFunding={matchFunding}
+					setIsModalOpen={setIsModalOpen}
+				/>
 			);
 		case "text":
 			return (
@@ -206,6 +193,7 @@ const Field = ({
 								onShowGivingDetails={onShowGivingDetails}
 								currency={currency}
 								allowedPaymentMethods={allowedPaymentMethods}
+								matchFunding={matchFunding}
 							/>
 						))}
 					</div>
@@ -313,6 +301,8 @@ const Step = ({
 	onCurrencyChange,
 	onSubmit,
 	allowedPaymentMethods,
+	matchFunding,
+	setIsModalOpen,
 }) => {
 	return (
 		<div className="">
@@ -342,6 +332,8 @@ const Step = ({
 					frequency={frequency}
 					onCurrencyChange={onCurrencyChange}
 					allowedPaymentMethods={allowedPaymentMethods}
+					matchFunding={matchFunding}
+					setIsModalOpen={setIsModalOpen}
 				/>
 			))}
 		</div>

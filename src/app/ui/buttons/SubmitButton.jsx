@@ -3,7 +3,12 @@ import Button from "./Button";
 import { findCurrencySymbol } from "@/app/lib/utilities";
 import { useSearchParams } from "next/navigation";
 
-export default function SubmitButton({ amount, currency, givingFrequency }) {
+export default function SubmitButton({
+	amount,
+	currency,
+	givingFrequency,
+	location = "default",
+}) {
 	const [show, setShow] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,7 +36,7 @@ export default function SubmitButton({ amount, currency, givingFrequency }) {
 
 	return (
 		<Button
-			testId="donate-button"
+			testId={`donate-button${location !== "default" ? `-${location}` : ""}`}
 			extraClasses="w-full pt-4 pb-4 text-lg flex items-center justify-center"
 			onClick={() => window.dispatchEvent(new Event("donation:requestSubmit"))}
 			text={

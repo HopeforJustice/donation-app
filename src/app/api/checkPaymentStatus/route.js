@@ -32,7 +32,7 @@ export async function GET(req) {
 						"payment_intent.payment_method",
 					],
 				});
-				break; // Found it!
+				break;
 			} catch (error) {
 				// Session not found in this account, try next
 				continue;
@@ -46,6 +46,7 @@ export async function GET(req) {
 		// Check payment status based on mode
 		if (session.mode === "payment") {
 			const paymentIntent = session.payment_intent;
+
 			return NextResponse.json({
 				status: paymentIntent.status,
 				paymentMethod: paymentIntent.payment_method?.type,

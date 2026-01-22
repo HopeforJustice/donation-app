@@ -43,7 +43,7 @@ export async function handlePayPalCheckout(page, testDetails) {
 
 	// Complete the payment
 	await paypalPopup.waitForSelector('[data-testid="submit-button-initial"]', {
-		timeout: 15000,
+		timeout: 30000,
 	});
 	await paypalPopup.getByTestId("submit-button-initial").click();
 

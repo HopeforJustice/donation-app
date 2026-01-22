@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import clsx from "clsx";
 import { Suspense } from "react";
 import { GoogleTagManager } from "@next/third-parties/google";
-import { Analytics } from "@vercel/analytics/next";
 
 const canela = localFont({
 	src: "../fonts/Canela-Medium.woff2",
@@ -41,22 +40,23 @@ export const metadata = {
 	description: "Donate to Hope for Justice",
 };
 
+const isProduction = process.env.VERCEL_ENV === "production";
+
 export default function RootLayout({ children }) {
 	return (
 		<html lang="en">
-			<GoogleTagManager gtmId="GTM-T7PSM4L" />
+			{isProduction && <GoogleTagManager gtmId="GTM-T7PSM4L" />}
 			<body
 				data-testid="root-layout-body"
 				className={clsx(
 					"font-sans antialiased",
 					apercu.variable,
 					canela.variable,
-					fk.variable
+					fk.variable,
 				)}
 			>
 				<Suspense>{children}</Suspense>
 			</body>
-			<Analytics />
 		</html>
 	);
 }
