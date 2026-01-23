@@ -94,13 +94,13 @@ export async function extractPreferences(data) {
 }
 
 //call donorfy for preference data
-export async function getPreferences(email) {
+export async function getPreferences(email, currency = "gbp") {
 	const response = await fetch("/api/getPreferences", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify({ email }),
+		body: JSON.stringify({ email, currency }),
 	});
 	return await response.json();
 }

@@ -313,7 +313,10 @@ const MultiStepForm = ({
 		if (valid) {
 			const formVals = getValues();
 			if (step === 0 && formVals.currency === "gbp") {
-				const prefsRes = await getPreferences(formVals.email);
+				const prefsRes = await getPreferences(
+					formVals.email,
+					formVals.currency,
+				);
 				if (prefsRes?.preferences) {
 					const extracted = await extractPreferences(prefsRes);
 					if (extracted) {
