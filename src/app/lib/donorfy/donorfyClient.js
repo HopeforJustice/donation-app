@@ -36,7 +36,7 @@ class DonorfyClient {
 			throw new Error(
 				`Donorfy API error: ${res.status} ${res.statusText} ${
 					data ? JSON.stringify(data) : ""
-				}`
+				}`,
 			);
 		}
 		return data;
@@ -91,7 +91,7 @@ class DonorfyClient {
 		return this.request(
 			`constituents/${id}/GiftAidDeclarations`,
 			"POST",
-			modifiedData
+			modifiedData,
 		);
 	}
 	// ---- Activities ----
@@ -112,7 +112,8 @@ class DonorfyClient {
 		fund = "unrestricted",
 		utmSource = "unknown",
 		utmMedium = "unknown",
-		utmCampaign = "unknown"
+		utmCampaign = "unknown",
+		reference = null,
 	) {
 		const modifiedData = {
 			Product: "Donation",
@@ -126,6 +127,7 @@ class DonorfyClient {
 			UtmMedium: utmMedium,
 			UtmCampaign: utmCampaign,
 			Comments: `utm_source=${utmSource}, utm_medium=${utmMedium}, utm_campaign=${utmCampaign}`,
+			Reference: reference,
 		};
 		return this.request("transactions", "POST", modifiedData);
 	}

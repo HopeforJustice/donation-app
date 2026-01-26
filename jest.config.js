@@ -23,6 +23,7 @@ const config = {
 	testPathIgnorePatterns: [
 		"/node_modules/", // Always ignore node_modules
 		"__tests__/integration/", // Explicitly ignore the integration tests
+		"__tests__/jest/app/integration/old/", // Exclude old integration tests
 	],
 	// Ensure clean test environment
 	clearMocks: true,

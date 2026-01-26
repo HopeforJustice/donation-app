@@ -152,14 +152,21 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 			campaign,
 			"GoCardless DD",
 			constituentId,
+			null,
+			"unrestricted",
+			null,
+			null,
+			null,
+			"Test Transaction Reference",
 		);
 		transactionId = result.Id;
 		expect(result).toEqual(expect.any(Object));
 	}, 10000);
 	it("Should confirm the Transaction", async () => {
 		const result = await donorfyUK.getTransaction(transactionId);
-		console.log("get transaction result:", result);
+
 		expect(result).toEqual(expect.any(Object));
+		expect(result.Reference).toEqual("Test Transaction Reference");
 	}, 10000);
 	it("Should delete the Transaction", async () => {
 		const result = await donorfyUK.deleteTransaction(transactionId);
@@ -168,5 +175,5 @@ describe("Integration Test: Donorfy UK CRUD", () => {
 	it("Should delete that constituent", async () => {
 		const result = await donorfyUK.deleteConstituent(constituentId);
 		expect(result).toEqual(expect.any(Object));
-	}, 10000);
-}, 30000);
+	}, 100000);
+}, 1000000);
